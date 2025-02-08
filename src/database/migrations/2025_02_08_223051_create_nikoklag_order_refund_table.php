@@ -23,9 +23,6 @@ return new class extends Migration
                 RefundStatus::REJECTED,
                 RefundStatus::FAILED,
             ])->default(RefundStatus::PENDING);
-            // Relationships
-            // $table->unsignedBigInteger('transaction_id')->nullable();
-            // $table->unsignedBigInteger('tender_id')->nullable();
             $table->timestamps();
         });
     }
