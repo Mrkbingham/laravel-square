@@ -3,6 +3,7 @@
 namespace Nikolag\Square\Traits;
 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Schema;
 use Nikolag\Core\Exceptions\Exception;
@@ -114,5 +115,15 @@ trait HasProducts
     public function discounts(): MorphToMany
     {
         return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::DISCOUNT_NAMESPACE)->distinct()->withPivot('scope');
+    }
+
+    /**
+     * Return a list of itemized product refunds related to this order.
+     *
+     * @return MorphTo
+     */
+    public function lineItemRefunds(): MorphTo
+    {
+        return $this->morphTo(Constants::REFUND_NAMESPACE, 'refundable', 'nikolag_order_refunds', 'refundable_id', 'refund_id')->where('refundable_type', Constants::ORDER_PRODUCT_NAMESPACE);
     }
 }
