@@ -27,13 +27,33 @@ class RefundTest extends TestCase
      */
     public function test_refund_make(): void
     {
-        $product = factory(Product::class)->make();
+        $product = factory(Product::class)->create();
         $refund  = factory(Refund::class)->make([
             'refundable_id' => $product->id,
             'refundable_type' => Constants::PRODUCT_NAMESPACE,
             'quantity' => 1,
+            'reason' => 'Test refund',
         ]);
 
         $this->assertNotNull($refund, 'Refund is null.');
+    }
+
+    /**
+     * Refund persisting.
+     *
+     * @return void
+     */
+    public function test_refund_create(): void
+    {
+        $product = factory(Product::class)->create();
+        $refundData = [
+            'refundable_id' => $product->id,
+            'refundable_type' => Constants::PRODUCT_NAMESPACE,
+            'quantity' => 1,
+            'reason' => 'Test refund',
+        ];
+        factory(Refund::class)->create($refundData);
+
+        $this->assertDatabaseHas('nikolag_order_refunds', $refundData);
     }
 }
