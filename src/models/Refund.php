@@ -3,6 +3,7 @@
 namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
+use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -34,5 +35,34 @@ class Refund extends Model
     public function refundable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /**
+     * Check if the refund quantity exceeds the order product pivot quantity.
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function checkRefundQuantity(): void
+    {
+        if ($this->refundable_type === Constants::ORDER_PRODUCT_NAMESPACE) {
+            $orderProductPivot = $this->refundable;
+            if ($this->quantity > $orderProductPivot->quantity) {
+                throw new Exception('Refund quantity exceeds order product pivot quantity');
+            }
+        }
+    }
+
+    /**
+     * Override the save method to include the quantity check.
+     *
+     * @param array $options
+     * @return bool
+     */
+    public function save(array $options = []): bool
+    {
+        $this->checkRefundQuantity();
+        return parent::save($options);
     }
 }

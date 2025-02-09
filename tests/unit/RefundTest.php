@@ -8,6 +8,7 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
+use Exception;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\OrderProductPivot;
@@ -81,5 +82,31 @@ class RefundTest extends TestCase
 
         $this->assertInstanceOf(OrderProductPivot::class, $refund->refundable);
         $this->assertInstanceOf(Order::class, $refund->refundable->order);
+    }
+
+    /**
+     * Check refund matches quantity of order product pivot.
+     *
+     * @return void
+     */
+    public function test_refund_quantity_matches_order_product_pivot(): void
+    {
+        /** @var Order */
+        $order = factory(Order::class)->create();
+        $product = factory(Product::class)->make([
+            'price' => 110,
+        ]);
+        $order->products()->save($product, ['quantity' => 3]);
+
+        // Expect an exception to be thrown
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Refund quantity exceeds product quantity');
+
+        factory(Refund::class)->create([
+            'refundable_id' => $order->products()->first()->pivot->id,
+            'refundable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'quantity' => 4,
+            'reason' => 'Test refund',
+        ]);
     }
 }
