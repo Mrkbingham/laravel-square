@@ -3,6 +3,7 @@
 namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Nikolag\Core\Models\OrderProductPivot as IntermediateTable;
 use Nikolag\Square\Utils\Constants;
 
@@ -85,6 +86,16 @@ class OrderProductPivot extends IntermediateTable
     public function product()
     {
         return $this->belongsTo(Constants::PRODUCT_NAMESPACE, 'product_id', 'id');
+    }
+
+    /**
+     * Return a refund associated with this order-product.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\MorphOne
+     */
+    public function refund(): MorphOne
+    {
+        return $this->morphOne(Constants::REFUND_NAMESPACE, 'refundable');
     }
 
     /**

@@ -10,6 +10,7 @@ namespace Nikolag\Square\Tests\Unit;
 
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Facades\Square;
+use Nikolag\Square\Models\OrderProductPivot;
 use Nikolag\Square\Models\OrderRefundPivot;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Models\Refund;
@@ -27,10 +28,10 @@ class RefundTest extends TestCase
      */
     public function test_refund_make(): void
     {
-        $product = factory(Product::class)->create();
+        $orderProductPivot = factory(OrderProductPivot::class)->create();
         $refund  = factory(Refund::class)->make([
-            'refundable_id' => $product->id,
-            'refundable_type' => Constants::PRODUCT_NAMESPACE,
+            'refundable_id' => $orderProductPivot->id,
+            'refundable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
             'quantity' => 1,
             'reason' => 'Test refund',
         ]);
@@ -45,15 +46,40 @@ class RefundTest extends TestCase
      */
     public function test_refund_create(): void
     {
-        $product = factory(Product::class)->create();
+        $orderProductPivot = factory(OrderProductPivot::class)->create();
         $refundData = [
-            'refundable_id' => $product->id,
-            'refundable_type' => Constants::PRODUCT_NAMESPACE,
+            'refundable_id' => $orderProductPivot->id,
+            'refundable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
             'quantity' => 1,
             'reason' => 'Test refund',
         ];
         factory(Refund::class)->create($refundData);
 
         $this->assertDatabaseHas('nikolag_order_refunds', $refundData);
+    }
+
+    /**
+     * Check creating a refund with order product pivot (for itemized refunds).
+     *
+     * @return void
+     */
+    public function test_refund_create_with_order_product_pivot(): void
+    {
+        /** @var Order */
+        $order = factory(Order::class)->create();
+        $product = factory(Product::class)->make([
+            'price' => 110,
+        ]);
+        $order->products()->save($product, ['quantity' => 3]);
+
+        $refund = factory(Refund::class)->create([
+            'refundable_id' => $order->products()->first()->pivot->id,
+            'refundable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'quantity' => 1,
+            'reason' => 'Test refund',
+        ]);
+
+        $this->assertInstanceOf(OrderProductPivot::class, $refund->refundable);
+        $this->assertInstanceOf(Order::class, $refund->refundable->order);
     }
 }
