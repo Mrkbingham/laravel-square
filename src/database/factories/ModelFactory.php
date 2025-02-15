@@ -87,6 +87,16 @@ $factory->define(Constants::PRODUCT_NAMESPACE, function (Faker\Generator $faker)
 });
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::REFUND_NAMESPACE, function (Faker\Generator $faker) {
+    return [
+        // Because this required a product, make sure to pas these in in the state
+        // 'refundable_id' => $product->id,
+        // 'refundable_type' => Constants::PRODUCT_NAMESPACE,
+        // 'quantity' => $quantity,
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Constants::CUSTOMER_NAMESPACE, function (Faker\Generator $faker) {
     return [
         'first_name' => $faker->unique()->firstNameMale,

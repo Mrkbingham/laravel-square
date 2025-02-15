@@ -17,6 +17,16 @@ interface SquareServiceContract extends PaymentServiceContract
     public function addProduct(mixed $product, int $quantity = 1, string $currency = 'USD'): SquareServiceContract;
 
     /**
+     * Add a refund to the order.
+     *
+     * @param  mixed  $product
+     * @param  int  $quantity
+     * @param  string  $currency
+     * @return self
+     */
+    public function addRefund(mixed $product, int $quantity = 1, string $reason = 'default'): SquareServiceContract;
+
+    /**
      * Getter for fulfillment.
      *
      * @return mixed
