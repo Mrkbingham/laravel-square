@@ -273,6 +273,27 @@ class SquareServiceTest extends TestCase
     }
 
     /**
+     * Tests the buildProducts method.
+     *
+     * @return void
+     */
+    public function test_build_products(): void
+    {
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct($this->data->product, 1)->save();
+
+        $products = Square::getSquareBuilder()->buildProducts(
+            $square->getOrder()->products,
+            'USD'
+        );
+
+        $this->assertNotNull($products);
+        foreach ($products as $product) {
+            $this->assertInstanceOf(\Square\Models\OrderLineItem::class, $product);
+        }
+    }
+
+    /**
      * Tests the createCatalogImage method.
      *
      * @return void
