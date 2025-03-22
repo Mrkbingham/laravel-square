@@ -348,6 +348,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
                 'name' => $catalogModifierList->getName(),
                 'ordinal' => $catalogModifierList?->getOrdinal(),
                 'selection_type' => $catalogModifierList->getSelectionType(),
+                'type' => $catalogModifierList->getModifierType(),
             ];
 
             $squareID = $modifierListObject->getId();

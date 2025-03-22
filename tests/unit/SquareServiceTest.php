@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
+use Illuminate\Database\Eloquent\Builder;
 use Str;
 use Nikolag\Square\Builders\SquareRequestBuilder;
 use Nikolag\Square\Exception;
@@ -295,6 +296,102 @@ class SquareServiceTest extends TestCase
         foreach ($products as $product) {
             $this->assertInstanceOf(\Square\Models\OrderLineItem::class, $product);
         }
+    }
+
+    /**
+     * Tests the buildProducts method with an option-based modifier.
+     *
+     * @return void
+     */
+    public function test_build_products_with_list_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Select a product that has modifiers
+        $product = Product::whereHas('modifiers', function (Builder $query) {
+            $query->where('type', 'LIST');
+        })->inRandomOrder()->first();
+        $modifierListOption = $product->modifiers->first()->options->first();
+
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct(
+            $product,
+            1,
+            modifiers: [$modifierListOption]
+        )->save();
+
+        // Build the products
+        $products = Square::getSquareBuilder()->buildProducts(
+            $square->getOrder()->products,
+            'USD'
+        );
+
+        $this->assertNotNull($products);
+
+        /** @var \Square\Models\OrderLineItem */
+        $product = $products[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItem::class, $product);
+        $this->assertNotEmpty($product->getModifiers());
+
+        /** @var \Square\Models\OrderLineItemModifier */
+        $modifier = $product->getModifiers()[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItemModifier::class, $modifier);
+        $this->assertNotEmpty($modifier->getUid());
+        $this->assertNotNull($modifier->getCatalogObjectId());
+        $this->assertEquals($modifierListOption->square_catalog_object_id, $modifier->getCatalogObjectId());
+    }
+
+    /**
+     * Tests the buildProducts method with a text-based modifier.
+     *
+     * @return void
+     */
+    public function test_build_products_with_text_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Select a product that has modifiers
+        $product = Product::whereHas('modifiers', function (Builder $query) {
+            $query->where('type', 'TEXT');
+        })->inRandomOrder()->first();
+        $textModifier = $product->modifiers->where('type', 'TEXT')->first();
+        $textModifier->text = 'Scrambled'; // Temporarily set the eggs as scrambled
+
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct(
+            $product,
+            1,
+            modifiers: [$textModifier]
+        )->save();
+
+        // Build the products
+        $products = Square::getSquareBuilder()->buildProducts(
+            $square->getOrder()->products,
+            'USD'
+        );
+
+        $this->assertNotNull($products);
+
+        /** @var \Square\Models\OrderLineItem */
+        $product = $products[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItem::class, $product);
+        $this->assertNotEmpty($product->getModifiers());
+
+        /** @var \Square\Models\OrderLineItemModifier */
+        $modifier = $product->getModifiers()[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItemModifier::class, $modifier);
+        $this->assertNotEmpty($modifier->getUid());
+        $this->assertNotNull($modifier->getCatalogObjectId());
+        $this->assertEquals($textModifier->square_catalog_object_id, $modifier->getCatalogObjectId());
+
     }
 
     /**

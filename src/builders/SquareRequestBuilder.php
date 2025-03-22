@@ -9,6 +9,8 @@ use Nikolag\Square\Builders\SquareRequestBuilders\FulfillmentRequestBuilder;
 use Nikolag\Square\Builders\Validate;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
+use Nikolag\Square\Models\Modifier;
+use Nikolag\Square\Models\ModifierOption;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
 use Square\Models\BatchDeleteCatalogObjectsRequest;
@@ -38,6 +40,7 @@ use Square\Models\Builders\CatalogObjectBuilder;
 use Square\Models\Builders\CatalogTaxBuilder;
 use Square\Models\Builders\CreateCatalogImageRequestBuilder;
 use Square\Models\Builders\MoneyBuilder;
+use Square\Models\OrderLineItemModifier;
 
 class SquareRequestBuilder
 {
@@ -466,6 +469,38 @@ class SquareRequestBuilder
     }
 
     /**
+     * Builds the modifiers for the order.
+     *
+     * @param Collection $modifiers
+     * @return array
+     */
+    public function buildModifiers(Collection $modifiers): array
+    {
+        $temp = [];
+        if ($modifiers->isEmpty()) {
+            return $temp;
+        }
+
+        foreach ($modifiers as $modifier) {
+            $tempModifier = new OrderLineItemModifier();
+            $tempModifier->setUid(Util::uid());
+            $tempModifier->setCatalogObjectId($modifier->modifiable->square_catalog_object_id);
+
+            // Add text for free text modifiers
+            if (
+                $modifier->modifiable_type == Modifier::class
+                && $modifier->modifiable->type == 'TEXT'
+            ) {
+                $tempModifier->setName($modifier->modifiable->text);
+            }
+
+            $temp[] = $tempModifier;
+        }
+
+        return $temp;
+    }
+
+    /**
      * Builds and returns array of taxes.
      *
      * @param  Collection  $taxes
@@ -576,6 +611,7 @@ class SquareRequestBuilder
                 $tempProduct->setCatalogObjectId($product->square_catalog_object_id);
                 $tempProduct->setVariationName($product->variation_name);
                 $tempProduct->setNote($product->note);
+                $tempProduct->setModifiers($this->buildModifiers($pivotProduct->modifiers));
                 $tempProduct->setAppliedDiscounts($this->buildAppliedDiscounts($discounts));
                 $tempProduct->setAppliedTaxes($this->buildAppliedTaxes($taxes));
                 $temp[] = $tempProduct;
