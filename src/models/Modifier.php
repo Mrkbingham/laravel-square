@@ -44,6 +44,16 @@ class Modifier extends Model
     }
 
     /**
+     * Returns a list of options for this modifier, if it's a LIST type.
+     *
+     * @return HasMany
+     */
+    public function options(): HasMany
+    {
+        return $this->hasMany(ModifierOption::class);
+    }
+
+    /**
      * Prepare a date for array / JSON serialization.
      *
      * @param  \DateTimeInterface  $date
