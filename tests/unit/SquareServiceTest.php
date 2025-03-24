@@ -3,6 +3,7 @@
 namespace Nikolag\Square\Tests\Unit;
 
 use Illuminate\Database\Eloquent\Builder;
+use Nikolag\Square\Builders\OrderBuilder;
 use Str;
 use Nikolag\Square\Builders\SquareRequestBuilder;
 use Nikolag\Square\Exception;
@@ -391,7 +392,6 @@ class SquareServiceTest extends TestCase
         $this->assertNotEmpty($modifier->getUid());
         $this->assertNotNull($modifier->getCatalogObjectId());
         $this->assertEquals($textModifier->square_catalog_object_id, $modifier->getCatalogObjectId());
-
     }
 
     /**
@@ -599,6 +599,40 @@ class SquareServiceTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct($this->data->product, 1)->addProduct($product2, 2)->save();
 
         $this->assertCount(2, $square->getOrder()->products, 'There is not enough products');
+    }
+
+    /**
+     * Add product for order.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_with_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Select a product that has modifiers
+        $product = Product::whereHas('modifiers', function (Builder $query) {
+            $query->where('type', 'LIST');
+        })->inRandomOrder()->first();
+        $modifierListOption = $product->modifiers->first()->options->first();
+
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct(
+            $product,
+            1,
+            modifiers: [$modifierListOption]
+        )->save();
+
+        // Make sure if you set an order with linked modifiers, the modifiers are added
+        $orderBuilder = new OrderBuilder();
+        $square = Square::setOrder($square->getOrder(), env('SQUARE_LOCATION'));
+
+        $this->assertCount(1, $square->getOrder()->products, 'There is not enough products');
+        $this->assertCount(1, $square->getOrder()->products->first()->modifiers, 'There is not enough modifiers');
     }
 
     /**

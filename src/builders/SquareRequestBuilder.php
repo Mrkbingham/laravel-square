@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square\Builders;
 
+use Exception;
 use Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -491,8 +492,14 @@ class SquareRequestBuilder
                 $modifier->modifiable_type == Modifier::class
                 && $modifier->modifiable->type == 'TEXT'
             ) {
-                $tempModifier->setName($modifier->modifiable->text);
+                throw new Exception('Text based modifiers are not yet supported by Square\'s APIs');
+                // Text based modifiers are not yet supported by Square's APIs:
+                // https://developer.squareup.com/forums/t/adding-a-text-modifier-via-orders-api/20465/3
+                // $tempModifier->setName($modifier->text);
             }
+
+            // Add the quantity
+            $tempModifier->setQuantity($modifier->quantity);
 
             $temp[] = $tempModifier;
         }

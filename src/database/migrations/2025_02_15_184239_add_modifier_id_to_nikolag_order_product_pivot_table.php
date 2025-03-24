@@ -18,7 +18,7 @@ return new class extends Migration
                 ->foreign('order_product_id')->references('id')->on('nikolag_product_order')
                 ->onDelete('cascade');
             $table->morphs('modifiable', 'nikolag_product_order_modifier_modifiable_type_index');
-            $table->string('modifier_text')->nullable();
+            $table->string('text')->nullable();
             $table->integer('quantity')->default(1);
             $table->timestamps();
         });

@@ -49,11 +49,14 @@ class ModifiersBuilder
         if ($modifier instanceof Modifier) {
             if ($modifier->type === 'LIST') {
                 throw new InvalidSquareOrderException('Modifier LIST type must use specific modifier option', 500);
-            } elseif ($modifier->type === 'TEXT' && !$modifier->modifier_text) {
+            } elseif ($modifier->type === 'TEXT' && !$modifier->text) {
                 throw new InvalidSquareOrderException('Text is missing for the text modifier', 500);
             }
 
-            $productModifier->modifier_text = $modifier->text;
+            throw new InvalidSquareOrderException('Text based modifiers are not yet supported by Square\'s APIs', 500);
+            // Text based modifiers are not yet supported by Square's APIs:
+            // https://developer.squareup.com/forums/t/adding-a-text-modifier-via-orders-api/20465/3
+            // $productModifier->text = $modifier->text;
         }
 
         // Set the quantity of the modifier
