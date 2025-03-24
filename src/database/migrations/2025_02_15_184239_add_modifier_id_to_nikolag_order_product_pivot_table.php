@@ -19,6 +19,7 @@ return new class extends Migration
                 ->onDelete('cascade');
             $table->morphs('modifiable', 'nikolag_product_order_modifier_modifiable_type_index');
             $table->string('modifier_text')->nullable();
+            $table->integer('quantity')->default(1);
             $table->timestamps();
         });
     }
