@@ -53,10 +53,7 @@ class ModifiersBuilder
                 throw new InvalidSquareOrderException('Text is missing for the text modifier', 500);
             }
 
-            throw new InvalidSquareOrderException('Text based modifiers are not yet supported by Square\'s APIs', 500);
-            // Text based modifiers are not yet supported by Square's APIs:
-            // https://developer.squareup.com/forums/t/adding-a-text-modifier-via-orders-api/20465/3
-            // $productModifier->text = $modifier->text;
+            $productModifier->text = $modifier->text;
         }
 
         // Set the quantity of the modifier

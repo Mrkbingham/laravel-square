@@ -16,7 +16,7 @@ return new class extends Migration
     {
         Schema::table('nikolag_products', function (Blueprint $table) {
             // Increase the note column length
-            $table->string('note', 2000)->change();
+            $table->string('note', 2000)->nullable()->change();
         });
     }
 
@@ -28,7 +28,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('nikolag_products', function (Blueprint $table) {
-            $table->string('note', 50)->change();
+            $table->string('note', 50)->nullable()->change();
         });
     }
 };
