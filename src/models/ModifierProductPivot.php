@@ -6,7 +6,7 @@ use DateTimeInterface;
 use Nikolag\Core\Models\OrderProductPivot as IntermediateTable;
 use Nikolag\Square\Utils\Constants;
 
-class OrderProductPivot extends IntermediateTable
+class ModifierProductPivot extends IntermediateTable
 {
     /**
      * The attributes that are mass assignable.
