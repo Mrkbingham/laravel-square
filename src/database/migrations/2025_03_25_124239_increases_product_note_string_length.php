@@ -17,6 +17,8 @@ return new class extends Migration
         Schema::table('nikolag_products', function (Blueprint $table) {
             // Increase the note column length
             $table->string('note', 2000)->nullable()->change();
+            // Allow pricing to be nullable for variable pricing
+            $table->float('price')->nullable()->change();
         });
     }
 
