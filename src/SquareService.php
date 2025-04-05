@@ -463,7 +463,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
                     'description'    => $itemData->getDescriptionHtml(),
                     'variation_name' => $variation->getItemVariationData()->getName(),
                     'description'    => $itemData->getDescription(),
-                    'price'          => $variation->getItemVariationData()->getPriceMoney()->getAmount(),
+                    'price'          => $variation->getItemVariationData()->getPriceMoney()?->getAmount(),
                 ];
 
                 $squareID = $variation->getId();
