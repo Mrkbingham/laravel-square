@@ -615,10 +615,9 @@ class SquareServiceTest extends TestCase
         }
 
         // Select a product that has modifiers
-        $product = Product::whereHas('modifiers', function (Builder $query) {
-            $query->where('type', 'LIST');
-        })->inRandomOrder()->first();
-        $modifierListOption = $product->modifiers->first()->options->first();
+        $modifier = Modifier::where('type', 'LIST')->whereHas('products')->inRandomOrder()->first();
+        $modifierListOption = $modifier->options->random()->first();
+        $product = $modifier->products->random()->first();
 
         // Create a new order
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct(
@@ -628,11 +627,10 @@ class SquareServiceTest extends TestCase
         )->save();
 
         // Make sure if you set an order with linked modifiers, the modifiers are added
-        $orderBuilder = new OrderBuilder();
         $square = Square::setOrder($square->getOrder(), env('SQUARE_LOCATION'));
 
-        $this->assertCount(1, $square->getOrder()->products, 'There is not enough products');
-        $this->assertCount(1, $square->getOrder()->products->first()->modifiers, 'There is not enough modifiers');
+        $this->assertCount(1, $square->getOrder()->products, 'There are not enough products');
+        $this->assertCount(1, $square->getOrder()->products->first()->pivot->modifiers, 'There are not enough modifiers');
     }
 
     /**
