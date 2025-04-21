@@ -191,10 +191,12 @@ class ProductBuilder
     {
         $productObj = new stdClass();
         // If product doesn't have price throw an exception
-        if (! filled($product->price)) {
+        if (! filled($product->price) && ! filled($product->pivot->price)) {
             throw new MissingPropertyException('Product does not have required attribute: price', 500);
         }
-        $price = $product->price;
+        $price = filled($product->pivot->price)
+            ? $product->pivot->price // Pivot takes precedence for variable pricing support
+            : $product->price;
 
         //If product doesn't have quantity in pivot table
         //throw new exception because every product should
