@@ -190,6 +190,12 @@ class ProductBuilder
     public function createProductFromModel(Model $product, Model $order = null, int $quantity = null, array $modifiers = []): Product|stdClass
     {
         $productObj = new stdClass();
+        // If product doesn't have price throw an exception
+        if (! filled($product->price)) {
+            throw new MissingPropertyException('Product does not have required attribute: price', 500);
+        }
+        $price = $product->price;
+
         //If product doesn't have quantity in pivot table
         //throw new exception because every product should
         //have at least 1 quantity
@@ -219,6 +225,7 @@ class ProductBuilder
         }
 
         $productPivot->quantity = $quantity;
+        $productPivot->price = $price;
         $productObj = $tempProduct;
         $productObj->pivot = $productPivot;
 
