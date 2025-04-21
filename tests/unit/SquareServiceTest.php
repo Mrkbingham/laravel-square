@@ -606,45 +606,6 @@ class SquareServiceTest extends TestCase
      *
      * @return void
      */
-    public function test_square_order_add_product_variable_pricing(): void
-    {
-        $productVariablePrice = factory(Product::class)->create([
-            'price' => null,
-        ]);
-        $productVariablePrice->price = 10_00;
-
-        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
-            ->addProduct($productVariablePrice, 1)
-            ->save();
-
-        $this->assertCount(1, $square->getOrder()->products, 'There are not enough products');
-        $this->assertEquals(10_00, $square->getOrder()->products->first()->pivot->price, 'Order product pivot price does not match');
-    }
-
-    /**
-     * Ensures an exception is thrown when trying to add a product with variable pricing without a price.
-     *
-     * @return void
-     */
-    public function test_square_order_add_product_variable_pricing_without_price(): void
-    {
-        $productVariablePrice = factory(Product::class)->create([
-            'price' => null,
-        ]);
-
-        // Set up the error expectations
-        $this->expectException(MissingPropertyException::class);
-        $this->expectExceptionMessage('Required field is missing');
-        $this->expectExceptionCode(500);
-
-        Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct($productVariablePrice, 1);
-    }
-
-    /**
-     * Add product for order.
-     *
-     * @return void
-     */
     public function test_square_order_add_product_with_modifier(): void
     {
         // Sync the modifiers and products

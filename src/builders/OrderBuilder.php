@@ -286,11 +286,6 @@ class OrderBuilder
                         }
                     }
 
-                    //Product price
-                    $productTemp->price = filled($product->pivot->price)
-                        ? $product->pivot->price // Pivot takes precedence for variable pricing support
-                        : $product->price;
-
                     //Product Modifiers
                     $productTemp->modifiers = collect([]);
                     if ($product->pivot->modifiers->isNotEmpty()) {
