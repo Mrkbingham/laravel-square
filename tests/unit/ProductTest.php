@@ -19,6 +19,16 @@ use Nikolag\Square\Utils\Constants;
 
 class ProductTest extends TestCase
 {
+    private TestDataHolder $data;
+
+    /**
+     * @return void
+     */
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->data = TestDataHolder::make();
+    }
     /**
      * Product creation.
      *
