@@ -66,15 +66,33 @@ class ProductTest extends TestCase
      */
     public function test_product_create_with_orders(): void
     {
-        $name = $this->faker->name;
+        $name = 'Test Product ' . uniqid();
+        $variation = 'Test Variation ' . uniqid();
         $order1 = factory(Order::class)->create();
         $order2 = factory(Order::class)->create();
 
         $product = factory(Product::class)->create([
             'name' => $name,
+            'variation_name' => $variation,
+            'price' => 10_00,
         ]);
 
-        $product->orders()->attach([$order1->id, $order2->id]);
+        // Create order product pivots directly to have more control
+        $orderProduct1 = new OrderProductPivot([
+            'price' => 10_00,
+            'quantity' => 1
+        ]);
+        $orderProduct1->order()->associate($order1);
+        $orderProduct1->product()->associate($product);
+        $orderProduct1->save();
+
+        $orderProduct2 = new OrderProductPivot([
+            'price' => 10_00,
+            'quantity' => 1
+        ]);
+        $orderProduct2->order()->associate($order2);
+        $orderProduct2->product()->associate($product);
+        $orderProduct2->save();
 
         $this->assertCount(2, $product->orders);
         $this->assertContainsOnlyInstancesOf(Order::class, $product->orders);
