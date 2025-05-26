@@ -15,7 +15,9 @@ use Nikolag\Square\Models\Product;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
+use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\Util;
 
 class ProductTest extends TestCase
 {
@@ -138,5 +140,44 @@ class ProductTest extends TestCase
         $this->expectExceptionCode(500);
 
         Square::setOrder($order, env('SQUARE_LOCATION'))->addProduct($product, 0);
+    }
+
+    /**
+     * Test variable item pricing when adding a product to an order
+     *
+     * @return void
+     */
+    public function test_variable_item_pricing_when_adding_product_to_order(): void
+    {
+        // Create a product with a base price (we'll override in the order)
+        $uniqueId = uniqid();
+        $variablePriceProduct = factory(Product::class)->create([
+            'price' => 1000, // Base price in product record
+            'name' => 'Variable Price Product ' . $uniqueId,
+            'variation_name' => 'Test Variation ' . $uniqueId,
+        ]);
+
+        // Create an order
+        $order = factory(Order::class)->create();
+
+        // Create OrderProductPivot with variable pricing directly
+        $orderProduct = new OrderProductPivot([
+            'price' => 800, // Different price in the order than in the product
+            'quantity' => 2  // Quantity is 2
+        ]);
+        $orderProduct->order()->associate($order);
+        $orderProduct->product()->associate($variablePriceProduct);
+        $orderProduct->save();
+
+        // Check that the product was saved with the correct price in the pivot
+        $this->assertNotNull($order->products->first(), 'Product was not saved to order');
+        $this->assertEquals(800, $order->products->first()->pivot->price, 'Variable price not correctly stored in pivot');
+        $this->assertEquals(1000, $order->products->first()->price, 'Product should retain its base price');
+
+        // Calculate and verify total cost
+        $calculatedCost = Util::calculateTotalOrderCostByModel($order);
+        $expectedCost = 2 * 800; // Quantity 2 × price 800 = 1600
+
+        $this->assertEquals($expectedCost, $calculatedCost, 'Order total with variable pricing not calculated correctly');
     }
 }
