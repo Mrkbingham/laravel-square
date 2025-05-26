@@ -247,14 +247,6 @@ $factory->define(Order::class, function (Faker\Generator $faker) {
     ];
 });
 
-// /* @var \Illuminate\Database\Eloquent\Factory $factory */
-// $factory->define(OrderProductPivot::class, function (Faker\Generator $faker) {
-//     return [
-//         'quantity' => 1,
-//         'price' => 5_00
-//     ];
-// });
-
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(PickupDetails::class, function (Faker\Generator $faker) {
     return [
