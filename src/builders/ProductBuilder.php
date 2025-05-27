@@ -203,8 +203,8 @@ class ProductBuilder
     {
         $productObj = new stdClass();
         // Get price - for variable pricing, price can be null in the product model but must be provided in the pivot
-        $price = $product->pivot && filled($product->pivot->price)
-            ? $product->pivot->price // Pivot takes precedence for variable pricing support
+        $price = $product->pivot && filled($product->pivot->price_money_amount)
+            ? $product->pivot->price_money_amount // Pivot takes precedence for variable pricing support
             : $product->price;
 
         // For variable pricing, price can be null in the product model but must be provided in the pivot
