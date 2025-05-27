@@ -99,7 +99,7 @@ trait HasProducts
 
         // Merge the product's current price into the pivot attributes
         $pivotData = array_merge($attributes, [
-            'price' => $productModel->price_money_amount
+            'price_money_amount' => $productModel->price_money_amount
         ]);
 
         $this->products()->attach($product, $pivotData);
