@@ -632,7 +632,6 @@ class SquareRequestBuilder
 
                 $money = new Money();
                 $money->setAmount($product->pivot->price_money_amount);
-                $money->setAmount($product->pivot->price_money_currency);
                 $money->setCurrency($currency);
                 $tempProduct = new OrderLineItem($quantity);
                 $tempProduct->setName($product->name);
