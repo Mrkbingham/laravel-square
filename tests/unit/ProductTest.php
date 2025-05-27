@@ -171,7 +171,7 @@ class ProductTest extends TestCase
 
         // Check that the product was saved with the correct price in the pivot
         $this->assertNotNull($order->products->first(), 'Product was not saved to order');
-        $this->assertEquals(800, $order->products->first()->pivot->price, 'Variable price not correctly stored in pivot');
+        $this->assertEquals(800, $order->products->first()->pivot->price_money_amount, 'Variable price not correctly stored in pivot');
         $this->assertEquals(1000, $order->products->first()->price, 'Product should retain its base price');
 
         // Calculate and verify total cost
