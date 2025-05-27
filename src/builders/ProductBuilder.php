@@ -179,7 +179,7 @@ class ProductBuilder
 
         // Make sure price is set in the pivot for variable pricing
         if (Arr::has($product, 'price')) {
-            $productPivot->price = $product['price'];
+            $productPivot->price_money_amount = $product['price'];
         }
 
         $productObj = $tempProduct;
@@ -242,7 +242,7 @@ class ProductBuilder
         }
 
         $productPivot->quantity = $quantity;
-        $productPivot->price = $price;
+        $productPivot->price_money_amount = $price;
         $productObj = $tempProduct;
         $productObj->pivot = $productPivot;
 
