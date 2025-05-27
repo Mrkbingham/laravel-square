@@ -247,7 +247,7 @@ class Util
 
         $noDeductiblesCost = $products->map(function ($product) {
             // Add modifier cost if relevant
-            $productPrice = $product->pivot->price;
+            $productPrice = $product->pivot->price_money_amount;
             if ($product->pivot->modifiers->isNotEmpty()) {
                 $productPrice += $product->pivot->modifiers->map(function ($modifier) {
                     return $modifier->modifiable?->price_money_amount ?? 0;
