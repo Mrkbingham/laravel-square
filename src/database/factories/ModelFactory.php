@@ -180,6 +180,39 @@ $factory->define(Constants::DISCOUNT_NAMESPACE, function (Faker\Generator $faker
 });
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::SERVICE_CHARGE_NAMESPACE, function (Faker\Generator $faker) {
+    return [
+        'name' => $faker->unique()->company,
+        'calculation_phase' => Arr::random([
+            Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL,
+            Constants::SERVICE_CHARGE_CALCULATION_PHASE_TOTAL
+        ]),
+        'taxable' => $faker->boolean,
+        'treatment_type' => Arr::random([
+            Constants::SERVICE_CHARGE_TREATMENT_LINE_ITEM_TREATMENT,
+            Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED_TREATMENT
+        ]),
+    ];
+});
+
+/* PERCENTAGE ONLY */
+$factory->state(Constants::SERVICE_CHARGE_NAMESPACE, 'PERCENTAGE_ONLY', function (Faker\Generator $faker) {
+    return [
+        'percentage' => $faker->randomFloat(2, 1, 25),
+        'amount_money' => null,
+    ];
+});
+
+/* AMOUNT ONLY */
+$factory->state(Constants::SERVICE_CHARGE_NAMESPACE, 'AMOUNT_ONLY', function (Faker\Generator $faker) {
+    return [
+        'amount_money' => $faker->numberBetween(100, 1000),
+        'amount_currency' => 'USD',
+        'percentage' => null,
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Fulfillment::class, function (Faker\Generator $faker) {
     return [
         'state' => FulfillmentState::PROPOSED,
