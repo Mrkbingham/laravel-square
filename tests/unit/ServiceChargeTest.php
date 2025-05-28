@@ -39,4 +39,96 @@ class ServiceChargeTest extends TestCase
             'name' => $name,
         ]);
     }
+
+    /**
+     * Check order persisting with service charges.
+     *
+     * @return void
+     */
+    public function test_service_charge_create_with_orders(): void
+    {
+        $name = $this->faker->name;
+        $order1 = factory(Order::class)->create();
+        $order2 = factory(Order::class)->create();
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name' => $name,
+        ]);
+
+        $serviceCharge->orders()->attach($order1, ['featurable_type' => Order::class, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
+        $serviceCharge->orders()->attach($order2, ['featurable_type' => Order::class, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
+
+        $this->assertCount(2, $serviceCharge->orders);
+        $this->assertContainsOnlyInstancesOf(Order::class, $serviceCharge->orders);
+    }
+
+    /**
+     * Check product persisting with service charges.
+     *
+     * @return void
+     */
+    public function test_service_charge_create_with_products(): void
+    {
+        $name = $this->faker->name;
+        $product1 = factory(OrderProductPivot::class)->create();
+        $product2 = factory(OrderProductPivot::class)->create();
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name' => $name,
+        ]);
+
+        $serviceCharge->products()->attach($product1, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+        $serviceCharge->products()->attach($product2, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+
+        $this->assertCount(2, $serviceCharge->products);
+        $this->assertContainsOnlyInstancesOf(Constants::ORDER_PRODUCT_NAMESPACE, $serviceCharge->products);
+    }
+
+    /**
+     * Test service charge percentage calculation.
+     *
+     * @return void
+     */
+    public function test_service_charge_percentage(): void
+    {
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'percentage' => 10.0,
+            'amount_money' => null,
+        ]);
+
+        $this->assertEquals(10.0, $serviceCharge->percentage);
+        $this->assertNull($serviceCharge->amount_money);
+    }
+
+    /**
+     * Test service charge fixed amount calculation.
+     *
+     * @return void
+     */
+    public function test_service_charge_fixed_amount(): void
+    {
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'amount_money' => 500,
+            'amount_currency' => 'USD',
+            'percentage' => null,
+        ]);
+
+        $this->assertEquals(500, $serviceCharge->amount_money);
+        $this->assertEquals('USD', $serviceCharge->amount_currency);
+        $this->assertNull($serviceCharge->percentage);
+    }
+
+    /**
+     * Test service charge taxable property.
+     *
+     * @return void
+     */
+    public function test_service_charge_taxable(): void
+    {
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'taxable' => true,
+        ]);
+
+        $this->assertTrue($serviceCharge->taxable);
+    }
 }
