@@ -117,10 +117,14 @@ class OrderBuilder
                     $discounts = $product->discounts;
                     // Create taxes
                     $taxes = $product->taxes;
+                    // Create service charges
+                    $serviceCharges = $product->serviceCharges;
                     // Remove because laravel doesn't recognize it because its Collection/array
                     unset($product->pivot);
                     unset($product->discounts);
                     unset($product->taxes);
+                    unset($product->serviceCharges);
+
                     // Save product
                     $product->save();
 
@@ -176,7 +180,7 @@ class OrderBuilder
             }
         }
         // Eagerly load products, for future use
-        $order->load('products', 'taxes', 'discounts');
+        $order->load('products', 'taxes', 'discounts', 'serviceCharges');
 
         // Check if order has fulfillments
         if (
@@ -430,6 +434,8 @@ class OrderBuilder
                 && $key != 'taxes'
                 && $key != 'discounts'
                 && $key != 'products'
+                && $key != 'fulfillments'
+                && $key != 'service_charges'
                 && $key != $property
                 && $key != 'payment_service_type'
                 && $emptyModel->hasColumn($key)) {
