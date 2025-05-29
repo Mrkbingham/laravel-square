@@ -8,6 +8,7 @@ use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\Modifier;
 use Nikolag\Square\Models\Product;
+use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Tests\Models\Order;
@@ -370,5 +371,47 @@ class UtilTest extends TestCase
         $this->assertCount(2, $user->failedTransactions, 'Failed transactions count tied with User is not 2.');
         $this->assertCount(1, $user->passedTransactions, 'Passed transactions count tied with User is not 1.');
         $this->assertCount(8, $user->transactions, 'Transactions count tied with User is not 8.');
+    }
+
+    /**
+     * Test service charge calculation with percentage.
+     *
+     * @return void
+     */
+    public function test_apportioned_amount_service_charge_calculation(): void
+    {
+        // Save the order first
+        $this->data->order->save();
+
+        // Create three products to distribute the service charge
+        $product1 = factory(Product::class)->create(['price' => 15_00]); // 15.00 USD
+        $product2 = factory(Product::class)->create(['price' => 50_00]); // 50.00 USD
+        $product3 = factory(Product::class)->create(['price' => 12_00]); // 12.00 USD
+
+        // Add the products to the order
+        $this->data->order->attachProduct($product1, ['quantity' => 2]); // 2 x 15.00 USD = 30.00 USD
+        $this->data->order->attachProduct($product2, ['quantity' => 1]); // 1 x 50.00 USD = 50.00 USD
+        $this->data->order->attachProduct($product3, ['quantity' => 3]); // 3 x 12.00 USD = 36.00 USD
+
+        // Create a service charge with apportioned amount calculation
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name' => 'Apportioned amount service charge',
+            'amount_money' => 10_00, // 10.00 USD
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
+            'taxable' => true,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED_TREATMENT,
+        ]);
+
+        // Add the service charge to the order
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Base cost: $116.00, Service charge $10.00, Total: $126.00
+        $this->assertEquals(126_00, Util::calculateTotalOrderCostByModel($square->getOrder()));
     }
 }
