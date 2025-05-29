@@ -436,6 +436,33 @@ class UtilTest extends TestCase
     }
 
     /**
+     * Test service charge calculation with percentage.
+     *
+     * @return void
+     */
+    public function test_service_charge_percentage_calculation(): void
+    {
+        $this->set_up_service_charges_order();
+
+        // Create a percentage-based service charge with a subtotal calculation phase
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'percentage' => 1.5,
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL,
+        ]);
+
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Base cost: $116.00, Service charge $1.74, Total: $117.74
+        $this->assertEquals(117_74, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
      * Adds a specific set of products for use when calculating totals related to service charges tests.
      *
      * This method is used to ensure that the products are set up correctly and allows for a 1-to-1 comparison of the
