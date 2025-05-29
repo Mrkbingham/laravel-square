@@ -62,6 +62,7 @@ class Constants extends CoreConstants
     const DEDUCTIBLE_FIXED_AMOUNT = 'FIXED_AMOUNT';
     const DEDUCTIBLE_SCOPE_ORDER = 'ORDER';
     const DEDUCTIBLE_SCOPE_PRODUCT = 'LINE_ITEM';
+    const DEDUCTIBLE_SCOPE_SERVICE_CHARGE = 'SERVICE_CHARGE';
 
     // Service charge constants
     const SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL = 'SUBTOTAL_PHASE';
