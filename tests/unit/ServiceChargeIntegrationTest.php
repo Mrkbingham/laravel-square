@@ -57,4 +57,55 @@ class ServiceChargeIntegrationTest extends TestCase
         $this->assertEquals($expectedTotal, $actualTotal, 
             'Service charge should work correctly with variable pricing');
     }
+
+    /**
+     * Test multiple service charges on the same order.
+     *
+     * @return void
+     */
+    public function test_multiple_service_charges_integration(): void
+    {
+        $order = factory(Order::class)->create();
+        $product = factory(Product::class)->create(['price' => 1000]); // $10.00
+
+        // Create multiple service charges
+        $serviceCharge1 = factory(ServiceCharge::class)->create([
+            'name' => 'Service Fee',
+            'percentage' => 5.0,
+        ]);
+
+        $serviceCharge2 = factory(ServiceCharge::class)->create([
+            'name' => 'Processing Fee',
+            'amount_money' => 100, // $1.00
+            'amount_currency' => 'USD',
+        ]);
+
+        $square = Square::setOrder($order, env('SQUARE_LOCATION'))
+            ->addProduct($product, 2) // 2 × $10.00 = $20.00
+            ->save();
+
+        // Attach both service charges
+        $order->serviceCharges()->attach($serviceCharge1->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $order->serviceCharges()->attach($serviceCharge2->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $order->refresh();
+        $order->load('serviceCharges');
+
+        $this->assertCount(2, $order->serviceCharges, 'Order should have 2 service charges');
+
+        // Calculate total: $20.00 + 5% ($1.00) + $1.00 = $22.00 = 2200 cents
+        $expectedTotal = 2200;
+        $actualTotal = Util::calculateTotalOrderCostByModel($order);
+
+        $this->assertEquals($expectedTotal, $actualTotal, 'Multiple service charges were not calculated correctly');
+    }
 }
