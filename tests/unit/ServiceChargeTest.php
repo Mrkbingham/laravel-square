@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
+use Illuminate\Validation\ValidationException;
 use Nikolag\Square\Models\OrderProductPivot;
 use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
@@ -18,7 +19,9 @@ class ServiceChargeTest extends TestCase
      */
     public function test_service_charge_make(): void
     {
-        $serviceCharge = factory(ServiceCharge::class)->create();
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'amount_money' => 1000,
+        ]);
 
         $this->assertNotNull($serviceCharge, 'Service charge is null.');
     }
@@ -34,6 +37,7 @@ class ServiceChargeTest extends TestCase
 
         $serviceCharge = factory(ServiceCharge::class)->create([
             'name' => $name,
+            'amount_money' => 1000,
         ]);
 
         $this->assertDatabaseHas('nikolag_service_charges', [
@@ -54,6 +58,7 @@ class ServiceChargeTest extends TestCase
 
         $serviceCharge = factory(ServiceCharge::class)->create([
             'name' => $name,
+            'amount_money' => 1000,
         ]);
 
         $serviceCharge->orders()->attach($order1, ['featurable_type' => Order::class, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
@@ -76,6 +81,7 @@ class ServiceChargeTest extends TestCase
 
         $serviceCharge = factory(ServiceCharge::class)->create([
             'name' => $name,
+            'amount_money' => 1000,
         ]);
 
         $serviceCharge->products()->attach($product1, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
@@ -127,10 +133,52 @@ class ServiceChargeTest extends TestCase
     public function test_service_charge_taxable(): void
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
+            'amount_money' => 1000,
             'taxable' => true,
         ]);
 
         $this->assertTrue($serviceCharge->taxable);
+    }
+
+    /**
+     * Test service charge error handling with invalid data.
+     *
+     * @return void
+     */
+    public function test_service_charge_error_handling(): void
+    {
+        // Test creating service charge without amount or percentage
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Service charge must have either percentage or amount_money set');
+
+        factory(ServiceCharge::class)->create([
+            'amount_money' => null,
+            'percentage' => null,
+        ]);
+    }
+
+    /**
+     * Test service charge with both amount and percentage (should fail).
+     *
+     * @return void
+     */
+    public function test_service_charge_both_amount_and_percentage_error(): void
+    {
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Service cannot have percentage while amount_money is set.');
+
+        factory(ServiceCharge::class)->create([
+            'amount_money' => 100,
+            'percentage' => 5.0,
+        ]);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Service cannot have amount_money while percentage is set.');
+
+        factory(ServiceCharge::class)->create([
+            'amount_money' => 100,
+            'percentage' => 5.0,
+        ]);
     }
 
     /**

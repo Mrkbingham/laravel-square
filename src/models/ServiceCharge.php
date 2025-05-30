@@ -100,11 +100,13 @@ class ServiceCharge extends Model
      */
     public function setPercentageAttribute($value)
     {
-        $this->attributes['percentage'] = $value;
-
-        if (!is_null($value) && $value !== 0) {
-            $this->attributes['amount_money'] = null;
+        if (!is_null($this->amount_money) && !is_null($value)) {
+            throw ValidationException::withMessages([
+                'service_charge' => 'Service charge cannot have percentage while amount_money is set.'
+            ]);
         }
+
+        $this->attributes['percentage'] = $value;
     }
 
     /**
@@ -115,11 +117,13 @@ class ServiceCharge extends Model
      */
     public function setAmountMoneyAttribute($value)
     {
-        $this->attributes['amount_money'] = $value;
-
-        if (!is_null($value) && $value !== 0) {
-            $this->attributes['percentage'] = null;
+        if (!is_null($this->amount_money) && !is_null($value)) {
+            throw ValidationException::withMessages([
+                'service_charge' => 'Service charge cannot have amount_money while percentage is set.'
+            ]);
         }
+
+        $this->attributes['amount_money'] = $value;
     }
 
     /**
