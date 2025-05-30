@@ -4,6 +4,7 @@ namespace Nikolag\Square\Tests\Unit;
 
 use Nikolag\Square\Models\OrderProductPivot;
 use Nikolag\Square\Models\ServiceCharge;
+use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Utils\Constants;
@@ -130,5 +131,32 @@ class ServiceChargeTest extends TestCase
         ]);
 
         $this->assertTrue($serviceCharge->taxable);
+    }
+
+    /**
+     * Test service charge can have a tax.
+     *
+     * @return void
+     */
+    public function test_service_charge_can_have_tax(): void
+    {
+        // Create a new tax of 8%
+        $tax = factory(Tax::class)->create([
+            'percentage' => 8.0,
+            'type' => Constants::TAX_ADDITIVE,
+        ]);
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'amount_money' => 1000,
+        ]);
+
+        $serviceCharge->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'scope' => Constants::DEDUCTIBLE_SCOPE_SERVICE_CHARGE
+        ]);
+
+        $this->assertCount(1, $serviceCharge->taxes);
+        $this->assertContainsOnlyInstancesOf(Tax::class, $serviceCharge->taxes);
     }
 }
