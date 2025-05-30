@@ -491,6 +491,50 @@ class UtilTest extends TestCase
      *
      * @return void
      */
+    public function test_apportioned_service_charge_taxes_calculation(): void
+    {
+        $this->set_up_service_charges_order();
+
+        // Create a new tax of 8%
+        $tax = factory(Tax::class)->create([
+            'percentage' => 8.0,
+            'type' => Constants::TAX_ADDITIVE,
+        ]);
+
+        // Create a service charge with apportioned amount calculation
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name' => 'Fixed amount service charge',
+            'amount_money' => 10_00, // 10.00 USD
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
+            'taxable' => true,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED_TREATMENT,
+        ]);
+
+        // Apply the tax to the service charge
+        $serviceCharge->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        // Add the service charge to the order
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+        ]);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Base cost: $116.00, Service charge $10.00 x 6 = $60.00, Total: $176.00
+        $this->assertEquals(176_00, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Test service charge calculation with percentage.
+     *
+     * @return void
+     */
     public function test_service_charge_percentage_calculation(): void
     {
         $this->set_up_service_charges_order();
