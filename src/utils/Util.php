@@ -19,7 +19,7 @@ class Util
      */
     public static function calculateTotalOrderCost(stdClass $orderCopy): float|int
     {
-        return self::_calculateTotalCost($orderCopy->discounts, $orderCopy->taxes, $orderCopy->products);
+        return self::_calculateTotalCost($orderCopy->discounts, $orderCopy->taxes, $orderCopy->serviceCharges, $orderCopy->products);
     }
 
     /**
@@ -216,15 +216,20 @@ class Util
      *
      * @param  Collection  $discounts
      * @param  Collection  $taxes
+     * @param  Collection  $serviceCharges
      * @param  Collection  $products
      * @return float|int
      */
-    private static function _calculateTotalCost(Collection $discounts, Collection $taxes, Collection $products): float|int
+    private static function _calculateTotalCost(Collection $discounts, Collection $taxes, Collection $serviceCharges, Collection $products): float|int
     {
+        // Line item level collections
         $lineItemDiscounts = collect([]);
         $lineItemTaxes = collect([]);
+        $lineItemServiceCharges = collect([]);
+        // Order level collections
         $orderDiscounts = collect([]);
         $orderTaxes = collect([]);
+        $orderServiceCharges = collect([]);
 
         // Calculate order level discounts scoped with either ORDER or LINE_ITEM
         if ($discounts->isNotEmpty()) {
@@ -239,6 +244,13 @@ class Util
             $orderTaxes = self::_filterElements(Constants::DEDUCTIBLE_SCOPE_ORDER, $taxes);
         }
         $allTaxes = $lineItemTaxes->merge($orderTaxes)->flatten();
+
+        // Calculate order level service charges scoped with either ORDER or LINE_ITEM
+        if ($serviceCharges->isNotEmpty()) {
+            $lineItemServiceCharges = self::_filterElements(Constants::DEDUCTIBLE_SCOPE_PRODUCT, $serviceCharges);
+            $orderServiceCharges = self::_filterElements(Constants::DEDUCTIBLE_SCOPE_ORDER, $serviceCharges);
+        }
+        $allServiceCharges = $lineItemServiceCharges->merge($orderServiceCharges)->flatten();
 
         // Calculate base total
         if ($products->isEmpty()) {
