@@ -252,6 +252,83 @@ class Util
 
         return $totalServiceCharge;
     }
+
+    /**
+     * Calculate taxes on service charges based on their treatment type.
+     *
+     * @param  Collection  $serviceCharges
+     * @param  Collection  $products
+     * @return float|int
+     */
+    private static function _calculateServiceChargeTaxes(Collection $serviceCharges, Collection $products): float|int
+    {
+        $totalServiceChargeTax = 0;
+
+        if ($serviceCharges->isNotEmpty()) {
+            $totalServiceChargeTax = $serviceCharges->map(function ($serviceCharge) use ($products) {
+                // Check if this service charge is apportioned treatment
+                $isApportionedTreatment = $serviceCharge->treatment_type === Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED_TREATMENT;
+
+                // For apportioned service charges, taxes applied directly to the service charge are ignored
+                // They inherit taxes from the line items they're applied to
+                if ($isApportionedTreatment) {
+                    // Apportioned service charges inherit taxes from line items - direct taxes are ignored
+                    return 0;
+                }
+
+                // For non-apportioned service charges, calculate taxes if they have any
+                $serviceChargeTaxes = $serviceCharge->taxes ?? collect([]);
+
+                if ($serviceChargeTaxes->isEmpty()) {
+                    return 0;
+                }
+
+                // Calculate the individual service charge amount for this service charge
+                $individualServiceChargeAmount = 0;
+                if ((! $serviceCharge->pivot && $serviceCharge->scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) ||
+                    ($serviceCharge->pivot && $serviceCharge->pivot->scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT)) {
+                    $individualServiceChargeAmount = self::_calculateProductServiceCharges($products, $serviceCharge);
+                } elseif ((! $serviceCharge->pivot && $serviceCharge->scope === Constants::DEDUCTIBLE_SCOPE_ORDER) ||
+                        ($serviceCharge->pivot && $serviceCharge->pivot->scope === Constants::DEDUCTIBLE_SCOPE_ORDER)) {
+                    // For order-level service charges, we need to calculate the amount without the tax calculations
+                    $individualServiceChargeAmount = $serviceCharge->percentage ?
+                        round($serviceCharge->percentage / 100 * self::_getOrderBaseAmount($products)) :
+                        $serviceCharge->amount_money;
+                }
+
+                // Calculate taxes on this service charge amount
+                return $serviceChargeTaxes->map(function ($tax) use ($individualServiceChargeAmount) {
+                    return round($individualServiceChargeAmount * $tax->percentage / 100);
+                })->sum();
+
+            })->sum();
+        }
+
+        return $totalServiceChargeTax;
+    }
+
+    /**
+     * Get the base order amount for service charge calculations.
+     *
+     * @param  Collection  $products
+     * @return float|int
+     */
+    private static function _getOrderBaseAmount(Collection $products): float|int
+    {
+        return $products->map(function ($product) {
+            $productPrice = $product->pivot->price_money_amount;
+            if ($product->pivot->modifiers->isNotEmpty()) {
+                $productPrice += $product->pivot->modifiers->map(function ($modifier) {
+                    return $modifier->modifiable?->price_money_amount ?? 0;
+                })->sum();
+            }
+            return $productPrice * $product->pivot->quantity;
+        })->sum();
+    }
+
+    /**
+     * Calculate all additive taxes on order level.
+     * Inclusive taxes are not added to the cost as they're already included in the price.
      *
      * @param  Collection  $taxes
      * @param  float  $discountCost
@@ -366,7 +443,10 @@ class Util
         // Calculate service charges first
         $serviceChargeAmount = self::_calculateServiceCharges($allServiceCharges, $taxedCost, $products);
 
-        $finalCost = $taxedCost + $serviceChargeAmount;
+        // Calculate taxes on service charges
+        $serviceChargeTaxAmount = self::_calculateServiceChargeTaxes($allServiceCharges, $products);
+
+        $finalCost = $taxedCost + $serviceChargeAmount + $serviceChargeTaxAmount;
 
         return $finalCost;
     }
@@ -392,7 +472,21 @@ class Util
      */
     public static function calculateTotalOrderCostByModel(Model $order): float|int
     {
-        return self::_calculateTotalCost($order->discounts, $order->taxes, $order->products);
+        // Collect service charges from order level (with taxes)
+        $orderServiceCharges = $order->serviceCharges()->with('taxes')->get() ?? collect([]);
+
+        // Collect service charges from product pivots (with taxes)
+        $productServiceCharges = collect([]);
+        if ($order->products && $order->products->isNotEmpty()) {
+            $productServiceCharges = $order->products->flatMap(function ($product) {
+                return $product->pivot->serviceCharges()->with('taxes')->get() ?? collect([]);
+            });
+        }
+
+        // Merge all service charges
+        $allServiceCharges = $orderServiceCharges->merge($productServiceCharges);
+
+        return self::_calculateTotalCost($order->discounts, $order->taxes, $allServiceCharges, $order->products);
     }
 
     /**
