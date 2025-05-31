@@ -28,8 +28,6 @@ class OrderReturnTest extends TestCase
 
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->make([
-            'source_order_id' => $order->id,
-            'uid' => 'test-return-uid-123',
             'data' => $this->buildMockOrderReturn(),
         ]);
 
@@ -38,6 +36,28 @@ class OrderReturnTest extends TestCase
         $this->assertEquals('test-return-uid-123', $orderReturn->uid);
         $this->assertEquals(1500, $orderReturn->data->getReturnAmounts()->getTotalMoney()->getAmount());
         $this->assertEquals('USD', $orderReturn->data->getReturnAmounts()->getTotalMoney()->getCurrency());
+    }
+
+    /**
+     * Test OrderReturn relationships with Order.
+     *
+     * @return void
+     */
+    public function test_order_return_relationship_with_order(): void
+    {
+        $testUUID = fake()->unique->uuid;
+        $order = factory(Order::class)->create([
+            'payment_service_id' => $testUUID,
+        ]);
+
+        /** @var OrderReturn */
+        $orderReturn = factory(OrderReturn::class)->create([
+            'source_order_id' => $testUUID,
+            'data' => $this->buildMockOrderReturn(),
+        ]);
+
+        $this->assertInstanceOf(Order::class, $orderReturn->order);
+        $this->assertEquals($order->payment_service_id, $orderReturn->order->payment_service_id);
     }
 
     /**

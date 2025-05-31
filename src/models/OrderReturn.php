@@ -4,6 +4,7 @@ namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Nikolag\Square\Casts\SquareOrderReturnCast;
 
 class OrderReturn extends Model
@@ -36,6 +37,20 @@ class OrderReturn extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    //
+    // Relationships
+    //
+
+    /**
+     * Get the original order associated with this return.
+     *
+     * @return BelongsTo
+     */
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(config('nikolag.connections.square.order.namespace'), 'source_order_id', config('nikolag.connections.square.order.service_identifier'));
+    }
 
     /**
      * Prepare a date for array / JSON serialization.
