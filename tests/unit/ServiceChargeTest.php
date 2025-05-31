@@ -165,7 +165,7 @@ class ServiceChargeTest extends TestCase
     public function test_service_charge_both_amount_and_percentage_error(): void
     {
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('Service cannot have percentage while amount_money is set.');
+        $this->expectExceptionMessage('Service charge cannot have percentage while amount_money is set.');
 
         factory(ServiceCharge::class)->create([
             'amount_money' => 100,
@@ -173,7 +173,7 @@ class ServiceChargeTest extends TestCase
         ]);
 
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('Service cannot have amount_money while percentage is set.');
+        $this->expectExceptionMessage('Service charge cannot have amount_money while percentage is set.');
 
         factory(ServiceCharge::class)->create([
             'amount_money' => 100,
