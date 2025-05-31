@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square\Builders;
 
+use Exception;
 use Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -9,6 +10,9 @@ use Nikolag\Square\Builders\SquareRequestBuilders\FulfillmentRequestBuilder;
 use Nikolag\Square\Builders\Validate;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
+use Nikolag\Square\Models\Modifier;
+use Nikolag\Square\Models\ModifierOption;
+use Nikolag\Square\Models\Product;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
 use Square\Models\BatchDeleteCatalogObjectsRequest;
@@ -23,6 +27,7 @@ use Square\Models\Money;
 use Square\Models\Order;
 use Square\Models\OrderLineItem;
 use Square\Models\OrderLineItemAppliedDiscount;
+use Square\Models\OrderLineItemAppliedServiceCharge;
 use Square\Models\OrderLineItemAppliedTax;
 use Square\Models\OrderLineItemDiscount;
 use Square\Models\OrderLineItemTax;
@@ -38,6 +43,8 @@ use Square\Models\Builders\CatalogObjectBuilder;
 use Square\Models\Builders\CatalogTaxBuilder;
 use Square\Models\Builders\CreateCatalogImageRequestBuilder;
 use Square\Models\Builders\MoneyBuilder;
+use Square\Models\Builders\OrderServiceChargeBuilder;
+use Square\Models\OrderLineItemModifier;
 
 class SquareRequestBuilder
 {
@@ -48,11 +55,23 @@ class SquareRequestBuilder
      */
     private Collection $productTaxes;
     /**
-     * Item line level taxes which need to be applied to order.
+     * Item line level discounts which need to be applied to order.
      *
      * @var Collection
      */
     private Collection $productDiscounts;
+    /**
+     * Item line level service charges which need to be applied to order.
+     *
+     * @var Collection
+     */
+    private Collection $productServiceCharges;
+    /**
+     * All service charges which need to be applied to order.
+     *
+     * @var Collection
+     */
+    private Collection $serviceCharges;
     /**
      * Fulfillment request helper builder.
      *
@@ -67,6 +86,8 @@ class SquareRequestBuilder
     {
         $this->productTaxes = collect([]);
         $this->productDiscounts = collect([]);
+        $this->serviceCharges = collect([]);
+        $this->productServiceCharges = collect([]);
 
         $this->fulfillmentRequestBuilder = new FulfillmentRequestBuilder();
     }
@@ -374,6 +395,13 @@ class SquareRequestBuilder
         $squareOrder->setDiscounts($this->buildDiscounts($order->discounts, $currency));
         $squareOrder->setTaxes($this->buildTaxes($order->taxes));
         $squareOrder->setFulfillments($this->fulfillmentRequestBuilder->buildFulfillments($order->fulfillments));
+
+        // Merge the product level service charges into the main service charges collection
+        $orderServiceCharges = collect($this->buildServiceCharges($order->serviceCharges, $currency));
+        $allServiceCharges = $this->productServiceCharges->merge($orderServiceCharges);
+
+        $squareOrder->setServiceCharges($allServiceCharges->all());
+
         $request = new CreateOrderRequest();
         $request->setOrder($squareOrder);
         $request->setIdempotencyKey(uniqid());
@@ -466,6 +494,65 @@ class SquareRequestBuilder
     }
 
     /**
+     * Builds the modifiers for the order.
+     *
+     * @param Collection $modifiers
+     * @return array
+     */
+    public function buildModifiers(Collection $modifiers): array
+    {
+        $temp = [];
+        if ($modifiers->isEmpty()) {
+            return $temp;
+        }
+
+        foreach ($modifiers as $modifier) {
+            $tempModifier = new OrderLineItemModifier();
+            $tempModifier->setUid(Util::uid());
+            $tempModifier->setCatalogObjectId($modifier->modifiable->square_catalog_object_id);
+
+            // NOTE: The text modifiers are added in the setNote method using the buildNotes method below.
+            // This comment acts as a placeholder in case this support is added to Square's APIs:
+            // // Add text for free text modifiers
+            // if (
+            //     $modifier->modifiable_type == Modifier::class
+            //     && $modifier->modifiable->type == 'TEXT'
+            // ) {
+            //     // Text based modifiers are not yet supported by Square's APIs:
+            //     // https://developer.squareup.com/forums/t/adding-a-text-modifier-via-orders-api/20465/3
+            //     // Theoretical placeholder: $tempModifier->setName($modifier->text);
+            // }
+
+            // Add the quantity
+            $tempModifier->setQuantity($modifier->quantity);
+
+            $temp[] = $tempModifier;
+        }
+
+        return $temp;
+    }
+
+    /**
+     * Builds the note for the line-item.
+     *
+     * @param Product $product
+     * @param Collection $modifiers
+     * @return string
+     */
+    public function buildNote(Product $product, Collection $modifiers): string
+    {
+        $note = $product->note ?? '';
+
+        foreach ($modifiers as $modifier) {
+            if ($modifier->modifiable_type == Modifier::class && $modifier->modifiable->type == 'TEXT') {
+                $note .= ' ' . $modifier->text;
+            }
+        }
+
+        return $note;
+    }
+
+    /**
      * Builds and returns array of taxes.
      *
      * @param  Collection  $taxes
@@ -512,6 +599,85 @@ class SquareRequestBuilder
     }
 
     /**
+     * Builds and returns array of service charges.
+     *
+     * @param  Collection  $serviceCharges
+     * @param  string  $currency
+     * @return array
+     *
+     * @throws InvalidSquareOrderException
+     * @throws MissingPropertyException
+     */
+    public function buildServiceCharges(Collection $serviceCharges, string $currency): array
+    {
+        $temp = [];
+        if ($serviceCharges->isNotEmpty()) {
+            foreach ($serviceCharges as $serviceCharge) {
+                //If service charge doesn't have amount_money OR percentage in service charge table
+                //throw new exception because it should have at least 1
+                $amountMoney = $serviceCharge->amount_money;
+                $percentage = $serviceCharge->percentage;
+                if (($amountMoney == null || $amountMoney == 0) && ($percentage == null || $percentage == 0.0)) {
+                    throw new MissingPropertyException('Both $amount_money and $percentage property for object ServiceCharge are missing, 1 is required', 500);
+                }
+                //If service charge have amount_money AND percentage in service charge table
+                //throw new exception because it should only 1
+                if (($amountMoney != null && $amountMoney != 0) && ($percentage != null && $percentage != 0.0)) {
+                    throw new InvalidSquareOrderException('Both $amount_money and $percentage exist for object ServiceCharge, only 1 is allowed', 500);
+                }
+
+                $tempServiceCharge = OrderServiceChargeBuilder::init();
+                $tempServiceCharge->uid(Util::uid());
+                $tempServiceCharge->name($serviceCharge->name);
+                $tempServiceCharge->scope($serviceCharge->pivot->scope);
+
+                if ($serviceCharge->square_catalog_object_id) {
+                    $tempServiceCharge->catalogObjectId($serviceCharge->square_catalog_object_id);
+                }
+
+                if ($serviceCharge->calculation_phase) {
+                    $tempServiceCharge->calculationPhase($serviceCharge->calculation_phase);
+                }
+
+                if ($serviceCharge->taxable !== null) {
+                    $tempServiceCharge->taxable($serviceCharge->taxable);
+                }
+
+                if ($serviceCharge->treatment_type) {
+                    $tempServiceCharge->treatmentType($serviceCharge->treatment_type);
+                }
+
+                // If it's LINE ITEM then assign proper UID
+                if ($serviceCharge->pivot->scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) {
+                    $found = $this->serviceCharges->first(function ($inner) use ($serviceCharge) {
+                        return $inner->getName() === $serviceCharge->name;
+                    });
+
+                    if ($found) {
+                        $tempServiceCharge->uid($found->getUid());
+                    }
+                }
+
+                //If percentage exists append it
+                if ($percentage && $percentage != 0.0) {
+                    $tempServiceCharge->percentage((string) $percentage);
+                }
+                //If amount_money exists append it
+                if ($amountMoney && $amountMoney != 0) {
+                    $money = new Money();
+                    $money->setAmount($amountMoney);
+                    $money->setCurrency($serviceCharge->amount_currency ?? $currency);
+                    $tempServiceCharge->amountMoney($money);
+                }
+
+                $temp[] = $tempServiceCharge->build();
+            }
+        }
+
+        return $temp;
+    }
+
+    /**
      * Builds and returns array of already applied taxes.
      *
      * @param  Collection  $taxes
@@ -527,6 +693,26 @@ class SquareRequestBuilder
                 $tempTax = new OrderLineItemAppliedTax($tax->getUid());
                 $tempTax->setUid(Util::uid());
                 $temp[] = $tempTax;
+            }
+        }
+
+        return $temp;
+    }
+
+    /**
+     * Builds and returns array of already applied service charges.
+     *
+     * @param  Collection  $serviceCharges
+     * @return array
+     */
+    public function buildAppliedServiceCharges(Collection $serviceCharges): array
+    {
+        $temp = [];
+        if ($serviceCharges->isNotEmpty()) {
+            foreach ($serviceCharges as $serviceCharge) {
+                $tempServiceCharge = new OrderLineItemAppliedServiceCharge($serviceCharge->getUid());
+                $tempServiceCharge->setUid(Util::uid());
+                $temp[] = $tempServiceCharge;
             }
         }
 
@@ -566,8 +752,12 @@ class SquareRequestBuilder
                 $discounts = collect($this->buildDiscounts($pivotProduct->discounts, $currency));
                 $this->productDiscounts = $this->productDiscounts->merge($discounts);
 
+                //Build product level service charges so we can append them to order later
+                $serviceCharges = collect($this->buildServiceCharges($pivotProduct->serviceCharges, $currency));
+                $this->productServiceCharges = $this->productServiceCharges->merge($serviceCharges);
+
                 $money = new Money();
-                $money->setAmount($product->price);
+                $money->setAmount($product->pivot->price_money_amount);
                 $money->setCurrency($currency);
                 $tempProduct = new OrderLineItem($quantity);
                 $tempProduct->setName($product->name);
@@ -575,9 +765,11 @@ class SquareRequestBuilder
                 $tempProduct->setQuantity((string) $quantity);
                 $tempProduct->setCatalogObjectId($product->square_catalog_object_id);
                 $tempProduct->setVariationName($product->variation_name);
-                $tempProduct->setNote($product->note);
+                $tempProduct->setNote($this->buildNote($product, $pivotProduct->modifiers));
+                $tempProduct->setModifiers($this->buildModifiers($pivotProduct->modifiers));
                 $tempProduct->setAppliedDiscounts($this->buildAppliedDiscounts($discounts));
                 $tempProduct->setAppliedTaxes($this->buildAppliedTaxes($taxes));
+                $tempProduct->setAppliedServiceCharges($this->buildAppliedServiceCharges($serviceCharges));
                 $temp[] = $tempProduct;
             }
         }

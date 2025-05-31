@@ -6,7 +6,9 @@ use Exception;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\Discount;
+use Nikolag\Square\Models\Modifier;
 use Nikolag\Square\Models\Product;
+use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Tests\Models\Order;
@@ -130,6 +132,35 @@ class UtilTest extends TestCase
      *
      * @return void
      */
+    public function test_calculate_total_order_with_product_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Get the product and modifier
+        $chocolateChipCookie = Product::where('name', 'Chocolate Chip Cookie')->first();
+        $frostingModifierList = $chocolateChipCookie->modifiers->where('name', 'Cookie Frosting')->first();
+        $fancyFrostingOption = $frostingModifierList->options->where('name', 'Fancy Frosting')->first();
+
+        // Create a new order
+        // 5 regular chocolate chip cookies with "fancy frosting"
+        // $5.50/ea ($5.00/ea + $0.50 modifier) - $27.50 total)
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($chocolateChipCookie, 5, modifiers: [$fancyFrostingOption])
+            ->save();
+
+        // The expected total is $27.50.
+        $this->assertEquals(2750, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Test if the total calculation is done right.
+     *
+     * @return void
+     */
     public function test_calculate_total_order_with_order_discount(): void
     {
         extract($this->data->modify(prodFac: 'make', prodDiscFac: 'make', orderDisFac: 'make', taxAddFac: 'make'));
@@ -180,6 +211,67 @@ class UtilTest extends TestCase
         $this->assertDatabaseHas('nikolag_products', [
             'name' => $this->product['name'],
         ]);
+    }
+
+    /**
+     * Test variable pricing support - product with null price but price in order
+     *
+     * @return void
+     */
+    public function test_calculate_total_order_with_mock_variable_pricing(): void
+    {
+        extract($this->data->modify(prodFac: 'make', prodDiscFac: 'make', orderDisFac: 'make', taxAddFac: 'make'));
+
+        // Create a product with null price (variable pricing)
+        $variablePriceProduct = factory(Product::class)->make([
+            'price' => null, // No price in the product record
+        ])->toArray();
+
+        // But provide price in the order
+        $variablePriceProduct['quantity'] = 3;
+        $variablePriceProduct['price'] = 750; // Price only in the order
+
+        // Create a square order
+        $square = Square::setMerchant($this->data->merchant)
+            ->setCustomer($this->data->customer)
+            ->setOrder($this->data->order->toArray(), env('SQUARE_LOCATION'))
+            ->addProduct($variablePriceProduct)
+            ->save();
+
+        // Expected total is 3 * 750 = 2250
+        $this->assertEquals(2250, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Test variable pricing support - product with null price but price in order
+     *
+     * @return void
+     */
+    public function test_calculate_total_order_with_variable_pricing_and_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Get the product and modifier
+        $chocolateChipCookie = Product::where('name', 'Chocolate Chip Cookie')->first();
+        $frostingModifierList = $chocolateChipCookie->modifiers->where('name', 'Cookie Frosting')->first();
+        $fancyFrostingOption = $frostingModifierList->options->where('name', 'Fancy Frosting')->first();
+
+        // Set variable price for the product
+        $chocolateChipCookie->price += 1_00; // Increase the price by $1.00 to simulate variable pricing
+
+        // Create a new order
+        // 5 regular chocolate chip cookies with "fancy frosting"
+        // $6.50/ea ($6.00/ea + $0.50 modifier) - $32.50 total)
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($chocolateChipCookie, 5, modifiers: [$fancyFrostingOption])
+            ->save();
+
+        // The expected total is $32.50.
+        $this->assertEquals(32_50, Util::calculateTotalOrderCostByModel($square->getOrder()));
     }
 
     /**
@@ -279,5 +371,325 @@ class UtilTest extends TestCase
         $this->assertCount(2, $user->failedTransactions, 'Failed transactions count tied with User is not 2.');
         $this->assertCount(1, $user->passedTransactions, 'Passed transactions count tied with User is not 1.');
         $this->assertCount(8, $user->transactions, 'Transactions count tied with User is not 8.');
+    }
+
+    /**
+     * Test service charge calculation with percentage.
+     *
+     * @return void
+     */
+    public function test_apportioned_amount_service_charge_calculation(): void
+    {
+        $this->set_up_service_charges_order();
+
+        // Create a service charge with apportioned amount calculation
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name' => 'Apportioned amount service charge',
+            'amount_money' => 10_00, // 10.00 USD
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
+            'taxable' => true,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
+        ]);
+
+        // Add the service charge to the order
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Base cost: $116.00, Service charge $10.00, Total: $126.00
+        $this->assertEquals(126_00, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Test service charge calculation with percentage.
+     *
+     * @return void
+     */
+    public function test_apportioned_percentage_service_charge_calculation(): void
+    {
+        $this->set_up_service_charges_order();
+
+        // Create a service charge with apportioned amount calculation
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name' => 'Apportioned percentage service charge',
+            'percentage' => 10.0, // 10%
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_PERCENTAGE,
+            'taxable' => true,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
+        ]);
+
+        // Add the service charge to the order
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Base cost: $116.00, Service charge $11.60, Total: $127.60
+        $this->assertEquals(127_60, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Test service charge calculation with tax and discount.
+     *
+     * @return void
+     */
+    public function test_service_charge_with_tax_and_discount_calculation(): void
+    {
+        $tax = factory(Tax::class)->create([
+            'percentage' => 10.0,
+            'type' => Constants::TAX_ADDITIVE,
+        ]);
+
+        $discount = factory(Discount::class)->create([
+            'percentage' => 10.0,
+            'amount' => null,
+        ]);
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'percentage' => 5.0,
+            'amount_money' => null,
+        ]);
+
+        $this->data->order->save();
+
+        // Set a specific price for predictable test results
+        $this->data->product->price = 1000;
+        $this->data->product->save();
+
+        $this->data->order->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+        $this->data->order->discounts()->attach($discount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+        $this->data->order->attachProduct($this->data->product);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Base: 1000, Discount 10%: -100 = 900, Tax 10%: +90 = 990, Service charge 5%: +49.5 = 1039.5 (rounded to 1040)
+        $this->assertEquals(1040, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Test service charge calculation with percentage.
+     *
+     * @return void
+     */
+    public function test_apportioned_service_charge_taxes_calculation(): void
+    {
+        $this->set_up_service_charges_order();
+
+        // Create a new tax of 8%
+        $tax = factory(Tax::class)->create([
+            'percentage' => 8.0,
+            'type' => Constants::TAX_ADDITIVE,
+        ]);
+
+        // Create a service charge with apportioned amount calculation
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name' => 'Fixed amount service charge',
+            'amount_money' => 10_00, // 10.00 USD
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
+            'taxable' => true,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
+        ]);
+
+        // Apply the tax to the service charge
+        $serviceCharge->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        // Add the service charge to the order
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+        ]);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Base cost: $116.00, Service charge $10.00 x 6 = $60.00, Total: $176.00
+        $this->assertEquals(176_00, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Test service charge calculation with percentage.
+     *
+     * @return void
+     */
+    public function test_service_charge_taxes_calculation(): void
+    {
+        $this->set_up_service_charges_order();
+
+        // Create a new tax of 8%
+        $tax = factory(Tax::class)->create([
+            'percentage' => 8.0,
+            'type' => Constants::TAX_ADDITIVE,
+        ]);
+
+        // Create a percentage-based service charge with a subtotal calculation phase
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name' => 'Service charge with taxes',
+            'amount_money' => 10_00, // 10.00 USD
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL,
+            'taxable' => true,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_LINE_ITEM,
+        ]);
+
+        // Apply the tax to the service charge
+        $serviceCharge->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'scope' => Constants::DEDUCTIBLE_SCOPE_SERVICE_CHARGE
+        ]);
+
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
+
+        // Base cost: $116.00, Service charge $10.00, Tax on service charge $0.80 Total: $126.80
+        $this->assertEquals(126_80, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Test service charge calculation with percentage.
+     *
+     * @return void
+     */
+    public function test_service_charge_percentage_calculation(): void
+    {
+        $this->set_up_service_charges_order();
+
+        // Create a percentage-based service charge with a subtotal calculation phase
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'percentage' => 1.5,
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL,
+        ]);
+
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Base cost: $116.00, Service charge $1.74, Total: $117.74
+        $this->assertEquals(117_74, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Test service charge calculation with fixed amount.
+     *
+     * @return void
+     */
+    public function test_service_charge_fixed_amount_calculation(): void
+    {
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'amount_money' => 200,
+            'amount_currency' => 'USD',
+            'percentage' => null,
+        ]);
+
+        $this->data->order->save();
+
+        // Set a specific price for predictable test results
+        $this->data->product->price = 1000;
+        $this->data->product->save();
+
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+        $this->data->order->attachProduct($this->data->product);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Base cost: 1000, Service charge fixed: 200, Total: 1200
+        $this->assertEquals(1200, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Test product-level service charge calculation.
+     *
+     * @return void
+     */
+    public function test_product_service_charge_calculation(): void
+    {
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'percentage' => 15.0,
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_TOTAL,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
+            'taxable' => false,
+        ]);
+
+        $this->data->order->save();
+
+        // Set a specific price for predictable test results
+        $this->data->product->price = 1000;
+        $this->data->product->save();
+
+        $this->data->order->attachProduct($this->data->product);
+
+        // Attach service charge at product level
+        $this->data->order->products->first()->pivot->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Base cost: 1000, Product service charge 15%: 150, Total: 1150
+        $this->assertEquals(1150, Util::calculateTotalOrderCostByModel($square->getOrder()));
+    }
+
+    /**
+     * Adds a specific set of products for use when calculating totals related to service charges tests.
+     *
+     * This method is used to ensure that the products are set up correctly and allows for a 1-to-1 comparison of the
+     * examples found on Square's documentation.
+     *
+     * @see https://developer.squareup.com/docs/orders-api/service-charges
+     *
+     * @return void
+     */
+    private function set_up_service_charges_order(): void
+    {
+        // Save the order first
+        $this->data->order->save();
+
+        // Create three products to distribute the service charge
+        $product1 = factory(Product::class)->create(['price' => 15_00]); // 15.00 USD
+        $product2 = factory(Product::class)->create(['price' => 50_00]); // 50.00 USD
+        $product3 = factory(Product::class)->create(['price' => 12_00]); // 12.00 USD
+
+        // Add the products to the order
+        $this->data->order->attachProduct($product1, ['quantity' => 2]); // 2 x 15.00 USD = 30.00 USD
+        $this->data->order->attachProduct($product2, ['quantity' => 1]); // 1 x 50.00 USD = 50.00 USD
+        $this->data->order->attachProduct($product3, ['quantity' => 3]); // 3 x 12.00 USD = 36.00 USD
     }
 }

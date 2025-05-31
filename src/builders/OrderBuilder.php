@@ -24,9 +24,18 @@ class OrderBuilder
      */
     private FulfillmentBuilder $fulfillmentBuilder;
     /**
+     * @var ModifiersBuilder
+     */
+    private ModifiersBuilder $modifiersBuilder;
+    /**
      * @var TaxesBuilder
      */
     private TaxesBuilder $taxesBuilder;
+
+    /**
+     * @var ServiceChargesBuilder
+     */
+    private ServiceChargesBuilder $serviceChargesBuilder;
 
     /**
      * OrderBuilder constructor.
@@ -36,7 +45,9 @@ class OrderBuilder
         $this->productBuilder = new ProductBuilder();
         $this->discountBuilder = new DiscountBuilder();
         $this->fulfillmentBuilder = new FulfillmentBuilder();
+        $this->modifiersBuilder = new ModifiersBuilder();
         $this->taxesBuilder = new TaxesBuilder();
+        $this->serviceChargesBuilder = new ServiceChargesBuilder();
     }
 
     /**
@@ -54,12 +65,11 @@ class OrderBuilder
         // Set payment type to square
         $order->payment_service_type = 'square';
         // Set location if it's not included in the order
-        if (!$order->location_id) {
+        if (! $order->location_id) {
             $order->location_id = $orderCopy->location_id;
         } elseif ($order->location_id != $orderCopy->location_id) {
             throw new InvalidSquareOrderException(
-                'Location ID conflict.  Order Data: ' . $order->location_id
-                    . '. Order Copy: ' . $orderCopy->location_id,
+                "Location ID conflict. Order Data: {$order->location_id}. Order Copy: {$orderCopy->location_id}",
                 500
             );
         }
@@ -101,6 +111,23 @@ class OrderBuilder
             }
         }
 
+        // Check if order has service charges
+        if ($orderCopy->serviceCharges->isNotEmpty()) {
+            // For each service charge in order
+            foreach ($orderCopy->serviceCharges as $serviceCharge) {
+                // Assign to temp variable
+                $scope = $serviceCharge->scope;
+                // Remove temp scope attribute
+                unset($serviceCharge->scope);
+                // Save service charge
+                $serviceCharge->save();
+                // If order doesn't have service charge, add it
+                if (! $order->hasServiceCharge($serviceCharge)) {
+                    $order->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => $scope]);
+                }
+            }
+        }
+
         // Check if order has products
         if ($orderCopy->products->isNotEmpty()) {
             // For each product in order
@@ -113,20 +140,35 @@ class OrderBuilder
                     $discounts = $product->discounts;
                     // Create taxes
                     $taxes = $product->taxes;
+                    // Create service charges
+                    $serviceCharges = $product->serviceCharges ?? collect([]);
                     // Remove because laravel doesn't recognize it because its Collection/array
                     unset($product->pivot);
                     unset($product->discounts);
                     unset($product->taxes);
+                    unset($product->serviceCharges);
+
                     // Save product
                     $product->save();
 
                     $product->pivot = $productPivot;
+
+                    // Create modifiers
+                    $productModifiers = $productPivot->modifiers;
+                    // Remove because laravel doesn't recognize it because its Collection/array
+                    unset($productPivot->modifiers);
+
                     // Associate product with it
                     $productPivot->product()->associate($product);
                     // Associate order with it
                     $productPivot->order()->associate($order);
                     // Save intermediate model
                     $productPivot->save();
+
+                    // Associate the modifiers
+                    if ($productModifiers->isNotEmpty()) {
+                        $productPivot->modifiers()->saveMany($productModifiers);
+                    }
 
                     // For each discount in product
                     foreach ($discounts as $discount) {
@@ -157,11 +199,25 @@ class OrderBuilder
                             $productPivot->taxes()->attach($tax->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::TAX_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                     }
+
+                    // For each service charge in product
+                    foreach ($serviceCharges as $serviceCharge) {
+                        // Save service charge
+                        $serviceCharge->save();
+                        // If order doesn't have service charge, add it
+                        if (! $order->hasServiceCharge($serviceCharge)) {
+                            $order->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                        }
+                        // If product doesn't have service charge, add it
+                        if (! $productPivot->hasServiceCharge($serviceCharge)) {
+                            $productPivot->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                        }
+                    }
                 }
             }
         }
         // Eagerly load products, for future use
-        $order->load('products', 'taxes', 'discounts');
+        $order->load('products', 'taxes', 'discounts', 'serviceCharges');
 
         // Check if order has fulfillments
         if (
@@ -270,8 +326,44 @@ class OrderBuilder
                             $orderCopy->discounts = $orderCopy->discounts->merge($missingDiscounts);
                         }
                     }
+
+                    // Create initial service charges
+                    $productTemp->serviceCharges = collect([]);
+                    //Product Service Charges
+                    if ($product->pivot->serviceCharges->isNotEmpty()) {
+                        $productTemp->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($product->pivot->serviceCharges->toArray(), Constants::DEDUCTIBLE_SCOPE_PRODUCT, $productTemp->pivot);
+                    }
+
+                    //Product price - support for variable pricing
+                    // Use the pivot price if it exists (order-specific pricing),
+                    // otherwise fallback to product model price
+                    $productTemp->pivot->price = filled($product->pivot->price_money_amount)
+                        ? $product->pivot->price_money_amount // Pivot takes precedence for variable pricing support
+                        : $product->price;
+
+                    //Product Modifiers
+                    $productTemp->modifiers = collect([]);
+                    if ($product->pivot->modifiers->isNotEmpty()) {
+                        // Map modifiers-product-pivot to modifiable modifier (Modifier|ModifierOption)
+                        $modifiers = $product->pivot->modifiers->map(function ($modifier) {
+                            $modifierItem = $modifier->modifiable;
+                            // Make sure to add quantity and text
+                            $modifierItem->quantity = $modifier->quantity;
+                            $modifierItem->text     = $modifier->text;
+                            return $modifierItem;
+                        });
+                        $this->modifiersBuilder->addModifiers($productTemp->pivot, $modifiers);
+                    }
+
                     $orderCopy->products->push($productTemp);
                 }
+            }
+
+            // Create service charges Collection
+            $orderCopy->serviceCharges = collect([]);
+            //Service Charges
+            if ($order->serviceCharges->isNotEmpty()) {
+                $orderCopy->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($order->serviceCharges->toArray(), Constants::DEDUCTIBLE_SCOPE_ORDER, $order);
             }
 
             // Create fulfillments Collection
@@ -357,6 +449,15 @@ class OrderBuilder
                     $orderCopy->products->push($productTemp);
                 }
             }
+
+            // Create service charges Collection
+            $orderCopy->serviceCharges = collect([]);
+            //Service Charges
+            if (Arr::has($order, 'service_charges') && $order['service_charges'] != null) {
+                $orderCopy->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($order['service_charges'], Constants::DEDUCTIBLE_SCOPE_ORDER);
+            }
+
+
             // Create fulfillments Collection
             $orderCopy->fulfillments = collect([]);
             //Fulfillments
@@ -393,9 +494,11 @@ class OrderBuilder
                 && $key != 'taxes'
                 && $key != 'discounts'
                 && $key != 'products'
+                && $key != 'fulfillments'
+                && $key != 'service_charges'
                 && $key != $property
                 && $key != 'payment_service_type'
-                && $emptyModel->hasAttribute($key)) {
+                && $emptyModel->hasColumn($key)) {
                 $emptyModel->{$key} = $value;
             }
         }

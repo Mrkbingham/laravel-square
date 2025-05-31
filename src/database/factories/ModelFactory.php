@@ -5,6 +5,10 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Nikolag\Square\Models\DeliveryDetails;
 use Nikolag\Square\Models\Fulfillment;
+use Nikolag\Square\Models\Modifier;
+use Nikolag\Square\Models\ModifierOption;
+use Nikolag\Square\Models\OrderProductModifierPivot;
+use Nikolag\Square\Models\OrderProductPivot;
 use Nikolag\Square\Models\PickupDetails;
 use Nikolag\Square\Models\Recipient;
 use Nikolag\Square\Models\ShipmentDetails;
@@ -12,6 +16,7 @@ use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\Models\User;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
+use Square\Models\CatalogModifierListSelectionType;
 use Square\Models\FulfillmentState;
 use Square\Models\FulfillmentType;
 
@@ -55,6 +60,7 @@ $factory->define(Constants::ORDER_PRODUCT_NAMESPACE, function (Faker\Generator $
         'product_id' => function () {
             return factory(Constants::PRODUCT_NAMESPACE)->create();
         },
+        'price_money_amount' => $faker->numberBetween(5_00, 10_00),
     ];
 });
 
@@ -131,6 +137,42 @@ $factory->state(Constants::TRANSACTION_NAMESPACE, 'FAILED', [
 ]);
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Modifier::class, function (Faker\Generator $faker) {
+    return [
+        'name' => $faker->word,
+        'selection_type' => CatalogModifierListSelectionType::SINGLE,
+        'square_catalog_object_id' => $faker->unique()->uuid,
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(ModifierOption::class, function (Faker\Generator $faker) {
+    return [
+        'name' => $faker->word,
+        'price_money_amount' => $faker->numberBetween(100, 1000),
+        'price_money_currency' => 'USD',
+        'modifier_id' => function () {
+            return factory(Modifier::class)->create()->id;
+        },
+        'square_catalog_object_id' => $faker->unique()->uuid,
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(OrderProductModifierPivot::class, function (Faker\Generator $faker, array $data) {
+    if (!isset($data['modifiable_id']) || !isset($data['modifiable_type'])) {
+        $modifier = factory(ModifierOption::class)->create();
+    }
+    return [
+        'modifiable_id' => $modifier->id,
+        'modifiable_type' => get_class($modifier),
+        // Always assume the tests will associate the following fields prior to saving, generating orders and products
+        // on the fly will likely cause issues that will be uncommon in production scenarios:
+        // 'product_order_id'
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(DeliveryDetails::class, function (Faker\Generator $faker) {
     return [
         'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
@@ -144,6 +186,31 @@ $factory->define(DeliveryDetails::class, function (Faker\Generator $faker) {
 $factory->define(Constants::DISCOUNT_NAMESPACE, function (Faker\Generator $faker) {
     return [
         'name' => $faker->unique()->company,
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::SERVICE_CHARGE_NAMESPACE, function (Faker\Generator $faker) {
+    return [
+        'name' => $faker->unique()->company,
+        'taxable' => true,
+    ];
+});
+
+/* PERCENTAGE ONLY */
+$factory->state(Constants::SERVICE_CHARGE_NAMESPACE, 'PERCENTAGE_ONLY', function (Faker\Generator $faker) {
+    return [
+        'percentage' => $faker->randomFloat(2, 1, 25),
+        'amount_money' => null,
+    ];
+});
+
+/* AMOUNT ONLY */
+$factory->state(Constants::SERVICE_CHARGE_NAMESPACE, 'AMOUNT_ONLY', function (Faker\Generator $faker) {
+    return [
+        'amount_money' => $faker->numberBetween(100, 1000),
+        'amount_currency' => 'USD',
+        'percentage' => null,
     ];
 });
 

@@ -10,6 +10,7 @@ use Nikolag\Core\Exceptions\Exception;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\Product;
+use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Utils\Constants;
@@ -43,7 +44,7 @@ trait HasProducts
      * @param  string  $attribute
      * @return bool
      */
-    public function hasAttribute(string $attribute): bool
+    public function hasColumn(string $attribute): bool
     {
         return Schema::hasColumn($this->table, $attribute);
     }
@@ -75,6 +76,19 @@ trait HasProducts
     }
 
     /**
+     * Does an order have a service charge.
+     *
+     * @param  mixed  $serviceCharge
+     * @return bool
+     */
+    public function hasServiceCharge(mixed $serviceCharge): bool
+    {
+        $val = is_array($serviceCharge) ? array_key_exists('id', $serviceCharge) ? ServiceCharge::find($serviceCharge['id']) : $serviceCharge : $serviceCharge;
+
+        return $this->serviceCharges()->get()->contains($val);
+    }
+
+    /**
      * Does an order have a product.
      *
      * @param  mixed  $product
@@ -88,13 +102,32 @@ trait HasProducts
     }
 
     /**
+     * Attach a product to the order with automatic price inclusion.
+     *
+     * @param mixed $product
+     * @param array $attributes
+     * @return void
+     */
+    public function attachProduct($product, array $attributes = [])
+    {
+        $productModel = $product instanceof Product ? $product : Product::find($product);
+
+        // Merge the product's current price into the pivot attributes
+        $pivotData = array_merge($attributes, [
+            'price_money_amount' => $productModel->price
+        ]);
+
+        $this->products()->attach($product, $pivotData);
+    }
+
+    /**
      * Return a list of products which are included in this order.
      *
      * @return BelongsToMany
      */
     public function products(): BelongsToMany
     {
-        return $this->belongsToMany(Constants::PRODUCT_NAMESPACE, 'nikolag_product_order', 'order_id', 'product_id')->using(Constants::ORDER_PRODUCT_NAMESPACE)->withPivot('quantity', 'id');
+        return $this->belongsToMany(Constants::PRODUCT_NAMESPACE, 'nikolag_product_order', 'order_id', 'product_id')->using(Constants::ORDER_PRODUCT_NAMESPACE)->withPivot('quantity', 'id', 'square_uid', 'price_money_amount');
     }
 
     /**
@@ -125,5 +158,15 @@ trait HasProducts
     public function lineItemRefunds(): MorphTo
     {
         return $this->morphTo(Constants::REFUND_NAMESPACE, 'refundable', 'nikolag_order_refunds', 'refundable_id', 'refund_id')->where('refundable_type', Constants::ORDER_PRODUCT_NAMESPACE);
+    }
+
+    /**
+     * Return a list of service charges which are included in this order.
+     *
+     * @return MorphToMany
+     */
+    public function serviceCharges(): MorphToMany
+    {
+        return $this->morphToMany(Constants::SERVICE_CHARGE_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::SERVICE_CHARGE_NAMESPACE)->distinct()->withPivot('scope');
     }
 }

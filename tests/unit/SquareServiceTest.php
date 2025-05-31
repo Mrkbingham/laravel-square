@@ -2,6 +2,8 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
+use Illuminate\Database\Eloquent\Builder;
+use Nikolag\Square\Builders\OrderBuilder;
 use Str;
 use Nikolag\Square\Builders\SquareRequestBuilder;
 use Nikolag\Square\Exception;
@@ -12,6 +14,9 @@ use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\DeliveryDetails;
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\Location;
+use Nikolag\Square\Models\Modifier;
+use Nikolag\Square\Models\ModifierOption;
+use Nikolag\Square\Models\ModifierOptionLocationPivot;
 use Nikolag\Square\Models\PickupDetails;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Models\Recipient;
@@ -274,6 +279,122 @@ class SquareServiceTest extends TestCase
     }
 
     /**
+     * Tests the buildProducts method.
+     *
+     * @return void
+     */
+    public function test_build_products(): void
+    {
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct($this->data->product, 1)->save();
+
+        $products = Square::getSquareBuilder()->buildProducts(
+            $square->getOrder()->products,
+            'USD'
+        );
+
+        $this->assertNotNull($products);
+        foreach ($products as $product) {
+            $this->assertInstanceOf(\Square\Models\OrderLineItem::class, $product);
+        }
+    }
+
+    /**
+     * Tests the buildProducts method with an option-based modifier.
+     *
+     * @return void
+     */
+    public function test_build_products_with_list_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Select a product that has modifiers
+        $product = Product::whereHas('modifiers', function (Builder $query) {
+            $query->where('type', 'LIST');
+        })->inRandomOrder()->first();
+        $modifierListOption = $product->modifiers->first()->options->first();
+
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct(
+            $product,
+            1,
+            modifiers: [$modifierListOption]
+        )->save();
+
+        // Build the products
+        $products = Square::getSquareBuilder()->buildProducts(
+            $square->getOrder()->products,
+            'USD'
+        );
+
+        $this->assertNotNull($products);
+
+        /** @var \Square\Models\OrderLineItem */
+        $product = $products[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItem::class, $product);
+        $this->assertNotEmpty($product->getModifiers());
+
+        /** @var \Square\Models\OrderLineItemModifier */
+        $modifier = $product->getModifiers()[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItemModifier::class, $modifier);
+        $this->assertNotEmpty($modifier->getUid());
+        $this->assertNotNull($modifier->getCatalogObjectId());
+        $this->assertEquals($modifierListOption->square_catalog_object_id, $modifier->getCatalogObjectId());
+    }
+
+    /**
+     * Tests the buildProducts method with a text-based modifier.
+     *
+     * @return void
+     */
+    public function test_build_products_with_text_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Select a product that has modifiers
+        $product = Product::whereHas('modifiers', function (Builder $query) {
+            $query->where('type', 'TEXT');
+        })->inRandomOrder()->first();
+        $textModifier = $product->modifiers->where('type', 'TEXT')->first();
+        $textModifier->text = 'Scrambled'; // Temporarily set the eggs as scrambled
+
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct(
+            $product,
+            1,
+            modifiers: [$textModifier]
+        )->save();
+
+        // Build the products
+        $products = Square::getSquareBuilder()->buildProducts(
+            $square->getOrder()->products,
+            'USD'
+        );
+
+        $this->assertNotNull($products);
+
+        /** @var \Square\Models\OrderLineItem */
+        $product = $products[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItem::class, $product);
+        $this->assertNotEmpty($product->getModifiers());
+
+        /** @var \Square\Models\OrderLineItemModifier */
+        $modifier = $product->getModifiers()[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItemModifier::class, $modifier);
+        $this->assertNotEmpty($modifier->getUid());
+        $this->assertNotNull($modifier->getCatalogObjectId());
+        $this->assertEquals($textModifier->square_catalog_object_id, $modifier->getCatalogObjectId());
+    }
+
+    /**
      * Tests the createCatalogImage method.
      *
      * @return void
@@ -478,6 +599,77 @@ class SquareServiceTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct($this->data->product, 1)->addProduct($product2, 2)->save();
 
         $this->assertCount(2, $square->getOrder()->products, 'There is not enough products');
+    }
+
+    /**
+     * Add product for order.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_variable_pricing(): void
+    {
+        $productVariablePrice = factory(Product::class)->create([
+            'price' => null,
+        ]);
+        $productVariablePrice->price = 10_00;
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($productVariablePrice, 1)
+            ->save();
+
+        $this->assertCount(1, $square->getOrder()->products, 'There are not enough products');
+        $this->assertEquals(10_00, $square->getOrder()->products->first()->pivot->price_money_amount, 'Order product pivot price does not match');
+    }
+
+    /**
+     * Ensures an exception is thrown when trying to add a product with variable pricing without a price.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_variable_pricing_without_price(): void
+    {
+        $productVariablePrice = factory(Product::class)->create([
+            'price' => null,
+        ]);
+
+        // Set up the error expectations
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Required field is missing');
+        $this->expectExceptionCode(500);
+
+        Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct($productVariablePrice, 1);
+    }
+
+    /**
+     * Add product for order.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_with_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Select a product that has modifiers
+        $modifier = Modifier::where('type', 'LIST')->whereHas('products')->inRandomOrder()->first();
+        $modifierListOption = $modifier->options->random()->first();
+        $product = $modifier->products->random()->first();
+
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct(
+            $product,
+            1,
+            modifiers: [$modifierListOption]
+        )->save();
+
+        // Make sure if you set an order with linked modifiers, the modifiers are added
+        $square = Square::setOrder($square->getOrder(), env('SQUARE_LOCATION'));
+
+        $this->assertCount(1, $square->getOrder()->products, 'There are not enough products');
+        $this->assertCount(1, $square->getOrder()->products->first()->pivot->modifiers, 'There are not enough modifiers');
     }
 
     /**
@@ -898,25 +1090,122 @@ class SquareServiceTest extends TestCase
             );
 
             // Make sure every location has a name
-            $this->assertNotNull($location->name, 'Product has no name. Location: ' . $location->toJson());
+            $this->assertNotNull($location->name, 'Location has no name. Location: ' . $location->toJson());
 
             // Make sure every location has a name
-            $this->assertNotNull($location->address, 'Product has no address. Location: ' . $location->toJson());
+            $this->assertNotNull($location->address, 'Location has no address. Location: ' . $location->toJson());
         }
     }
 
     /**
-     * Test the syncing of the product catalog.
+     * Test the syncing of the modifiers catalog objects.
+     *
+     * @return void
+     */
+    public function test_square_sync_modifiers(): void
+    {
+        // Sync the location (the location override assertions later require this)
+        if (Location::count() == 0) {
+            Square::syncLocations();
+        }
+
+        // Delete all modifiers from the database
+        Modifier::truncate();
+        $this->assertCount(0, Modifier::all(), 'There are modifiers in the database after truncating');
+
+        // Sync the modifiers
+        Square::syncModifiers();
+
+        // Make sure there are modifiers
+        $modifiers = Modifier::all();
+        // Note: If you are seeing this error and your connected testing Square account has no modifiers, you will
+        // need to create some modifiers in your Square account to test this functionality.
+        $this->assertGreaterThan(0, $modifiers->count(), 'There are no modifiers in the database');
+
+        foreach ($modifiers as $modifier) {
+            // Make sure every square_catalog_object_id is set to square
+            $this->assertNotEmpty(
+                $modifier->square_catalog_object_id,
+                'Catalog Object ID not synced for modifier: ' . $modifier->toJson()
+            );
+
+            // Make sure every modifier has a name
+            $this->assertNotNull($modifier->name, 'Modifier list has no name. Modifier list: ' . $modifier->toJson());
+
+            // Make sure every modifier has a selection type
+            $this->assertNotNull(
+                $modifier->selection_type,
+                'Modifier list has no selection type. Modifier list: ' . $modifier->toJson()
+            );
+        }
+    }
+
+    /**
+     * Test the syncing of the item modifier options catalog objects.
+     *
+     * Note: This runs the same sync method as the test_square_sync_modifiers test, but it is separated for clarity.
+     *
+     * @return void
+     */
+    public function test_square_sync_modifier_options(): void
+    {
+        // Sync the location (the location override assertions later require this)
+        if (Location::count() == 0) {
+            Square::syncLocations();
+        }
+
+        // Delete all modifiers from the database
+        ModifierOption::truncate();
+        $this->assertCount(0, ModifierOption::all(), 'There are product modifiers in the database after truncating');
+
+        // Sync the product modifiers (due to mapping issues, this is required)
+        Square::syncModifiers();
+
+        // Make sure there are modifier options
+        $modifierOptions = ModifierOption::all();
+        // Note: If you are seeing this error and your connected testing Square account has no modifiers, you will
+        // need to create some modifiers in your Square account to test this functionality.
+        $this->assertGreaterThan(0, $modifierOptions->count(), 'There are no product modifiers in the database');
+
+        foreach ($modifierOptions as $modifierOption) {
+            // Make sure every reference_type is set to square
+            $this->assertNotEmpty(
+                $modifierOption->square_catalog_object_id,
+                'Catalog Object ID not synced for modifier option: ' . $modifierOption->toJson()
+            );
+
+            // Make sure every modifier option has a name
+            $this->assertNotNull(
+                $modifierOption->name,
+                'Modifier option has no name. Modifier option: ' . $modifierOption->toJson()
+            );
+
+            // Make sure every modifier option is linked to a parent modifier model
+            $this->assertNotNull(
+                $modifierOption->modifier_id,
+                'Modifier option has no relationship to Modifier model. Modifier option: ' . $modifierOption->toJson()
+            );
+        }
+
+        // Make sure there are modifier options that have created a pivot relationship
+        $disabledOptionsPivotCount = ModifierOptionLocationPivot::count();
+        // TODO: This is a pretty brittle test, make it more flexible so others could theoretically run it
+        $this->assertEquals(7, $disabledOptionsPivotCount, 'There are not 7 disabled modifier options in the database');
+    }
+
+    /**
+     * Test the syncing of the product catalog objects.
      *
      * @return void
      */
     public function test_square_sync_products(): void
     {
-        // Delete all products from the database
+        // Delete all products and modifiers from the database
         Product::truncate();
-        $this->assertCount(0, Product::all(), 'There are products in the database after truncating');
+        Modifier::truncate();
 
-        // Sync the products
+        // Sync the modifiers and then sync the products
+        Square::syncModifiers();
         Square::syncProducts();
 
         // Make sure there are products
@@ -936,6 +1225,26 @@ class SquareServiceTest extends TestCase
             // Make sure every product has a name
             $this->assertNotNull($product->name, 'Product has no name. Product: ' . $product->toJson());
         }
+    }
+
+    /**
+     * Test the syncing of the a product that has a modifier, without having first synced the modifiers.
+     *
+     * @return void
+     */
+    public function test_square_sync_products_missing_modifiers(): void
+    {
+        // Delete all products and modifiers from the database
+        Product::truncate();
+        Modifier::truncate();
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessageMatches(
+            '/Modifier list ID: .* not found during product sync for product ID: [0-9]/'
+        );
+
+        // Sync the products
+        Square::syncProducts();
     }
 
     /**
@@ -1017,19 +1326,19 @@ class SquareServiceTest extends TestCase
                 'note' => 'This note can have maximum of 50 characters.',
                 'price' => 440.99,
                 'quantity' => 2,
-                'reference_id' => '5' //An optional ID to associate the product with an entity ID in your own table
+                'reference_id' => '5', //An optional ID to associate the product with an entity ID in your own table
             ],
             [
                 'name' => 'Shirt',
                 'variation_name' => 'Mid-size yellow',
                 'note' => 'This note can have maximum of 50 characters.',
                 'quantity' => 1,
-                'price' => 118.02
+                'price' => 118.02,
             ],
         ];
 
         $order = [
-            'products' => $products
+            'products' => $products,
         ];
 
         $square = Square::setOrder($order, env('SQUARE_LOCATION'))->save();
@@ -1171,7 +1480,7 @@ class SquareServiceTest extends TestCase
 
         $this->data->order->discounts()->attach($orderDiscount->id, ['deductible_type' => Constants::DISCOUNT_NAMESPACE, 'featurable_type' => config('nikolag.connections.square.order.namespace'), 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
         $this->data->order->taxes()->attach($taxInclusive->id, ['deductible_type' => Constants::TAX_NAMESPACE, 'featurable_type' => config('nikolag.connections.square.order.namespace'), 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
-        $this->data->order->products()->attach($product);
+        $this->data->order->attachProduct($product);
 
         $this->data->order->products->get(0)->pivot->discounts()->attach($productDiscount->id, ['deductible_type' => Constants::DISCOUNT_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
 
@@ -1202,7 +1511,7 @@ class SquareServiceTest extends TestCase
         $this->data->order->discounts()->attach($orderDiscountFixed->id, ['deductible_type' => Constants::DISCOUNT_NAMESPACE, 'featurable_type' => config('nikolag.connections.square.order.namespace'), 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
         $this->data->order->taxes()->attach($taxAdditive->id, ['deductible_type' => Constants::TAX_NAMESPACE, 'featurable_type' => config('nikolag.connections.square.order.namespace'), 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
         $this->data->order->taxes()->attach($taxInclusive->id, ['deductible_type' => Constants::TAX_NAMESPACE, 'featurable_type' => config('nikolag.connections.square.order.namespace'), 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
-        $this->data->order->products()->attach($product);
+        $this->data->order->attachProduct($product);
 
         $square = Square::setMerchant($this->data->merchant)
             ->setCustomer($this->data->customer)

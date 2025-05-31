@@ -26,6 +26,12 @@ class Constants extends CoreConstants
     const ORDER_PRODUCT_NAMESPACE = 'Nikolag\Square\Models\OrderProductPivot';
     const PRODUCT_NAMESPACE = 'Nikolag\Square\Models\Product';
     const PRODUCT_IDENTIFIER = 'id';
+    //Modifier info
+    const MODIFIER_NAMESPACE = 'Nikolag\Square\Models\Modifier';
+    const MODIFIER_IDENTIFIER = 'id';
+    //Modifier Option info
+    const MODIFIER_OPTION_NAMESPACE = 'Nikolag\Square\Models\ModifierOption';
+    const MODIFIER_OPTION_IDENTIFIER = 'id';
     //Customer info
     const RECIPIENT_NAMESPACE = 'Nikolag\Square\Models\Recipient';
     const RECIPIENT_IDENTIFIER = 'id';
@@ -38,6 +44,9 @@ class Constants extends CoreConstants
     //Refund info
     const REFUND_NAMESPACE = 'Nikolag\Square\Models\Refund';
     const REFUND_IDENTIFIER = 'id';
+    //Service Charge info
+    const SERVICE_CHARGE_NAMESPACE = 'Nikolag\Square\Models\ServiceCharge';
+    const SERVICE_CHARGE_IDENTIFIER = 'id';
 
     //Exceptions
     //INVALID_REQUEST_ERROR
@@ -56,6 +65,16 @@ class Constants extends CoreConstants
     const DEDUCTIBLE_FIXED_AMOUNT = 'FIXED_AMOUNT';
     const DEDUCTIBLE_SCOPE_ORDER = 'ORDER';
     const DEDUCTIBLE_SCOPE_PRODUCT = 'LINE_ITEM';
+    const DEDUCTIBLE_SCOPE_SERVICE_CHARGE = 'SERVICE_CHARGE';
+
+    // Service charge constants
+    const SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL = 'SUBTOTAL_PHASE';
+    const SERVICE_CHARGE_CALCULATION_PHASE_TOTAL = 'TOTAL_PHASE';
+    const SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT = 'APPORTIONED_AMOUNT_PHASE';
+    const SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_PERCENTAGE = 'APPORTIONED_PERCENTAGE_PHASE';
+
+    const SERVICE_CHARGE_TREATMENT_LINE_ITEM = 'LINE_ITEM_TREATMENT';
+    const SERVICE_CHARGE_TREATMENT_APPORTIONED = 'APPORTIONED_TREATMENT';
 
     // Fulfillment scheduled type constants
     const SCHEDULE_TYPE_ASAP = 'ASAP';
