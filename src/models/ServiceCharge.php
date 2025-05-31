@@ -65,32 +65,11 @@ class ServiceCharge extends Model
 
         static::updating(function ($serviceCharge) {
             $serviceCharge->validateServiceChargeType();
-        });
     }
 
-    /**
-     * Validate that only one of percentage or amount_money is set.
-     *
-     * @return void
-     * @throws ValidationException
-     */
-    protected function validateServiceChargeType()
-    {
-        $hasPercentage = !is_null($this->percentage) && $this->percentage !== 0;
-        $hasAmount = !is_null($this->amount_money) && $this->amount_money !== 0;
-
-        if ($hasPercentage && $hasAmount) {
-            throw ValidationException::withMessages([
-                'service_charge' => 'Service charge cannot have both percentage and amount_money set. Please specify only one.'
-            ]);
-        }
-
-        if (!$hasPercentage && !$hasAmount) {
-            throw ValidationException::withMessages([
-                'service_charge' => 'Service charge must have either percentage or amount_money set.'
-            ]);
-        }
-    }
+    //
+    // Accessors and Mutators
+    //
 
     /**
      * Set the percentage attribute and clear amount_money.
@@ -126,6 +105,10 @@ class ServiceCharge extends Model
         $this->attributes['amount_money'] = $value;
     }
 
+    //
+    // Boolean Checks
+    //
+
     /**
      * Check if this service charge is percentage-based.
      *
@@ -145,6 +128,10 @@ class ServiceCharge extends Model
     {
         return !is_null($this->amount_money) && $this->amount_money !== 0;
     }
+
+    //
+    // Relationships
+    //
 
     /**
      * Return a list of orders which use this service charge.
@@ -186,4 +173,33 @@ class ServiceCharge extends Model
     {
         return $date->format('Y-m-d H:i:s');
     }
+
+    //
+    // Validation methods
+    //
+
+    /**
+     * Validate that only one of percentage or amount_money is set.
+     *
+     * @return void
+     * @throws ValidationException
+     */
+    protected function validateServiceChargeType()
+    {
+        $hasPercentage = !is_null($this->percentage) && $this->percentage !== 0;
+        $hasAmount = !is_null($this->amount_money) && $this->amount_money !== 0;
+
+        if ($hasPercentage && $hasAmount) {
+            throw ValidationException::withMessages([
+                'service_charge' => 'Service charge cannot have both percentage and amount_money set. Please specify only one.'
+            ]);
+        }
+
+        if (!$hasPercentage && !$hasAmount) {
+            throw ValidationException::withMessages([
+                'service_charge' => 'Service charge must have either percentage or amount_money set.'
+            ]);
+        }
+    }
+
 }
