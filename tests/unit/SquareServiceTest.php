@@ -955,16 +955,6 @@ class SquareServiceTest extends TestCase
     }
 
     /**
-     * Refund a single item.
-     *
-     * @return void
-     */
-    public function test_square_order_itemized_quantity_incorrect(): void
-    {
-        // Add a test here that makes sure you can't try to refund more of an item than exits in the order
-    }
-
-    /**
      * Order creation without location id, testing exception case.
      *
      * @return void
