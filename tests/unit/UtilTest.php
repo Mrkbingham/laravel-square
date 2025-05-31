@@ -388,7 +388,7 @@ class UtilTest extends TestCase
             'amount_money' => 10_00, // 10.00 USD
             'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
             'taxable' => true,
-            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED_TREATMENT,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
         ]);
 
         // Add the service charge to the order
@@ -419,7 +419,7 @@ class UtilTest extends TestCase
             'percentage' => 10.0, // 10%
             'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
             'taxable' => true,
-            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED_TREATMENT,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
         ]);
 
         // Add the service charge to the order
@@ -507,7 +507,7 @@ class UtilTest extends TestCase
             'amount_money' => 10_00, // 10.00 USD
             'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
             'taxable' => true,
-            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED_TREATMENT,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
         ]);
 
         // Apply the tax to the service charge
@@ -551,7 +551,7 @@ class UtilTest extends TestCase
             'amount_money' => 10_00, // 10.00 USD
             'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL,
             'taxable' => true,
-            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_LINE_ITEM_TREATMENT,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_LINE_ITEM,
         ]);
 
         // Apply the tax to the service charge
