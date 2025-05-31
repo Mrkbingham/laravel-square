@@ -219,6 +219,53 @@ class ServiceChargeIntegrationTest extends TestCase
     }
 
     /**
+     * Test service charge integration with product charging.
+     *
+     * @return void
+     */
+    public function test_service_charge_integration_with_product_charge(): void
+    {
+        $order = factory(Order::class)->create();
+        $product = factory(Product::class)->create(['price' => 1500]); // $15.00
+        $order->attachProduct($product, ['quantity' => 2]);
+
+        // Create a service charge with apportioned amount calculation
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name' => 'Fixed amount service charge',
+            'amount_money' => 10_00, // 10.00 USD
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
+            'taxable' => true,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
+        ]);
+
+        // Add a service charge to the product
+        $order->products->first()->pivot->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+        ]);
+
+        // Build order with service charge
+        $square = Square::setOrder($order, env('SQUARE_LOCATION'))->save();
+
+        // Calculate total: ($15.00 + $10.00) x 2 = $50.00
+        $expectedTotal = 50_00;
+        $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
+
+        $this->assertEquals($expectedTotal, $actualTotal);
+
+        // Test charging the order
+        $transaction = $square->charge([
+            'amount' => $expectedTotal,
+            'source_id' => 'cnon:card-nonce-ok',
+            'location_id' => env('SQUARE_LOCATION'),
+        ]);
+
+        $this->assertNotNull($transaction, 'Transaction should be created successfully');
+        $this->assertEquals($expectedTotal, $transaction->amount, 'Transaction amount should match calculated total');
+    }
+
+    /**
      * Test multiple service charges on the same order.
      *
      * @return void

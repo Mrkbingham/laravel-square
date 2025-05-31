@@ -19,7 +19,8 @@ class Util
      */
     public static function calculateTotalOrderCost(stdClass $orderCopy): float|int
     {
-        return self::_calculateTotalCost($orderCopy->discounts, $orderCopy->taxes, $orderCopy->serviceCharges, $orderCopy->products);
+        $allServiceCharges = self::collectServiceCharges($orderCopy);
+        return self::_calculateTotalCost($orderCopy->discounts, $orderCopy->taxes, $allServiceCharges, $orderCopy->products);
     }
 
     /**
@@ -259,7 +260,10 @@ class Util
 
         return $serviceCharges->sum(function ($serviceCharge) use ($products) {
             // Apportioned service charges inherit taxes from line items - no direct taxes
-            if ($serviceCharge->treatment_type === Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED) {
+            if (
+                $serviceCharge->treatment_type === Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED
+                || $serviceCharge->taxable === false
+            ) {
                 return 0;
             }
 
@@ -284,6 +288,34 @@ class Util
                 return round($serviceChargeAmount * $tax->percentage / 100);
             });
         });
+    }
+
+    /**
+     * Collects all the service charges from products and order and combines them.
+     *
+     * @param Model|stdClass $order
+     *
+     * @return Collection
+     */
+    public static function collectServiceCharges(Model|stdClass $order): Collection
+    {
+        // Collect service charges from order level (with taxes)
+        $orderServiceCharges = $order instanceof Model
+            ? $order->serviceCharges()->with('taxes')->get() ?? collect([])
+            : $order->serviceCharges ?? collect([]);
+
+        // Collect service charges from product pivots (with taxes)
+        $productServiceCharges = collect([]);
+        if ($order->products && $order->products->isNotEmpty()) {
+            $productServiceCharges = $order->products->flatMap(function ($product) {
+                return $product instanceof Model
+                    ? $product->pivot->serviceCharges()->with('taxes')->get() ?? collect([])
+                    : $product->pivot->serviceCharges ?? collect([]);
+            });
+        }
+
+        // Merge all service charges
+        return $orderServiceCharges->merge($productServiceCharges);
     }
 
     /**
@@ -362,6 +394,7 @@ class Util
         // Pre-filter all collections by scope once for efficiency
         $allDiscounts = self::_mergeCollectionsByScope($discounts);
         $allTaxes = self::_mergeCollectionsByScope($taxes);
+        dump("All service charges: {$serviceCharges->count()}");
         $allServiceCharges = self::_mergeCollectionsByScope($serviceCharges);
 
         // Separate service charges by calculation phase
@@ -388,14 +421,15 @@ class Util
         $subTotalAmount = $discountCost + self::_calculateServiceCharges($subtotalServiceCharges, $discountCost, $products);
 
         // Apply taxes to the cost including service charges
-        $additiveTaxAmount = self::_calculateAdditiveTaxes($allTaxes, $subTotalAmount, $products, $allDiscounts);
-        $taxedCost = $subTotalAmount + $additiveTaxAmount;
+        $taxedCost = $subTotalAmount + self::_calculateAdditiveTaxes($allTaxes, $subTotalAmount, $products, $allDiscounts);
 
         // Add total-phase service charges after taxes
         $totalServiceChargeAmount = self::_calculateServiceCharges($totalServiceCharges, $taxedCost, $products);
 
+        // Finally, calculate service charge taxes
+        $serviceChargeTaxAmount = self::_calculateServiceChargeTaxes($allServiceCharges, $products);
 
-        return $taxedCost + $totalServiceChargeAmount;
+        return $taxedCost + $totalServiceChargeAmount + $serviceChargeTaxAmount;
     }
 
     /**
@@ -467,20 +501,7 @@ class Util
      */
     public static function calculateTotalOrderCostByModel(Model $order): float|int
     {
-        // Collect service charges from order level (with taxes)
-        $orderServiceCharges = $order->serviceCharges()->with('taxes')->get() ?? collect([]);
-
-        // Collect service charges from product pivots (with taxes)
-        $productServiceCharges = collect([]);
-        if ($order->products && $order->products->isNotEmpty()) {
-            $productServiceCharges = $order->products->flatMap(function ($product) {
-                return $product->pivot->serviceCharges()->with('taxes')->get() ?? collect([]);
-            });
-        }
-
-        // Merge all service charges
-        $allServiceCharges = $orderServiceCharges->merge($productServiceCharges);
-
+        $allServiceCharges = self::collectServiceCharges($order);
         return self::_calculateTotalCost($order->discounts, $order->taxes, $allServiceCharges, $order->products);
     }
 

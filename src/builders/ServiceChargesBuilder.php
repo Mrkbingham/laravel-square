@@ -53,7 +53,7 @@ class ServiceChargesBuilder
                         $orderClass = config('nikolag.connections.square.order.namespace');
                         $tempServiceCharge = $orderClass::find($serviceCharge['pivot']['featurable_id'])->serviceCharges()->find($serviceCharge['id']);
                     } elseif ($scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) {
-                        $tempServiceCharge = OrderServiceChargePivot::find($serviceCharge['pivot']['featurable_id'])->serviceCharges()->find($serviceCharge['id']);
+                        $tempServiceCharge = OrderProductPivot::find($serviceCharge['pivot']['featurable_id'])->serviceCharges()->find($serviceCharge['id']);
                     }
                 }
             }
