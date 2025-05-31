@@ -183,15 +183,7 @@ $factory->define(Constants::DISCOUNT_NAMESPACE, function (Faker\Generator $faker
 $factory->define(Constants::SERVICE_CHARGE_NAMESPACE, function (Faker\Generator $faker) {
     return [
         'name' => $faker->unique()->company,
-        'calculation_phase' => Arr::random([
-            Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL,
-            Constants::SERVICE_CHARGE_CALCULATION_PHASE_TOTAL
-        ]),
-        'taxable' => $faker->boolean,
-        'treatment_type' => Arr::random([
-            Constants::SERVICE_CHARGE_TREATMENT_LINE_ITEM_TREATMENT,
-            Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED_TREATMENT
-        ]),
+        'taxable' => true,
     ];
 });
 
