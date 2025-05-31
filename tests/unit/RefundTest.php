@@ -68,10 +68,10 @@ class RefundTest extends TestCase
     {
         /** @var Order */
         $order = factory(Order::class)->create();
-        $product = factory(Product::class)->make([
+        $product = factory(Product::class)->create([
             'price' => 110,
         ]);
-        $order->products()->save($product, ['quantity' => 3]);
+        $order->attachProduct($product, ['quantity' => 3]);
 
         $refund = factory(Refund::class)->create([
             'refundable_id' => $order->products()->first()->pivot->id,
@@ -93,14 +93,14 @@ class RefundTest extends TestCase
     {
         /** @var Order */
         $order = factory(Order::class)->create();
-        $product = factory(Product::class)->make([
+        $product = factory(Product::class)->create([
             'price' => 110,
         ]);
-        $order->products()->save($product, ['quantity' => 3]);
+        $order->attachProduct($product, ['quantity' => 3]);
 
         // Expect an exception to be thrown
         $this->expectException(Exception::class);
-        $this->expectExceptionMessage('Refund quantity exceeds product quantity');
+        $this->expectExceptionMessage('Refund quantity exceeds order product pivot quantity');
 
         factory(Refund::class)->create([
             'refundable_id' => $order->products()->first()->pivot->id,
