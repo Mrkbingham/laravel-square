@@ -394,7 +394,6 @@ class Util
         // Pre-filter all collections by scope once for efficiency
         $allDiscounts = self::_mergeCollectionsByScope($discounts);
         $allTaxes = self::_mergeCollectionsByScope($taxes);
-        dump("All service charges: {$serviceCharges->count()}");
         $allServiceCharges = self::_mergeCollectionsByScope($serviceCharges);
 
         // Separate service charges by calculation phase

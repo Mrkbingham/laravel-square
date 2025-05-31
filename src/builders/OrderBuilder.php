@@ -33,6 +33,11 @@ class OrderBuilder
     private TaxesBuilder $taxesBuilder;
 
     /**
+     * @var ServiceChargesBuilder
+     */
+    private ServiceChargesBuilder $serviceChargesBuilder;
+
+    /**
      * OrderBuilder constructor.
      */
     public function __construct()
@@ -42,6 +47,7 @@ class OrderBuilder
         $this->fulfillmentBuilder = new FulfillmentBuilder();
         $this->modifiersBuilder = new ModifiersBuilder();
         $this->taxesBuilder = new TaxesBuilder();
+        $this->serviceChargesBuilder = new ServiceChargesBuilder();
     }
 
     /**
@@ -101,6 +107,23 @@ class OrderBuilder
                 // If order doesn't have tax, add it
                 if (! $order->hasTax($tax)) {
                     $order->taxes()->attach($tax->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::TAX_NAMESPACE, 'scope' => $scope]);
+                }
+            }
+        }
+
+        // Check if order has service charges
+        if ($orderCopy->serviceCharges->isNotEmpty()) {
+            // For each service charge in order
+            foreach ($orderCopy->serviceCharges as $serviceCharge) {
+                // Assign to temp variable
+                $scope = $serviceCharge->scope;
+                // Remove temp scope attribute
+                unset($serviceCharge->scope);
+                // Save service charge
+                $serviceCharge->save();
+                // If order doesn't have service charge, add it
+                if (! $order->hasServiceCharge($serviceCharge)) {
+                    $order->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => $scope]);
                 }
             }
         }
@@ -174,6 +197,20 @@ class OrderBuilder
                         // If product doesn't have tax, add it
                         if (! $productPivot->hasTax($tax)) {
                             $productPivot->taxes()->attach($tax->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::TAX_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                        }
+                    }
+
+                    // For each service charge in product
+                    foreach ($serviceCharges as $serviceCharge) {
+                        // Save service charge
+                        $serviceCharge->save();
+                        // If order doesn't have service charge, add it
+                        if (! $order->hasServiceCharge($serviceCharge)) {
+                            $order->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                        }
+                        // If product doesn't have service charge, add it
+                        if (! $productPivot->hasServiceCharge($serviceCharge)) {
+                            $productPivot->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                     }
                 }
@@ -290,6 +327,13 @@ class OrderBuilder
                         }
                     }
 
+                    // Create initial service charges
+                    $productTemp->serviceCharges = collect([]);
+                    //Product Service Charges
+                    if ($product->pivot->serviceCharges->isNotEmpty()) {
+                        $productTemp->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($product->pivot->serviceCharges->toArray(), Constants::DEDUCTIBLE_SCOPE_PRODUCT, $productTemp->pivot);
+                    }
+
                     //Product price - support for variable pricing
                     // Use the pivot price if it exists (order-specific pricing),
                     // otherwise fallback to product model price
@@ -313,6 +357,13 @@ class OrderBuilder
 
                     $orderCopy->products->push($productTemp);
                 }
+            }
+
+            // Create service charges Collection
+            $orderCopy->serviceCharges = collect([]);
+            //Service Charges
+            if ($order->serviceCharges->isNotEmpty()) {
+                $orderCopy->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($order->serviceCharges->toArray(), Constants::DEDUCTIBLE_SCOPE_ORDER, $order);
             }
 
             // Create fulfillments Collection
@@ -398,6 +449,15 @@ class OrderBuilder
                     $orderCopy->products->push($productTemp);
                 }
             }
+
+            // Create service charges Collection
+            $orderCopy->serviceCharges = collect([]);
+            //Service Charges
+            if (Arr::has($order, 'service_charges') && $order['service_charges'] != null) {
+                $orderCopy->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($order['service_charges'], Constants::DEDUCTIBLE_SCOPE_ORDER);
+            }
+
+
             // Create fulfillments Collection
             $orderCopy->fulfillments = collect([]);
             //Fulfillments

@@ -417,7 +417,7 @@ class UtilTest extends TestCase
         $serviceCharge = factory(ServiceCharge::class)->create([
             'name' => 'Apportioned percentage service charge',
             'percentage' => 10.0, // 10%
-            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_PERCENTAGE,
             'taxable' => true,
             'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
         ]);
@@ -641,6 +641,9 @@ class UtilTest extends TestCase
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
             'percentage' => 15.0,
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_TOTAL,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
+            'taxable' => false,
         ]);
 
         $this->data->order->save();
@@ -655,7 +658,7 @@ class UtilTest extends TestCase
         $this->data->order->products->first()->pivot->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
         ]);
 
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
