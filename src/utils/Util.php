@@ -185,12 +185,10 @@ class Util
     private static function _calculateProductServiceCharges($products, $serviceCharge): float|int
     {
         // Handle apportioned service charges efficiently
-        if ($serviceCharge->treatment_type === Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED_TREATMENT) {
-            if ($serviceCharge->calculation_phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT) {
-                // Apply fixed amount per line item quantity
-                $totalQuantity = $products->sum('pivot.quantity');
-                return $serviceCharge->amount_money * $totalQuantity;
-            }
+        if ($serviceCharge->calculation_phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL) {
+            throw new Exception('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order.');
+        }
+
 
             if ($serviceCharge->calculation_phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_PERCENTAGE) {
                 // Apply percentage to total product value - use cached calculation if available
@@ -361,6 +359,19 @@ class Util
         $allDiscounts = self::_mergeCollectionsByScope($discounts);
         $allTaxes = self::_mergeCollectionsByScope($taxes);
         $allServiceCharges = self::_mergeCollectionsByScope($serviceCharges);
+
+        // Separate service charges by calculation phase
+        $subtotalServiceCharges = $allServiceCharges->filter(function ($serviceCharge) {
+            return in_array($serviceCharge->calculation_phase, [
+                    Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL,
+                    Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
+                    Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_PERCENTAGE
+            ]);
+        });
+
+        $totalServiceCharges = $allServiceCharges->filter(function ($serviceCharge) {
+            return $serviceCharge->calculation_phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_TOTAL;
+        });
 
         // Cache product calculations - calculate base cost only once
         $productCalculations = self::_calculateProductTotals($products);

@@ -108,4 +108,44 @@ class ServiceChargeIntegrationTest extends TestCase
 
         $this->assertEquals($expectedTotal, $actualTotal, 'Multiple service charges were not calculated correctly');
     }
+
+    /**
+     * Test multiple service charges on the same order.
+     *
+     * @return void
+     */
+    public function test_total_service_charge_cannot_be_applied_to_products(): void
+    {
+        // Create test data
+        $order = factory(Order::class)->create();
+        $product1 = factory(ModelsProduct::class)->create(['price' => 1000]); // $10.00
+        $product2 = factory(Product::class)->create(['price' => 2000]); // $20.00
+
+        // Create a service charge to be applied to a product within the order
+        $productServiceCharge = factory(ServiceCharge::class)->create([
+            'name' => 'Handling Fee',
+            'amount_money' => 1_50, // $1.50
+            'amount_currency' => 'USD',
+            'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_LINE_ITEM,
+        ]);
+
+        // Build order through Square service
+        $square = Square::setOrder($order, env('SQUARE_LOCATION'))
+            ->addProduct($product1, 2) // 2 × $10.00 = $20.00
+            ->addProduct($product2, 1) // 1 × $20.00 = $20.00
+            ->save();
+
+        // Attach product-level service charge to first product
+        $order->products->first()->pivot->serviceCharges()->attach($productServiceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+        ]);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order');
+
+        Util::calculateTotalOrderCostByModel($order);
+    }
 }
