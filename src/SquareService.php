@@ -8,7 +8,6 @@ use Nikolag\Square\Builders\FulfillmentBuilder;
 use Nikolag\Square\Builders\OrderBuilder;
 use Nikolag\Square\Builders\ProductBuilder;
 use Nikolag\Square\Builders\RecipientBuilder;
-use Nikolag\Square\Builders\RefundBuilder;
 use Nikolag\Square\Builders\SquareRequestBuilder;
 use Nikolag\Square\Contracts\SquareServiceContract;
 use Nikolag\Square\Exceptions\AlreadyUsedSquareProductException;
@@ -65,10 +64,6 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @var ProductBuilder
      */
     private ProductBuilder $productBuilder;
-    /**
-     * @var RefundBuilder
-     */
-    private RefundBuilder $refundBuilder;
     /**
      * @var CustomerBuilder
      */
@@ -916,41 +911,6 @@ class SquareService extends CorePaymentService implements SquareServiceContract
             // Check if order already has this product
             if (! Util::hasProduct($this->orderCopy->products, $productPivot->product)) {
                 $this->orderCopy->products->push($productPivot);
-            } else {
-                throw new AlreadyUsedSquareProductException('Product is already part of the order', 500);
-            }
-        } catch (MissingPropertyException $e) {
-            throw new MissingPropertyException('Required field is missing', 500, $e);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Adds a refund to the order.
-     *
-     * @param  mixed  $product
-     * @param  int  $quantity
-     * @return self
-     *
-     * @throws AlreadyUsedSquareProductException
-     * @throws InvalidSquareOrderException
-     * @throws MissingPropertyException
-     */
-    public function addRefund(mixed $product, int $quantity = 1): static
-    {
-        //Product class
-        $productClass = Constants::PRODUCT_NAMESPACE;
-
-        try {
-            if (is_a($product, $productClass)) {
-                $productPivot = $this->productBuilder->addProductFromModel($this->getOrder(), $product, $quantity);
-            } else {
-                $productPivot = $this->productBuilder->addProductFromArray($this->orderCopy, $this->getOrder(), $product, $quantity);
-            }
-            // Check if order already has this product
-            if (! Util::hasProduct($this->orderCopy->refunds, $productPivot->product)) {
-                $this->orderCopy->refunds->push($productPivot);
             } else {
                 throw new AlreadyUsedSquareProductException('Product is already part of the order', 500);
             }
