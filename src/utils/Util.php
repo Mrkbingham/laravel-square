@@ -165,12 +165,12 @@ class Util
      * takes over precedence over flat amount.
      *
      * @param  $serviceCharge
-     * @param  float  $taxedCost
+     * @param  float  $amount
      * @return float|int
      */
-    private static function _calculateOrderServiceCharges($serviceCharge, float $taxedCost): float|int
+    private static function _calculateOrderServiceCharges($serviceCharge, float $amount): float|int
     {
-        return ($serviceCharge->percentage) ? round($taxedCost * $serviceCharge->percentage / 100) :
+        return ($serviceCharge->percentage) ? round($amount * $serviceCharge->percentage / 100) :
             $serviceCharge->amount_money;
     }
 
@@ -189,14 +189,18 @@ class Util
             throw new Exception('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order.');
         }
 
+        if ($serviceCharge->calculation_phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT) {
+            // Apply fixed amount per line item quantity
+            $totalQuantity = $products->sum('pivot.quantity');
+            return $serviceCharge->amount_money * $totalQuantity;
+        }
 
-            if ($serviceCharge->calculation_phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_PERCENTAGE) {
-                // Apply percentage to total product value - use cached calculation if available
-                $totalValue = $products->sum(function ($product) {
-                    return $product->pivot->price_money_amount * $product->pivot->quantity;
-                });
-                return $totalValue * $serviceCharge->percentage / 100;
-            }
+        if ($serviceCharge->calculation_phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_PERCENTAGE) {
+            // Apply percentage to total product value - use cached calculation if available
+            $totalValue = $products->sum(function ($product) {
+                return $product->pivot->price_money_amount * $product->pivot->quantity;
+            });
+            return $totalValue * $serviceCharge->percentage / 100;
         }
 
         // For non-apportioned service charges, find the specific product efficiently
@@ -219,22 +223,22 @@ class Util
      * their scope.
      *
      * @param  Collection  $serviceCharges
-     * @param  float  $taxedCost
+     * @param  float  $baseAmount
      * @param  Collection  $products
      * @return float|int
      */
-    private static function _calculateServiceCharges(Collection $serviceCharges, float $taxedCost, Collection $products): float|int
+    private static function _calculateServiceCharges(Collection $serviceCharges, float $baseAmount, Collection $products): float|int
     {
         if ($serviceCharges->isEmpty() || $products->isEmpty()) {
             return 0;
         }
 
-        return $serviceCharges->sum(function ($serviceCharge) use ($products, $taxedCost) {
+        return $serviceCharges->sum(function ($serviceCharge) use ($products, $baseAmount) {
             $scope = $serviceCharge->pivot ? $serviceCharge->pivot->scope : $serviceCharge->scope;
 
             return match ($scope) {
                 Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::_calculateProductServiceCharges($products, $serviceCharge),
-                Constants::DEDUCTIBLE_SCOPE_ORDER => self::_calculateOrderServiceCharges($serviceCharge, $taxedCost),
+                Constants::DEDUCTIBLE_SCOPE_ORDER => self::_calculateOrderServiceCharges($serviceCharge, $baseAmount),
                 default => 0
             };
         });
@@ -255,7 +259,7 @@ class Util
 
         return $serviceCharges->sum(function ($serviceCharge) use ($products) {
             // Apportioned service charges inherit taxes from line items - no direct taxes
-            if ($serviceCharge->treatment_type === Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED_TREATMENT) {
+            if ($serviceCharge->treatment_type === Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED) {
                 return 0;
             }
 
@@ -377,16 +381,21 @@ class Util
         $productCalculations = self::_calculateProductTotals($products);
         $noDeductiblesCost = $productCalculations['baseCost'];
 
-        // Calculate cost progression efficiently
+        // Apply discounts first to the subtotal
         $discountCost = $noDeductiblesCost - self::_calculateDiscounts($allDiscounts, $noDeductiblesCost, $products);
-        $additiveTaxAmount = self::_calculateAdditiveTaxes($allTaxes, $discountCost, $products, $allDiscounts);
-        $taxedCost = $discountCost + $additiveTaxAmount;
 
-        // Calculate service charges and their taxes
-        $serviceChargeAmount = self::_calculateServiceCharges($allServiceCharges, $taxedCost, $products);
-        $serviceChargeTaxAmount = self::_calculateServiceChargeTaxes($allServiceCharges, $products);
+        // Add subtotal-phase service charges to discount cost
+        $subTotalAmount = $discountCost + self::_calculateServiceCharges($subtotalServiceCharges, $discountCost, $products);
 
-        return $taxedCost + $serviceChargeAmount + $serviceChargeTaxAmount;
+        // Apply taxes to the cost including service charges
+        $additiveTaxAmount = self::_calculateAdditiveTaxes($allTaxes, $subTotalAmount, $products, $allDiscounts);
+        $taxedCost = $subTotalAmount + $additiveTaxAmount;
+
+        // Add total-phase service charges after taxes
+        $totalServiceChargeAmount = self::_calculateServiceCharges($totalServiceCharges, $taxedCost, $products);
+
+
+        return $taxedCost + $totalServiceChargeAmount;
     }
 
     /**
