@@ -61,10 +61,13 @@ class ServiceCharge extends Model
 
         static::creating(function ($serviceCharge) {
             $serviceCharge->validateServiceChargeType();
+            $serviceCharge->validateCalculationPhaseConstraints();
         });
 
         static::updating(function ($serviceCharge) {
             $serviceCharge->validateServiceChargeType();
+            $serviceCharge->validateCalculationPhaseConstraints();
+        });
     }
 
     //
@@ -202,4 +205,138 @@ class ServiceCharge extends Model
         }
     }
 
+    /**
+     * Validate calculation phase constraints according to Square API limitations.
+     *
+     * @return void
+     * @throws ValidationException
+     */
+    protected function validateCalculationPhaseConstraints()
+    {
+        $phase = $this->calculation_phase ?? Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL;
+        $treatmentType = $this->treatment_type ?? Constants::SERVICE_CHARGE_TREATMENT_LINE_ITEM;
+        $hasPercentage = !is_null($this->percentage) && $this->percentage !== 0;
+        $hasAmount = !is_null($this->amount_money) && $this->amount_money !== 0;
+
+        // Subtotal phase service charge limitations
+        if ($phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL) {
+            // Note: Cannot validate order line-item level constraint here as it depends on
+            // how the service charge is attached to products via pivot tables
+            // This validation should be done when attaching to products
+        }
+
+        // Total phase service charge limitations
+        if ($phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_TOTAL) {
+            // Cannot be taxable
+            if ($this->taxable) {
+                throw ValidationException::withMessages([
+                    'calculation_phase' => 'Total phase service charges cannot be taxable.'
+                ]);
+            }
+            // Cannot be applied at the order line-item level
+            if ($treatmentType === Constants::SERVICE_CHARGE_TREATMENT_LINE_ITEM) {
+                throw ValidationException::withMessages([
+                    'calculation_phase' => 'Total phase service charges cannot be applied at the product (line-item) level. Use order level instead.'
+                ]);
+            }
+        }
+
+        // Apportioned amount phase service charge limitations
+        if ($phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT) {
+            // Cannot be used with LINE_ITEM_TREATMENT
+            if ($treatmentType === Constants::SERVICE_CHARGE_TREATMENT_LINE_ITEM) {
+                throw ValidationException::withMessages([
+                    'calculation_phase' => 'Apportioned amount phase cannot be used with line item treatment. Use apportioned treatment instead.'
+                ]);
+            }
+
+            // Must have amount, not percentage
+            if ($hasPercentage && !$hasAmount) {
+                throw ValidationException::withMessages([
+                    'calculation_phase' => 'Apportioned amount phase service charges must have a dollar amount, not a percentage.'
+                ]);
+            }
+        }
+
+        // Apportioned percentage phase service charge limitations
+        if ($phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_PERCENTAGE) {
+            // Cannot be used with LINE_ITEM_TREATMENT
+            if ($treatmentType === Constants::SERVICE_CHARGE_TREATMENT_LINE_ITEM) {
+                throw ValidationException::withMessages([
+                    'calculation_phase' => 'Apportioned percentage phase cannot be used with line item treatment. Use apportioned treatment instead.'
+                ]);
+            }
+
+            // Must have percentage, not amount
+            if ($hasAmount && !$hasPercentage) {
+                throw ValidationException::withMessages([
+                    'calculation_phase' => 'Apportioned percentage phase service charges must have a percentage, not a dollar amount.'
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Validate that a service charge can be applied at the product (line-item) level.
+     *
+     * @return void
+     * @throws ValidationException
+     */
+    public function validateProductLevelApplication()
+    {
+        $phase = $this->calculation_phase ?? Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL;
+
+        // Subtotal phase service charges cannot be applied at the order line-item level
+        if ($phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL) {
+            throw ValidationException::withMessages([
+                'scope' => 'Subtotal phase service charges cannot be applied at the product (line-item) level. Use order level instead.'
+            ]);
+        }
+
+        // Total phase service charges cannot be applied at the order line-item level
+        if ($phase === Constants::SERVICE_CHARGE_CALCULATION_PHASE_TOTAL) {
+            throw ValidationException::withMessages([
+                'scope' => 'Total phase service charges cannot be applied at the product (line-item) level. Use order level instead.'
+            ]);
+        }
+    }
+
+    /**
+     * Static method to validate service charge before product attachment.
+     *
+     * @param ServiceCharge $serviceCharge
+     * @return void
+     * @throws ValidationException
+     */
+    public static function validateBeforeProductAttachment(ServiceCharge $serviceCharge)
+    {
+        $serviceCharge->validateProductLevelApplication();
+    }
+
+    /**
+     * Check if this service charge can be applied at the product level.
+     *
+     * @return bool
+     */
+    public function canBeAppliedToProduct(): bool
+    {
+        $phase = $this->calculation_phase ?? Constants::SERVICE_CHARGE_CALCULATION_PHASE_SUBTOTAL;
+
+        // Only apportioned phases can be applied to products
+        return in_array($phase, [
+            Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_AMOUNT,
+            Constants::SERVICE_CHARGE_CALCULATION_PHASE_APPORTIONED_PERCENTAGE
+        ]);
+    }
+
+    /**
+     * Check if this service charge can be applied at the order level.
+     *
+     * @return bool
+     */
+    public function canBeAppliedToOrder(): bool
+    {
+        // All phases can be applied at order level, but with different constraints
+        return true;
+    }
 }
