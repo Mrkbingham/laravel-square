@@ -27,7 +27,9 @@ class OrderTest extends TestCase
         $order = factory(Order::class)->create();
         $discounts = factory(Discount::class, 5)->create();
         $taxes = factory(Tax::class, 3)->create();
-        $serviceCharge = factory(ServiceCharge::class)->create();
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'amount_money' => 10_00,
+        ]);
 
         $order->discounts()->attach($discounts, ['deductible_type' => Constants::DISCOUNT_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
         $order->taxes()->attach($taxes, ['deductible_type' => Constants::TAX_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);

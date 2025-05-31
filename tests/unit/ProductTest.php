@@ -136,7 +136,9 @@ class ProductTest extends TestCase
         $product = factory(Product::class)->create();
         $productPivot = factory(OrderProductPivot::class)->create();
 
-        $serviceCharge = factory(ServiceCharge::class)->create();
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'amount_money' => 10_00,
+        ]);
 
         // Attach service charge to the product pivot and then associate the product
         $productPivot->serviceCharges()->attach($serviceCharge->id, ['deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);

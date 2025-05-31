@@ -185,6 +185,7 @@ class ServiceChargeValidationTest extends TestCase
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
             'calculation_phase' => Constants::SERVICE_CHARGE_CALCULATION_PHASE_TOTAL,
+            'treatment_type' => Constants::SERVICE_CHARGE_TREATMENT_APPORTIONED,
             'percentage' => 5.0,
             'taxable' => false,
         ]);

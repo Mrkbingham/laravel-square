@@ -141,7 +141,7 @@ class OrderBuilder
                     // Create taxes
                     $taxes = $product->taxes;
                     // Create service charges
-                    $serviceCharges = $product->serviceCharges;
+                    $serviceCharges = $product->serviceCharges ?? collect([]);
                     // Remove because laravel doesn't recognize it because its Collection/array
                     unset($product->pivot);
                     unset($product->discounts);
