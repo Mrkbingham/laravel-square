@@ -41,6 +41,9 @@ class Constants extends CoreConstants
     //Tax info
     const TAX_NAMESPACE = 'Nikolag\Square\Models\Tax';
     const TAX_IDENTIFIER = 'id';
+    //Refund info
+    const REFUND_NAMESPACE = 'Nikolag\Square\Models\Refund';
+    const REFUND_IDENTIFIER = 'id';
     //Service Charge info
     const SERVICE_CHARGE_NAMESPACE = 'Nikolag\Square\Models\ServiceCharge';
     const SERVICE_CHARGE_IDENTIFIER = 'id';
