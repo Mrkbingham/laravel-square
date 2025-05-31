@@ -187,16 +187,17 @@ class ServiceChargeIntegrationTest extends TestCase
             'percentage' => null,
         ]);
 
-        // Build order with service charge
-        $square = Square::setOrder($order, env('SQUARE_LOCATION'))
-            ->addProduct($product, 1)
-            ->save();
-
+        // Add a service charge to the order
         $order->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
             'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
         ]);
+
+        // Build order with service charge
+        $square = Square::setOrder($order, env('SQUARE_LOCATION'))
+            ->addProduct($product, 1)
+            ->save();
 
         $order->refresh();
 
