@@ -323,3 +323,13 @@ $factory->define(User::class, function (Faker\Generator $faker) {
         'remember_token' => Str::random(10),
     ];
 });
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::RETURN_NAMESPACE, function (Faker\Generator $faker) {
+    return [
+        'uid' => $faker->unique()->uuid,
+        'source_order_id' => function () {
+            return factory(config('nikolag.connections.square.order.namespace'))->create()->id;
+        },
+    ];
+});
