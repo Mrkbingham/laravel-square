@@ -3,9 +3,10 @@
 namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Nikolag\Square\Casts\SquareOrderReturnCast;
+use Square\Models\OrderReturn as SquareOrderReturn;
 
 class OrderReturn extends Model
 {
@@ -33,7 +34,6 @@ class OrderReturn extends Model
      * @var array
      */
     protected $casts = [
-        'data' => SquareOrderReturnCast::class,
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -50,6 +50,20 @@ class OrderReturn extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(config('nikolag.connections.square.order.namespace'), 'source_order_id', config('nikolag.connections.square.order.service_identifier'));
+    }
+
+    /**
+     * Get the square order return data
+     *
+     * @return Attribute
+     */
+    protected function data(): Attribute
+    {
+        return Attribute::make(
+            get: fn (mixed $value) => is_null($value) ? new SquareOrderReturn() : new SquareOrderReturn(json_decode($value, true)),
+            set: fn (SquareOrderReturn $value) => json_encode($value)
+        );
+
     }
 
     /**
