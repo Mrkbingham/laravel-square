@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('nikolag_order_returns', function (Blueprint $table) {
             $table->id();
-            $table->string('uid', 60)->nullable()->comment('Unique ID for the return within the order');
-            $table->string('source_order_id')->nullable()->comment('ID of the original order being returned');
+            $table->string('uid', 60)->nullable();
+            $table->string('source_order_id')->nullable();
 
             // Since we only need to read OrderReturns and cannot make new returns, just shove
             // everything else into a json field.
-            $table->json('data')->nullable()->comment('JSON data containing all other return details');
+            $table->json('data')->nullable();
 
             $table->timestamps();
 
