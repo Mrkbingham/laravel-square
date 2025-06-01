@@ -42,8 +42,16 @@ class OrderReturnTest extends TestCase
         $this->assertNotNull($orderReturn);
         $this->assertEquals($order->payment_service_id, $orderReturn->source_order_id);
         $this->assertEquals('test-return-uid-123', $orderReturn->uid);
-        $this->assertEquals(1500, $orderReturn->data->getReturnAmounts()->getTotalMoney()->getAmount());
+        $this->assertEquals(20_00, $orderReturn->data->getReturnAmounts()->getTotalMoney()->getAmount());
         $this->assertEquals('USD', $orderReturn->data->getReturnAmounts()->getTotalMoney()->getCurrency());
+        $this->assertEquals(2_00, $orderReturn->data->getReturnAmounts()->getTaxMoney()->getAmount());
+        $this->assertEquals('USD', $orderReturn->data->getReturnAmounts()->getTaxMoney()->getCurrency());
+        $this->assertEquals(1_00, $orderReturn->data->getReturnAmounts()->getDiscountMoney()->getAmount());
+        $this->assertEquals('USD', $orderReturn->data->getReturnAmounts()->getDiscountMoney()->getCurrency());
+        $this->assertEquals(1_50, $orderReturn->data->getReturnAmounts()->getTipMoney()->getAmount());
+        $this->assertEquals('USD', $orderReturn->data->getReturnAmounts()->getTipMoney()->getCurrency());
+        $this->assertEquals(50, $orderReturn->data->getReturnAmounts()->getServiceChargeMoney()->getAmount());
+        $this->assertEquals('USD', $orderReturn->data->getReturnAmounts()->getServiceChargeMoney()->getCurrency());
     }
 
     /**

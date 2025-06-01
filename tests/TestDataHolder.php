@@ -139,27 +139,27 @@ class TestDataHolder
         $returnAmounts = new OrderMoneyAmounts();
 
         // Total
-        $totalMoney = $money;
+        $totalMoney = clone $money;
         $totalMoney->setAmount(20_00); // $20.00 USD
         $returnAmounts->setTotalMoney($totalMoney); // $20.00 USD
 
         // Tax
-        $taxMoney = $money;
+        $taxMoney = clone $money;
         $taxMoney->setAmount(2_00); // $2.00 USD
         $returnAmounts->setTaxMoney($taxMoney); // $2.00 USD
 
         // Discount
-        $discountMoney = $money;
+        $discountMoney = clone $money;
         $discountMoney->setAmount(1_00); // $1.00 USD
         $returnAmounts->setDiscountMoney($discountMoney); // $1.00 USD
 
         // Tip
-        $tipMoney = $money;
+        $tipMoney = clone $money;
         $tipMoney->setAmount(1_50); // $1.50 USD
         $returnAmounts->setTipMoney($tipMoney); // $1.50 USD
 
         // Service Charge
-        $serviceChargeMoney = $money;
+        $serviceChargeMoney = clone $money;
         $serviceChargeMoney->setAmount(50); // $0.50 USD
         $returnAmounts->setServiceChargeMoney($serviceChargeMoney); // $0.50 USD
 
@@ -167,9 +167,10 @@ class TestDataHolder
         $mockOrderReturn->setReturnAmounts($returnAmounts);
 
         // Set the line items
-        $lineItem1Money = $lineItem2Money = $money;
+        $lineItem1Money = clone $money;
+        $lineItem2Money = clone $money;
         $lineItem1Money->setAmount(10_00); // $10.00 USD
-        $lineItem2Money->setAmount(5_00); // $5.00 USD
+        $lineItem2Money->setAmount(3_00); // $3.00 USD
         $lineItems = [
             [
                 'uid' => 'line-item-1',
