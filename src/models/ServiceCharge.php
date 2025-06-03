@@ -244,7 +244,7 @@ class ServiceCharge extends Model
         }
 
         // Apportioned amount phase service charge limitations
-        if ($phase === OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE) {
+        if ($phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
             // Cannot be used with LINE_ITEM_TREATMENT
             if ($treatmentType === OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT) {
                 throw ValidationException::withMessages([
@@ -261,7 +261,7 @@ class ServiceCharge extends Model
         }
 
         // Apportioned percentage phase service charge limitations
-        if ($phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
+        if ($phase === OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE) {
             // Cannot be used with LINE_ITEM_TREATMENT
             if ($treatmentType === OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT) {
                 throw ValidationException::withMessages([
@@ -326,8 +326,8 @@ class ServiceCharge extends Model
 
         // Only apportioned phases can be applied to products
         return in_array($phase, [
-            OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
-            OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE
+            OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
+            OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE
         ]);
     }
 

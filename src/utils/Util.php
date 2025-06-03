@@ -192,13 +192,13 @@ class Util
             throw new Exception('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order.');
         }
 
-        if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE) {
+        if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
             // Apply fixed amount per line item quantity
             $totalQuantity = $products->sum('pivot.quantity');
             return $serviceCharge->amount_money * $totalQuantity;
         }
 
-        if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
+        if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE) {
             // Apply percentage to total product value - use cached calculation if available
             $totalValue = $products->sum(function ($product) {
                 return $product->pivot->price_money_amount * $product->pivot->quantity;
@@ -402,8 +402,8 @@ class Util
         $subtotalServiceCharges = $allServiceCharges->filter(function ($serviceCharge) {
             return in_array($serviceCharge->calculation_phase, [
                     OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
-                    OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
-                    OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE
+                    OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
+                    OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE
             ]);
         });
 

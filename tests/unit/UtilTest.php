@@ -388,7 +388,7 @@ class UtilTest extends TestCase
         $serviceCharge = factory(ServiceCharge::class)->create([
             'name' => 'Apportioned amount service charge',
             'amount_money' => 10_00, // 10.00 USD
-            'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
             'taxable' => true,
             'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
         ]);
@@ -419,7 +419,7 @@ class UtilTest extends TestCase
         $serviceCharge = factory(ServiceCharge::class)->create([
             'name' => 'Apportioned percentage service charge',
             'percentage' => 10.0, // 10%
-            'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
             'taxable' => true,
             'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
         ]);
@@ -507,7 +507,7 @@ class UtilTest extends TestCase
         $serviceCharge = factory(ServiceCharge::class)->create([
             'name' => 'Fixed amount service charge',
             'amount_money' => 10_00, // 10.00 USD
-            'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
             'taxable' => true,
             'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
         ]);
