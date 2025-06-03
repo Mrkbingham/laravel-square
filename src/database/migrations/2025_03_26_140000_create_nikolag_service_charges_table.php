@@ -22,8 +22,8 @@ return new class extends Migration
             $table->enum('calculation_phase', [
                 OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
                 OrderServiceChargeCalculationPhase::TOTAL_PHASE,
-                OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
-                OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE
+                OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
+                OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE
             ])->default('SUBTOTAL_PHASE');
             $table->boolean('taxable')->default(false);
             $table->enum('treatment_type', [
