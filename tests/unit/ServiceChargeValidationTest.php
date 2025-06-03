@@ -42,7 +42,7 @@ class ServiceChargeValidationTest extends TestCase
 
         factory(ServiceCharge::class)->create([
             'percentage' => 5.0,
-            'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE_PHASE,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE,
             'treatment_type' => OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT,
             'taxable' => true, // This should trigger validation error
         ]);
@@ -186,7 +186,7 @@ class ServiceChargeValidationTest extends TestCase
     public function test_valid_total_phase(): void
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE_PHASE,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE,
             'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
             'percentage' => 5.0,
             'taxable' => false,
@@ -196,7 +196,7 @@ class ServiceChargeValidationTest extends TestCase
         $this->assertTrue($serviceCharge->canBeAppliedToOrder());
         $this->assertDatabaseHas('nikolag_service_charges', [
             'id' => $serviceCharge->id,
-            'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE_PHASE,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE,
         ]);
     }
 

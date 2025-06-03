@@ -643,7 +643,7 @@ class UtilTest extends TestCase
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
             'percentage' => 15.0,
-            'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE_PHASE,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE,
             'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
             'taxable' => false,
         ]);

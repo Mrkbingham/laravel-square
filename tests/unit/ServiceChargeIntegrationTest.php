@@ -44,7 +44,7 @@ class ServiceChargeIntegrationTest extends TestCase
             'name' => 'Fake Percentage Fee',
             'percentage' => 5.0,
             'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
-            'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE_PHASE,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE,
             'taxable' => false,
         ]);
 

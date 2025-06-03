@@ -228,7 +228,7 @@ class ServiceCharge extends Model
         }
 
         // Total phase service charge limitations
-        if ($phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE_PHASE) {
+        if ($phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE) {
             // Cannot be taxable
             if ($this->taxable) {
                 throw ValidationException::withMessages([
@@ -296,7 +296,7 @@ class ServiceCharge extends Model
         }
 
         // Total phase service charges cannot be applied at the order line-item level
-        if ($phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE_PHASE) {
+        if ($phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE) {
             throw ValidationException::withMessages([
                 'scope' => 'Total phase service charges cannot be applied at the product (line-item) level. Use order level instead.'
             ]);

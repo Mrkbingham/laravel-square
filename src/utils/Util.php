@@ -408,7 +408,7 @@ class Util
         });
 
         $totalServiceCharges = $allServiceCharges->filter(function ($serviceCharge) {
-            return $serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE_PHASE;
+            return $serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE;
         });
 
         // Cache product calculations - calculate base cost only once
