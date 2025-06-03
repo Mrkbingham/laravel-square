@@ -70,7 +70,7 @@ class ServiceChargeValidationTest extends TestCase
      *
      * @return void
      */
-    public function test_APPORTIONED_PERCENTAGE_PHASE_must_have_amount(): void
+    public function test_apportioned_amount_phase_must_have_amount(): void
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Apportioned amount phase service charges must have a dollar amount, not a percentage');
@@ -87,7 +87,7 @@ class ServiceChargeValidationTest extends TestCase
      *
      * @return void
      */
-    public function test_APPORTIONED_AMOUNT_PHASE_cannot_use_line_item_treatment(): void
+    public function test_apportioned_percentage_phase_cannot_use_line_item_treatment(): void
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Apportioned percentage phase cannot be used with line item treatment');
@@ -104,7 +104,7 @@ class ServiceChargeValidationTest extends TestCase
      *
      * @return void
      */
-    public function test_APPORTIONED_AMOUNT_PHASE_must_have_percentage(): void
+    public function test_apportioned_percentage_phase_must_have_percentage(): void
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Apportioned percentage phase service charges must have a percentage, not a dollar amount');
@@ -121,7 +121,7 @@ class ServiceChargeValidationTest extends TestCase
      *
      * @return void
      */
-    public function test_valid_APPORTIONED_PERCENTAGE_PHASE(): void
+    public function test_valid_apportioned_amount_phase(): void
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
             'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
@@ -142,7 +142,7 @@ class ServiceChargeValidationTest extends TestCase
      *
      * @return void
      */
-    public function test_valid_APPORTIONED_AMOUNT_PHASE(): void
+    public function test_valid_apportioned_percentage_phase(): void
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
             'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
