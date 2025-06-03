@@ -53,7 +53,7 @@ class ServiceChargeValidationTest extends TestCase
      *
      * @return void
      */
-    public function test_APPORTIONED_PERCENTAGE_PHASE_cannot_use_line_item_treatment(): void
+    public function test_apportioned_amount_phase_cannot_use_line_item_treatment(): void
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Apportioned amount phase cannot be used with line item treatment');
