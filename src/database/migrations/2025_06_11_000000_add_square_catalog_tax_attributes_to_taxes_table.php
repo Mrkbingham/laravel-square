@@ -19,7 +19,11 @@ class AddSquareCatalogTaxAttributesToTaxesTable extends Migration
     public function up(): void
     {
         Schema::table('nikolag_taxes', function (Blueprint $table) {
+            // Change percentage to nullable
+            $table->float('percentage')->nullable()->change();
             // Square CatalogTax attributes
+            $table->unsignedBigInteger('amount_money')->nullable();
+            $table->string('amount_currency', 3)->nullable();
             $table->enum('calculation_phase', [
                 TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
                 TaxCalculationPhase::TAX_TOTAL_PHASE
