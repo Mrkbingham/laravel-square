@@ -7,6 +7,8 @@ use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Utils\Constants;
+use Square\Models\TaxCalculationPhase;
+use Square\Models\TaxInclusionType;
 
 class TaxTest extends TestCase
 {
@@ -82,5 +84,69 @@ class TaxTest extends TestCase
 
         $this->assertCount(2, $tax->products);
         $this->assertContainsOnlyInstancesOf(Constants::ORDER_PRODUCT_NAMESPACE, $tax->products);
+    }
+
+    /**
+     * Test Square CatalogTax attributes creation.
+     *
+     * @return void
+     */
+    public function testTaxCreateWithSquareAttributes(): void
+    {
+        $tax = factory(Tax::class)->create(
+            [
+                'name' => 'Sales Tax',
+                'percentage' => 8.25,
+                'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
+                'inclusion_type' => TaxInclusionType::ADDITIVE,
+                'applies_to_custom_amounts' => true,
+                'enabled' => true,
+                'square_catalog_object_id' => 'TAX_OBJECT_123'
+            ]
+        );
+
+        $this->assertDatabaseHas(
+            'nikolag_taxes',
+            [
+                'name' => 'Sales Tax',
+                'percentage' => 8.25,
+                'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
+                'inclusion_type' => TaxInclusionType::ADDITIVE,
+                'applies_to_custom_amounts' => true,
+                'enabled' => true,
+                'square_catalog_object_id' => 'TAX_OBJECT_123'
+            ]
+        );
+    }
+
+    /**
+     * Test tax with all Square CatalogTax attributes filled.
+     *
+     * @return void
+     */
+    public function testTaxCompleteSquareCatalogTax(): void
+    {
+        $tax = factory(Tax::class)->create(
+            [
+                'name' => 'Complete Tax',
+                'type' => 'STATE',
+                'percentage' => 10.0,
+                'calculation_phase' => TaxCalculationPhase::TAX_TOTAL_PHASE,
+                'inclusion_type' => TaxInclusionType::INCLUSIVE,
+                'applies_to_custom_amounts' => false,
+                'enabled' => true,
+                'square_catalog_object_id' => 'TAX_CAT_OBJ_789'
+            ]
+        );
+
+        // Test all attributes are correctly stored
+        $this->assertEquals('Complete Tax', $tax->name);
+        $this->assertEquals('STATE', $tax->type);
+        $this->assertEquals(10.0, $tax->percentage);
+        $this->assertEquals(TaxCalculationPhase::TAX_TOTAL_PHASE, $tax->calculation_phase);
+        $this->assertEquals(TaxInclusionType::INCLUSIVE, $tax->inclusion_type);
+        $this->assertFalse($tax->applies_to_custom_amounts);
+        $this->assertTrue($tax->enabled);
+        $this->assertEquals('TAX_CAT_OBJ_789', $tax->square_catalog_object_id);
     }
 }

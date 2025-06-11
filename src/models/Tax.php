@@ -14,7 +14,30 @@ class Tax extends CoreTax
      * @var array
      */
     protected $fillable = [
-        'name', 'type', 'percentage', 'reference_id', 'square_catalog_object_id'
+        'name',
+        'type',
+        'percentage',
+        'reference_id',
+        'square_catalog_object_id',
+        'calculation_phase',
+        'inclusion_type',
+        'applies_to_custom_amounts',
+        'enabled',
+    ];
+
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'percentage' => 'float',
+        'applies_to_custom_amounts' => 'boolean',
+        'enabled' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'square_created_at' => 'datetime',
+        'square_updated_at' => 'datetime',
     ];
 
     /**
