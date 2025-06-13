@@ -66,7 +66,7 @@ class Tax extends CoreTax
      */
     public function isCalculatedOnTotal(): bool
     {
-        return $this->calculation_phase === TaxCalculationPhase::TAX_TOTAL_PHASE;
+        return is_null($this->calculation_phase) || $this->calculation_phase === TaxCalculationPhase::TAX_TOTAL_PHASE;
     }
 
     /**

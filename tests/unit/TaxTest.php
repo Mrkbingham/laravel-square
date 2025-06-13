@@ -197,8 +197,15 @@ class TaxTest extends TestCase
      *
      * @return void
      */
-    public function testTaxCalculationPhaseHelpers(): void
+    public function test_tax_calculation_phase_helpers(): void
     {
+        // Test null phase tax (cannot be created due to DB not null constraint, but can be made)
+        $nullPhaseTax = factory(Tax::class)->make([
+            'calculation_phase' => null,
+        ]);
+        $this->assertFalse($nullPhaseTax->isCalculatedOnSubtotal());
+        $this->assertTrue($nullPhaseTax->isCalculatedOnTotal());
+
         // Test subtotal phase tax
         $subtotalTax = factory(Tax::class)->create([
             'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
