@@ -19,6 +19,7 @@ use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
 use Square\Models\OrderServiceChargeCalculationPhase;
 use Square\Models\OrderServiceChargeTreatmentType;
+use Square\Models\TaxCalculationPhase;
 
 class UtilTest extends TestCase
 {
@@ -694,4 +695,43 @@ class UtilTest extends TestCase
         $this->data->order->attachProduct($product2, ['quantity' => 1]); // 1 x 50.00 USD = 50.00 USD
         $this->data->order->attachProduct($product3, ['quantity' => 3]); // 3 x 12.00 USD = 36.00 USD
     }
+
+    /**
+     * Test tax calculation with subtotal phase.
+     *
+     * @return void
+     */
+    public function test_tax_subtotal_phase_calculation(): void
+    {
+        // Create a subtotal phase tax
+        $subtotalTax = factory(Tax::class)->create([
+            'name' => 'Sales Tax (Subtotal)',
+            'percentage' => 10,
+            'type' => Constants::TAX_ADDITIVE,
+            'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
+        ]);
+
+        $this->data->order->save();
+        $this->data->product->price = 100_00; // $100.00
+        $this->data->product->save();
+
+        // Attach subtotal tax to the order
+        $this->data->order->taxes()->attach($subtotalTax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $this->data->order->attachProduct($this->data->product);
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Expected calculation:
+        // Base: $100.00
+        // Subtotal Tax (10%): $10.00 → Subtotal: $110.00
+        $expectedTotal = 110_00;
+        $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
+
+        $this->assertEquals($expectedTotal, $actualTotal);
+    }
+
 }
