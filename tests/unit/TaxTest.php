@@ -191,4 +191,86 @@ class TaxTest extends TestCase
             'percentage' => 5.0,
         ]);
     }
+
+    /**
+     * Test tax calculation phase helper methods.
+     *
+     * @return void
+     */
+    public function testTaxCalculationPhaseHelpers(): void
+    {
+        // Test subtotal phase tax
+        $subtotalTax = factory(Tax::class)->create([
+            'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
+        ]);
+
+        $this->assertTrue($subtotalTax->isCalculatedOnSubtotal());
+        $this->assertFalse($subtotalTax->isCalculatedOnTotal());
+
+        // Test total phase tax
+        $totalTax = factory(Tax::class)->create([
+            'calculation_phase' => TaxCalculationPhase::TAX_TOTAL_PHASE,
+        ]);
+
+        $this->assertTrue($totalTax->isCalculatedOnTotal());
+        $this->assertFalse($totalTax->isCalculatedOnSubtotal());
+    }
+
+    /**
+     * Test tax inclusion type helper methods.
+     *
+     * @return void
+     */
+    public function testTaxInclusionTypeHelpers(): void
+    {
+        // Test additive tax
+        $additiveTax = factory(Tax::class)->create([
+            'inclusion_type' => TaxInclusionType::ADDITIVE,
+        ]);
+
+        $this->assertTrue($additiveTax->isAdditive());
+        $this->assertFalse($additiveTax->isInclusive());
+
+        // Test inclusive tax
+        $inclusiveTax = factory(Tax::class)->create([
+            'inclusion_type' => TaxInclusionType::INCLUSIVE,
+        ]);
+
+        $this->assertTrue($inclusiveTax->isInclusive());
+        $this->assertFalse($inclusiveTax->isAdditive());
+    }
+
+    /**
+     * Test tax boolean attribute helper methods.
+     *
+     * @return void
+     */
+    public function testTaxBooleanHelpers(): void
+    {
+        // Test applies to custom amounts
+        $customAmountsTax = factory(Tax::class)->create([
+            'applies_to_custom_amounts' => true,
+        ]);
+
+        $this->assertTrue($customAmountsTax->appliesToCustomAmounts());
+
+        $noCustomAmountsTax = factory(Tax::class)->create([
+            'applies_to_custom_amounts' => false,
+        ]);
+
+        $this->assertFalse($noCustomAmountsTax->appliesToCustomAmounts());
+
+        // Test enabled
+        $enabledTax = factory(Tax::class)->create([
+            'enabled' => true,
+        ]);
+
+        $this->assertTrue($enabledTax->isEnabled());
+
+        $disabledTax = factory(Tax::class)->create([
+            'enabled' => false,
+        ]);
+
+        $this->assertFalse($disabledTax->isEnabled());
+    }
 }
