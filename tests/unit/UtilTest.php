@@ -734,4 +734,42 @@ class UtilTest extends TestCase
         $this->assertEquals($expectedTotal, $actualTotal);
     }
 
+    /**
+     * Test legacy tax behavior (no calculation_phase specified).
+     *
+     * @return void
+     */
+    public function test_tax_total_phase_calculation(): void
+    {
+        // Create a tax without calculation_phase (should default to subtotal behavior)
+        $totalTax = factory(Tax::class)->create([
+            'name' => 'Legacy Tax',
+            'percentage' => 7.0,
+            'type' => Constants::TAX_ADDITIVE,
+            // No calculation_phase specified
+        ]);
+
+        $this->data->order->save();
+        $this->data->product->price = 100_00; // $100.00
+        $this->data->product->save();
+
+        // Attach tax to order
+        $this->data->order->taxes()->attach($totalTax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $this->data->order->attachProduct($this->data->product);
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+
+        // Expected calculation (should behave like subtotal phase):
+        // Base: $100.00
+        // Total tax (7%): $7.00 → Total: $107.00
+        $expectedTotal = 107_00;
+        $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
+
+        $this->assertEquals($expectedTotal, $actualTotal);
+    }
+
 }
