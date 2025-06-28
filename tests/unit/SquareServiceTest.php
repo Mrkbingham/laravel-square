@@ -2,12 +2,26 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
+use Illuminate\Database\Eloquent\Builder;
+use Nikolag\Square\Builders\OrderBuilder;
+use Str;
+use Nikolag\Square\Builders\SquareRequestBuilder;
 use Nikolag\Square\Exception;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Customer;
+use Nikolag\Square\Models\DeliveryDetails;
+use Nikolag\Square\Models\Discount;
+use Nikolag\Square\Models\Location;
+use Nikolag\Square\Models\Modifier;
+use Nikolag\Square\Models\ModifierOption;
+use Nikolag\Square\Models\ModifierOptionLocationPivot;
+use Nikolag\Square\Models\PickupDetails;
 use Nikolag\Square\Models\Product;
+use Nikolag\Square\Models\Recipient;
+use Nikolag\Square\Models\ShipmentDetails;
+use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\Models\User;
@@ -15,6 +29,12 @@ use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
+use Square\Models\CatalogObject;
+use Square\Models\CatalogObjectType;
+use Square\Models\FulfillmentType;
+use Square\Models\BatchUpsertCatalogObjectsRequest;
+use Square\Models\BatchUpsertCatalogObjectsResponse;
+use Square\Utils\FileWrapper;
 
 class SquareServiceTest extends TestCase
 {
@@ -27,6 +47,403 @@ class SquareServiceTest extends TestCase
     {
         parent::setUp();
         $this->data = TestDataHolder::make();
+    }
+
+    /**
+     * Tests the batchUpsertCatalogObjectsRequest
+     *
+     * @return void
+     */
+    public function test_batch_delete_catalog_objects()
+    {
+        // The request below will be invalid, so make sure it throws an exception.
+        $this->expectException(Exception::class);
+
+        // Call the method we're testing
+        Square::batchDeleteCatalogObjects([]);
+    }
+
+    /**
+     * Tests the batchUpsertCatalogObjectsRequest
+     *
+     * @return void
+     */
+    public function test_batch_upsert_catalog()
+    {
+        // Use the BatchUpsertCatalogObjectsRequestBuilder to create the request.
+        $request = \Square\Models\Builders\BatchUpsertCatalogObjectsRequestBuilder::init(
+            (string) Str::uuid(),
+            [\Square\Models\Builders\CatalogObjectBatchBuilder::init([])->build()]
+        )->build();
+
+        // The request below will be invalid, so make sure it throws an exception.
+        $this->expectException(Exception::class);
+
+        // Call the method we're testing
+        Square::batchUpsertCatalog($request);
+    }
+
+    /**
+     * Tests the buildBatchDeleteCategoryObjectsRequest method.
+     *
+     * @return void
+     */
+    public function test_build_batch_delete_category_objects_request(): void
+    {
+        $catalogObjectID = 'Catalog Object ID';
+
+        // Build the image request
+        $batchDeleteRequest = Square::getSquareBuilder()->buildBatchDeleteCategoryObjectsRequest([
+            $catalogObjectID
+        ]);
+
+        $this->assertNotNull($batchDeleteRequest);
+        $this->assertInstanceOf(\Square\Models\BatchDeleteCatalogObjectsRequest::class, $batchDeleteRequest);
+
+        $this->assertEquals([$catalogObjectID], $batchDeleteRequest->getObjectIds());
+    }
+
+    /**
+     * Tests the buildCatalogImageRequest method.
+     *
+     * @return void
+     */
+    public function test_build_catalog_image_request(): void
+    {
+        // Set up the variables
+        $catalogObjectID = 'Catalog Object ID';
+        $caption         = 'Test Caption';
+
+        // Build the image request
+        $imageRequest = Square::getSquareBuilder()->buildCatalogImageRequest([
+            'catalog_object_id' => $catalogObjectID,
+            'caption'           => $caption
+        ]);
+
+        $this->assertNotNull($imageRequest);
+        $this->assertInstanceOf(\Square\Models\CreateCatalogImageRequest::class, $imageRequest);
+
+        $this->assertNotNull($imageRequest->getIdempotencyKey());
+        $this->assertEquals($catalogObjectID, $imageRequest->getObjectId());
+        $this->assertInstanceOf(\Square\Models\CatalogObject::class, $imageRequest->getImage());
+        $this->assertEquals($caption, $imageRequest->getImage()->getImageData()->getCaption());
+        $this->assertTrue($imageRequest->getIsPrimary());
+    }
+
+    /**
+     * Tests the buildCategoryCatalogObject method.
+     *
+     * @return void
+     */
+    public function test_build_category_catalog_object(): void
+    {
+        // Set up the variables
+        $id   = 1;
+        $name = 'Test Category Description';
+
+        // Build the category object
+        $category = Square::getSquareBuilder()->buildCategoryCatalogObject([
+            'id'   => $id,
+            'name' => $name
+        ]);
+
+        $this->assertNotNull($category);
+        $this->assertInstanceOf(\Square\Models\CatalogObject::class, $category);
+        $this->assertEquals('CATEGORY', $category->getType());
+        $this->assertEquals($id, $category->getId());
+        $this->assertEquals($name, $category->getCategoryData()->getName());
+    }
+
+    /**
+     * Tests the buildItemCatalogObject method.
+     *
+     * @return void
+     */
+    public function test_build_item_catalog_object(): void
+    {
+        // Set up the variables
+        $name        = 'Test Item Name';
+        $taxIDs      = [1, 2, 3];
+        $description = 'Test Item Description';
+        $money       = Square::getSquareBuilder()->buildMoney([
+            'amount'   => 1000,
+            'currency' => Square::getCurrency()
+        ]);
+
+        // First, create the default variation and category objects
+        $variation = Square::getSquareBuilder()->buildVariationCatalogObject([
+            'name'         => 'Variation Name',
+            'variation_id' => 'Variation #1',
+            'item_id'      => 'Item ID',
+            'price_money'  => $money
+        ]);
+        $category  = Square::getSquareBuilder()->buildCategoryCatalogObject([
+            'id'   => 1,
+            'name' => 'Category Name',
+        ]);
+
+        // Build the item object
+        $item = Square::getSquareBuilder()->buildItemCatalogObject([
+            'name'        => $name,
+            'tax_ids'     => $taxIDs,
+            'description' => $description,
+            'variations'  => [$variation],
+            'category_id' => $category->getId()
+        ]);
+
+        $this->assertNotNull($item);
+        $this->assertInstanceOf(\Square\Models\CatalogObject::class, $item);
+        $this->assertEquals('ITEM', $item->getType());
+        // Make sure the ID is the name with a preceding "#" character
+        $this->assertEquals('#' . $name, $item->getId());
+        $this->assertEquals($name, $item->getItemData()->getName());
+        $this->assertEquals($taxIDs, $item->getItemData()->getTaxIds());
+        $this->assertEquals($description, $item->getItemData()->getDescription());
+        $this->assertEquals($variation, $item->getItemData()->getVariations()[0]);
+        $this->assertEquals($category->getId(), $item->getItemData()->getCategoryId());
+    }
+
+    /**
+     * Tests the buildTaxCatalogObject method.
+     *
+     * @return void
+     */
+    public function test_build_tax_catalog_object(): void
+    {
+        // Set up the variables
+        $name = 'Test Tax Description';
+        $rate = 0.1;
+
+        // Build the tax object
+        $tax = Square::getSquareBuilder()->buildTaxCatalogObject([
+            'name'       => $name,
+            'percentage' => $rate
+        ]);
+
+        $this->assertNotNull($tax);
+        $this->assertInstanceOf(\Square\Models\CatalogObject::class, $tax);
+        $this->assertEquals('TAX', $tax->getType());
+        $this->assertEquals($name, $tax->getTaxData()->getName());
+        $this->assertEquals($rate, $tax->getTaxData()->getPercentage());
+    }
+
+    /**
+     * Tests the buildVariationCatalogObject method.
+     *
+     * @return void
+     */
+    public function test_build_variation_catalog_object(): void
+    {
+        // Set up the variables
+        $id     = 'Variation #1';
+        $name   = 'Test Item Description';
+        $itemID = 'Item #1';
+        $money       = Square::getSquareBuilder()->buildMoney([
+            'amount'   => 1000,
+            'currency' => Square::getCurrency()
+        ]);
+
+        // Build the item object
+        $item = Square::getSquareBuilder()->buildVariationCatalogObject([
+            'name'         => $name,
+            'variation_id' => $id,
+            'item_id'      => $itemID,
+            'price_money'  => $money
+        ]);
+
+        $this->assertNotNull($item);
+        $this->assertInstanceOf(\Square\Models\CatalogObject::class, $item);
+        $this->assertEquals('ITEM_VARIATION', $item->getType());
+        $this->assertEquals($id, $item->getId());
+        $this->assertEquals($name, $item->getItemVariationData()->getName());
+        $this->assertEquals($itemID, $item->getItemVariationData()->getItemId());
+        $this->assertEquals($money, $item->getItemVariationData()->getPriceMoney());
+    }
+
+    /**
+     * Tests the buildMoney method.
+     *
+     * @return void
+     */
+    public function test_build_money(): void
+    {
+        $amount   = 1000;
+        $currency = 'USD';
+        $money    = Square::getSquareBuilder()->buildMoney([
+            'amount'   => $amount,
+            'currency' => $currency
+        ]);
+
+        $this->assertNotNull($money);
+        $this->assertInstanceOf(\Square\Models\Money::class, $money);
+        $this->assertEquals($amount, $money->getAmount());
+        $this->assertEquals($currency, $money->getCurrency());
+    }
+
+    /**
+     * Tests the buildProducts method.
+     *
+     * @return void
+     */
+    public function test_build_products(): void
+    {
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct($this->data->product, 1)->save();
+
+        $products = Square::getSquareBuilder()->buildProducts(
+            $square->getOrder()->products,
+            'USD'
+        );
+
+        $this->assertNotNull($products);
+        foreach ($products as $product) {
+            $this->assertInstanceOf(\Square\Models\OrderLineItem::class, $product);
+        }
+    }
+
+    /**
+     * Tests the buildProducts method with an option-based modifier.
+     *
+     * @return void
+     */
+    public function test_build_products_with_list_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Select a product that has modifiers
+        $product = Product::whereHas('modifiers', function (Builder $query) {
+            $query->where('type', 'LIST');
+        })->inRandomOrder()->first();
+        $modifierListOption = $product->modifiers->first()->options->first();
+
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct(
+            $product,
+            1,
+            modifiers: [$modifierListOption]
+        )->save();
+
+        // Build the products
+        $products = Square::getSquareBuilder()->buildProducts(
+            $square->getOrder()->products,
+            'USD'
+        );
+
+        $this->assertNotNull($products);
+
+        /** @var \Square\Models\OrderLineItem */
+        $product = $products[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItem::class, $product);
+        $this->assertNotEmpty($product->getModifiers());
+
+        /** @var \Square\Models\OrderLineItemModifier */
+        $modifier = $product->getModifiers()[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItemModifier::class, $modifier);
+        $this->assertNotEmpty($modifier->getUid());
+        $this->assertNotNull($modifier->getCatalogObjectId());
+        $this->assertEquals($modifierListOption->square_catalog_object_id, $modifier->getCatalogObjectId());
+    }
+
+    /**
+     * Tests the buildProducts method with a text-based modifier.
+     *
+     * @return void
+     */
+    public function test_build_products_with_text_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Select a product that has modifiers
+        $product = Product::whereHas('modifiers', function (Builder $query) {
+            $query->where('type', 'TEXT');
+        })->inRandomOrder()->first();
+        $textModifier = $product->modifiers->where('type', 'TEXT')->first();
+        $textModifier->text = 'Scrambled'; // Temporarily set the eggs as scrambled
+
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct(
+            $product,
+            1,
+            modifiers: [$textModifier]
+        )->save();
+
+        // Build the products
+        $products = Square::getSquareBuilder()->buildProducts(
+            $square->getOrder()->products,
+            'USD'
+        );
+
+        $this->assertNotNull($products);
+
+        /** @var \Square\Models\OrderLineItem */
+        $product = $products[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItem::class, $product);
+        $this->assertNotEmpty($product->getModifiers());
+
+        /** @var \Square\Models\OrderLineItemModifier */
+        $modifier = $product->getModifiers()[0];
+        $this->assertInstanceOf(\Square\Models\OrderLineItemModifier::class, $modifier);
+        $this->assertNotEmpty($modifier->getUid());
+        $this->assertNotNull($modifier->getCatalogObjectId());
+        $this->assertEquals($textModifier->square_catalog_object_id, $modifier->getCatalogObjectId());
+    }
+
+    /**
+     * Tests the createCatalogImage method.
+     *
+     * @return void
+     */
+    public function test_create_catalog_image(): void
+    {
+        // Create a mocked file
+        $fileName = 'image.jpg';
+        $file     = \Illuminate\Http\UploadedFile::fake()->create($fileName, 100);
+        $filePath = $file->getPathname();
+
+        $request = Square::getSquareBuilder()->buildCatalogImageRequest([
+            'catalog_object_id' => 'Fake ID',
+            'caption'           => 'Test caption'
+        ]);
+
+        // The request below will be invalid, so make sure it throws an exception.
+        $this->expectException(Exception::class);
+
+        // Call the method we're testing
+        $result = Square::createCatalogImage($request, $filePath);
+    }
+
+    /**
+     * Tests the getCurrency method.
+     *
+     * @return void
+     */
+    public function test_get_currency(): void
+    {
+        $currency = Square::getCurrency();
+
+        $this->assertNotNull($currency);
+        $this->assertEquals('USD', $currency);
+    }
+
+    /**
+     * Returns the square request builder.
+     *
+     * @return void
+     */
+    public function test_get_square_builder(): void
+    {
+        $builder = Square::getSquareBuilder();
+
+        $this->assertNotNull($builder);
+        $this->assertInstanceOf('\Nikolag\Square\Builders\SquareRequestBuilder', $builder);
     }
 
     /**
@@ -187,6 +604,359 @@ class SquareServiceTest extends TestCase
     }
 
     /**
+     * Add product for order.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_variable_pricing(): void
+    {
+        $productVariablePrice = factory(Product::class)->create([
+            'price' => null,
+        ]);
+        $productVariablePrice->price = 10_00;
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($productVariablePrice, 1)
+            ->save();
+
+        $this->assertCount(1, $square->getOrder()->products, 'There are not enough products');
+        $this->assertEquals(10_00, $square->getOrder()->products->first()->pivot->price_money_amount, 'Order product pivot price does not match');
+    }
+
+    /**
+     * Ensures an exception is thrown when trying to add a product with variable pricing without a price.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_variable_pricing_without_price(): void
+    {
+        $productVariablePrice = factory(Product::class)->create([
+            'price' => null,
+        ]);
+
+        // Set up the error expectations
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Required field is missing');
+        $this->expectExceptionCode(500);
+
+        Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct($productVariablePrice, 1);
+    }
+
+    /**
+     * Add product for order.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_with_modifier(): void
+    {
+        // Sync the modifiers and products
+        if (Modifier::count() === 0 || Product::count() === 0) {
+            Square::syncModifiers();
+            Square::syncProducts();
+        }
+
+        // Select a product that has modifiers
+        $modifier = Modifier::where('type', 'LIST')->whereHas('products')->inRandomOrder()->first();
+        $modifierListOption = $modifier->options->random()->first();
+        $product = $modifier->products->random()->first();
+
+        // Create a new order
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->addProduct(
+            $product,
+            1,
+            modifiers: [$modifierListOption]
+        )->save();
+
+        // Make sure if you set an order with linked modifiers, the modifiers are added
+        $square = Square::setOrder($square->getOrder(), env('SQUARE_LOCATION'));
+
+        $this->assertCount(1, $square->getOrder()->products, 'There are not enough products');
+        $this->assertCount(1, $square->getOrder()->products->first()->pivot->modifiers, 'There are not enough modifiers');
+    }
+
+    /**
+     * Add product and delivery fulfillment for order.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_and_delivery_fulfillment(): void
+    {
+        $product2 = factory(Product::class)->create();
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($this->data->product, 1)
+            ->addProduct($product2, 2)
+            ->setFulfillment([
+                'type' => FulfillmentType::DELIVERY,
+                'state' => 'PROPOSED',
+                'delivery_details' => [
+                    'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
+                    'placed_at' => now(),
+                ],
+            ])->setFulfillmentRecipient(TestDataHolder::buildRecipientArray())
+            ->save();
+
+        $this->assertCount(2, $square->getOrder()->products, 'There is not enough products');
+
+        $this->assertCount(1, $square->getOrder()->fulfillments, 'There is not enough fulfillments');
+
+        $this->assertTrue(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails->recipient instanceof Recipient,
+            'Fulfillment details recipient is not Recipient'
+        );
+    }
+
+    /**
+     * Add product and delivery fulfillment for order, from model.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_and_delivery_fulfillment_from_model(): void
+    {
+        $product2 = factory(Product::class)->create();
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($this->data->product, 1)
+            ->addProduct($product2, 2)
+            ->setFulfillment($this->data->fulfillmentWithDeliveryDetails)
+            ->setFulfillmentRecipient($this->data->fulfillmentRecipient)
+            ->save();
+
+        $this->assertCount(2, $square->getOrder()->products, 'There is not enough products');
+
+        $this->assertCount(1, $square->getOrder()->fulfillments, 'There is not enough fulfillments');
+
+        $this->assertTrue(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails instanceof DeliveryDetails,
+            'Fulfillment details are not DeliveryDetails'
+        );
+
+        $this->assertTrue(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails->recipient instanceof Recipient,
+            'Fulfillment details recipient is not Recipient'
+        );
+    }
+
+    /**
+     * Add product and pickup fulfillment for order.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_and_pickup_fulfillment(): void
+    {
+        $product2 = factory(Product::class)->create();
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($this->data->product, 1)
+            ->addProduct($product2, 2)
+            ->setFulfillment([
+                'type' => FulfillmentType::PICKUP,
+                'state' => 'PROPOSED',
+                'pickup_details' => [
+                    'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
+                    'placed_at' => now()->format(Constants::DATE_FORMAT),
+                ],
+            ])->setFulfillmentRecipient(TestDataHolder::buildRecipientArray())
+            ->save();
+
+        $this->assertCount(2, $square->getOrder()->products, 'There is not enough products');
+
+        // Make sure the fulfillment exists on the order
+        $this->assertCount(1, $square->getOrder()->fulfillments, 'Fulfillment is missing from order');
+
+        $this->assertTrue(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails->recipient instanceof Recipient,
+            'Fulfillment details recipient is not Recipient'
+        );
+    }
+
+    /**
+     * Add product and pickup fulfillment for order, from model.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_and_pickup_fulfillment_from_model(): void
+    {
+        $product2 = factory(Product::class)->create();
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($this->data->product, 1)
+            ->addProduct($product2, 2)
+            ->setFulfillment($this->data->fulfillmentWithPickupDetails)
+            ->setFulfillmentRecipient($this->data->fulfillmentRecipient)
+            ->save();
+
+        $this->assertCount(2, $square->getOrder()->products, 'There is not enough products');
+
+        $this->assertCount(1, $square->getOrder()->fulfillments, 'There is not enough fulfillments');
+
+        $this->assertTrue(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails instanceof PickupDetails,
+            'Fulfillment details are not PickupDetails'
+        );
+
+        $this->assertTrue(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails->recipient instanceof Recipient,
+            'Fulfillment details recipient is not Recipient'
+        );
+    }
+
+    /**
+     * Add product and pickup fulfillment with curbside pickup details for order.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_and_pickup_fulfillment_width_curbside_pickup_details(): void
+    {
+        $product2 = factory(Product::class)->create();
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($this->data->product, 1)
+            ->addProduct($product2, 2)
+            ->setFulfillment([
+                'type' => FulfillmentType::PICKUP,
+                'state' => 'PROPOSED',
+                'pickup_details' => [
+                    'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
+                    'placed_at' => now(),
+                    'is_curbside_pickup' => true,
+                    'curbside_pickup_details' => [
+                        'curbside_details' => 'Mazda CX5, Black, License Plate: 1234567',
+                        'buyer_arrived_at' => null,
+                    ],
+                ],
+            ])->setFulfillmentRecipient(TestDataHolder::buildRecipientArray())
+            ->save();
+
+        $this->assertCount(2, $square->getOrder()->products, 'There is not enough products');
+
+        // Make sure the fulfillment exists on the order
+        $this->assertCount(1, $square->getOrder()->fulfillments, 'Fulfillment is missing from order');
+
+        // Make sure the fulfillment details are PickupDetails
+        $this->assertTrue(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails instanceof PickupDetails,
+            'Fulfillment details are not PickupDetails'
+        );
+
+        // Make sure the curbside pickup data flag is set to true
+        $this->assertTrue(
+            ! empty($square->getOrder()->fulfillments->first()->fulfillmentDetails->is_curbside_pickup),
+            'Curbside pickup flag is not set to true'
+        );
+
+        // Make sure the curbside data is present
+        $this->assertNotNull(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails->curbside_pickup_details,
+            'Curbside pickup details are not set'
+        );
+
+        $this->assertNull(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails->curbside_pickup_details->buyer_arrived_at,
+            'Buyer arrived at is not null'
+        );
+
+        $this->assertEquals(
+            'Mazda CX5, Black, License Plate: 1234567',
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails->curbside_pickup_details->curbside_details,
+            'Curbside details are not the same'
+        );
+    }
+
+    /**
+     * Add product and shipment fulfillment for order.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_and_shipment_fulfillment(): void
+    {
+        $product2 = factory(Product::class)->create();
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($this->data->product, 1)
+            ->addProduct($product2, 2)
+            ->setFulfillment([
+                'type' => FulfillmentType::SHIPMENT,
+                'state' => 'PROPOSED',
+                'shipment_details' => [
+                    'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
+                    'placed_at' => now(),
+                ],
+            ])->setFulfillmentRecipient(TestDataHolder::buildRecipientArray())
+            ->save();
+
+        $this->assertCount(2, $square->getOrder()->products, 'There is not enough products');
+
+        $this->assertCount(1, $square->getOrder()->fulfillments, 'There is not enough fulfillments');
+
+        $this->assertTrue(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails->recipient instanceof Recipient,
+            'Fulfillment details recipient is not Recipient'
+        );
+    }
+
+    /**
+     * Add product and shipment fulfillment for order, from model.
+     *
+     * @return void
+     */
+    public function test_square_order_add_product_and_delivery_shipment_from_model(): void
+    {
+        $product2 = factory(Product::class)->create();
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($this->data->product, 1)
+            ->addProduct($product2, 2)
+            ->setFulfillment($this->data->fulfillmentWithShipmentDetails)
+            ->setFulfillmentRecipient($this->data->fulfillmentRecipient)
+            ->save();
+
+        $this->assertCount(2, $square->getOrder()->products, 'There is not enough products');
+
+        $this->assertCount(1, $square->getOrder()->fulfillments, 'There is not enough fulfillments');
+
+        $this->assertTrue(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails instanceof ShipmentDetails,
+            'Fulfillment details are not ShipmentDetails'
+        );
+
+        $this->assertTrue(
+            $square->getOrder()->fulfillments->first()->fulfillmentDetails->recipient instanceof Recipient,
+            'Fulfillment details recipient is not Recipient'
+        );
+    }
+
+    /**
+     * Makes sure the Square Order throws an error when a fulfillment is present but no recipient is set.
+     *
+     * @return void
+     */
+    public function test_square_order_fulfillment_with_no_recipient(): void
+    {
+        $product2 = factory(Product::class)->create();
+
+        // Set up the error expectations
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Required fields are missing');
+        $this->expectExceptionCode(500);
+
+        Square::setOrder($this->data->order, env('SQUARE_LOCATION'))
+            ->addProduct($this->data->product, 1)
+            ->addProduct($product2, 2)
+            ->setFulfillment([
+                'type' => FulfillmentType::DELIVERY,
+                'state' => 'PROPOSED',
+                'delivery_details' => [
+                    'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
+                    'placed_at' => now(),
+                    'carrier' => 'USPS',
+                ],
+            ])
+            // ->setFulfillmentRecipient(TestDataHolder::buildRecipientArray()) // Commented out to test the error
+            ->save();
+    }
+
+    /**
      * Order creation without location id, testing exception case.
      *
      * @return void
@@ -214,6 +984,293 @@ class SquareServiceTest extends TestCase
 
         $this->assertNotNull($transactions);
         $this->assertInstanceOf('\Square\Models\ListLocationsResponse', $transactions);
+    }
+
+    /**
+     * Tests retrieving a specific location.
+     *
+     * @return void
+     */
+    public function test_square_list_catalog(): void
+    {
+        $catalog = Square::listCatalog();
+
+        $this->assertNotNull($catalog);
+        $this->assertIsArray($catalog);
+        foreach ($catalog as $item) {
+            $this->assertInstanceOf('\Square\Models\CatalogObject', $item);
+        }
+
+        $catalogItems = Square::listCatalog('ITEM');
+
+        $this->assertNotNull($catalogItems);
+        $this->assertIsArray($catalogItems);
+        foreach ($catalogItems as $item) {
+            $this->assertInstanceOf('\Square\Models\CatalogObject', $item);
+            $this->assertEquals('ITEM', $item->getType());
+        }
+    }
+
+    /**
+     * Test the syncing of the product catalog for discounts.
+     *
+     * @return void
+     */
+    public function test_square_sync_discounts(): void
+    {
+        // Delete all discounts from the database
+        Discount::truncate();
+        $this->assertCount(0, Discount::all(), 'There are discount in the database after truncating');
+
+        // Sync the products
+        Square::syncDiscounts();
+
+        // Make sure there are products
+        $discounts = Discount::all();
+        $this->assertGreaterThan(0, $discounts->count(), 'There are no discounts in the database');
+
+        foreach ($discounts as $discount) {
+            // Make sure every reference_type is set to square
+            $this->assertNotEmpty(
+                $discount->square_catalog_object_id,
+                'Catalog Object ID not synced for product: ' . $discount->toJson()
+            );
+
+            // Make sure every discount has a percentage or amount
+            $this->assertNotNull(
+                $discount->percentage || $discount->amount,
+                'Discount has no percentage or amount. Discount: ' . $discount->toJson()
+            );
+        }
+    }
+
+    /**
+     * Test the syncing of the product catalog.
+     *
+     * @return void
+     */
+    public function test_square_sync_locations(): void
+    {
+        // Delete all locations from the database
+        Location::truncate();
+        $this->assertCount(0, Location::all(), 'There are locations in the database after truncating');
+
+        // Sync the products
+        Square::syncLocations();
+
+        // Make sure there are products
+        $locations = Location::all();
+        $this->assertGreaterThan(0, $locations->count(), 'There are no locations in the database');
+
+        foreach ($locations as $location) {
+            // Make sure every reference_type is set to square
+            $this->assertNotEmpty(
+                $location->square_id,
+                'Square ID not synced for location: ' . $location->toJson()
+            );
+
+            // Make sure every location has a name
+            $this->assertNotNull($location->name, 'Location has no name. Location: ' . $location->toJson());
+
+            // Make sure every location has a name
+            $this->assertNotNull($location->address, 'Location has no address. Location: ' . $location->toJson());
+        }
+    }
+
+    /**
+     * Test the syncing of the modifiers catalog objects.
+     *
+     * @return void
+     */
+    public function test_square_sync_modifiers(): void
+    {
+        // Sync the location (the location override assertions later require this)
+        if (Location::count() == 0) {
+            Square::syncLocations();
+        }
+
+        // Delete all modifiers from the database
+        Modifier::truncate();
+        $this->assertCount(0, Modifier::all(), 'There are modifiers in the database after truncating');
+
+        // Sync the modifiers
+        Square::syncModifiers();
+
+        // Make sure there are modifiers
+        $modifiers = Modifier::all();
+        // Note: If you are seeing this error and your connected testing Square account has no modifiers, you will
+        // need to create some modifiers in your Square account to test this functionality.
+        $this->assertGreaterThan(0, $modifiers->count(), 'There are no modifiers in the database');
+
+        foreach ($modifiers as $modifier) {
+            // Make sure every square_catalog_object_id is set to square
+            $this->assertNotEmpty(
+                $modifier->square_catalog_object_id,
+                'Catalog Object ID not synced for modifier: ' . $modifier->toJson()
+            );
+
+            // Make sure every modifier has a name
+            $this->assertNotNull($modifier->name, 'Modifier list has no name. Modifier list: ' . $modifier->toJson());
+
+            // Make sure every modifier has a selection type
+            $this->assertNotNull(
+                $modifier->selection_type,
+                'Modifier list has no selection type. Modifier list: ' . $modifier->toJson()
+            );
+        }
+    }
+
+    /**
+     * Test the syncing of the item modifier options catalog objects.
+     *
+     * Note: This runs the same sync method as the test_square_sync_modifiers test, but it is separated for clarity.
+     *
+     * @return void
+     */
+    public function test_square_sync_modifier_options(): void
+    {
+        // Sync the location (the location override assertions later require this)
+        if (Location::count() == 0) {
+            Square::syncLocations();
+        }
+
+        // Delete all modifiers from the database
+        ModifierOption::truncate();
+        $this->assertCount(0, ModifierOption::all(), 'There are product modifiers in the database after truncating');
+
+        // Sync the product modifiers (due to mapping issues, this is required)
+        Square::syncModifiers();
+
+        // Make sure there are modifier options
+        $modifierOptions = ModifierOption::all();
+        // Note: If you are seeing this error and your connected testing Square account has no modifiers, you will
+        // need to create some modifiers in your Square account to test this functionality.
+        $this->assertGreaterThan(0, $modifierOptions->count(), 'There are no product modifiers in the database');
+
+        foreach ($modifierOptions as $modifierOption) {
+            // Make sure every reference_type is set to square
+            $this->assertNotEmpty(
+                $modifierOption->square_catalog_object_id,
+                'Catalog Object ID not synced for modifier option: ' . $modifierOption->toJson()
+            );
+
+            // Make sure every modifier option has a name
+            $this->assertNotNull(
+                $modifierOption->name,
+                'Modifier option has no name. Modifier option: ' . $modifierOption->toJson()
+            );
+
+            // Make sure every modifier option is linked to a parent modifier model
+            $this->assertNotNull(
+                $modifierOption->modifier_id,
+                'Modifier option has no relationship to Modifier model. Modifier option: ' . $modifierOption->toJson()
+            );
+        }
+
+        // Make sure there are modifier options that have created a pivot relationship
+        $disabledOptionsPivotCount = ModifierOptionLocationPivot::count();
+        // TODO: This is a pretty brittle test, make it more flexible so others could theoretically run it
+        $this->assertEquals(7, $disabledOptionsPivotCount, 'There are not 7 disabled modifier options in the database');
+    }
+
+    /**
+     * Test the syncing of the product catalog objects.
+     *
+     * @return void
+     */
+    public function test_square_sync_products(): void
+    {
+        // Delete all products and modifiers from the database
+        Product::truncate();
+        Modifier::truncate();
+
+        // Sync the modifiers and then sync the products
+        Square::syncModifiers();
+        Square::syncProducts();
+
+        // Make sure there are products
+        $products = Product::all();
+        $this->assertGreaterThan(0, $products->count(), 'There are no products in the database');
+
+        foreach ($products as $product) {
+            // Make sure every reference_type is set to square
+            $this->assertNotEmpty(
+                $product->square_catalog_object_id,
+                'Catalog Object ID not synced for product: ' . $product->toJson()
+            );
+
+            // Make sure every product has a price
+            $this->assertNotNull($product->price, 'Product has no price. Product: ' . $product->toJson());
+
+            // Make sure every product has a name
+            $this->assertNotNull($product->name, 'Product has no name. Product: ' . $product->toJson());
+        }
+    }
+
+    /**
+     * Test the syncing of the a product that has a modifier, without having first synced the modifiers.
+     *
+     * @return void
+     */
+    public function test_square_sync_products_missing_modifiers(): void
+    {
+        // Delete all products and modifiers from the database
+        Product::truncate();
+        Modifier::truncate();
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessageMatches(
+            '/Modifier list ID: .* not found during product sync for product ID: [0-9]/'
+        );
+
+        // Sync the products
+        Square::syncProducts();
+    }
+
+    /**
+     * Test the syncing of the product catalog for discounts.
+     *
+     * @return void
+     */
+    public function test_square_sync_taxes(): void
+    {
+        // Delete all discounts from the database
+        Tax::truncate();
+        $this->assertCount(0, Tax::all(), 'There are taxes in the database after truncating');
+
+        // Sync the products
+        Square::syncTaxes();
+
+        // Make sure there are products
+        $taxes = Tax::all();
+        $this->assertGreaterThan(0, $taxes->count(), 'There are no taxes in the database');
+
+        foreach ($taxes as $tax) {
+            // Make sure every reference_type is set to square
+            $this->assertNotEmpty(
+                $tax->square_catalog_object_id,
+                'Catalog Object ID not synced for product: ' . $tax->toJson()
+            );
+
+            // Make sure every product has a percentage or amount
+            $this->assertNotNull(
+                $tax->percentage || $tax->amount,
+                'Discount has no percentage or amount. Discount: ' . $taxes->toJson()
+            );
+        }
+    }
+
+    /**
+     * Tests retrieving a specific location.
+     *
+     * @return void
+     */
+    public function test_square_retrieve_location(): void
+    {
+        $transactions = Square::retrieveLocation('main');
+
+        $this->assertNotNull($transactions);
+        $this->assertInstanceOf('\Square\Models\RetrieveLocationResponse', $transactions);
     }
 
     /**
@@ -403,7 +1460,7 @@ class SquareServiceTest extends TestCase
 
         $this->data->order->discounts()->attach($orderDiscount->id, ['deductible_type' => Constants::DISCOUNT_NAMESPACE, 'featurable_type' => config('nikolag.connections.square.order.namespace'), 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
         $this->data->order->taxes()->attach($taxInclusive->id, ['deductible_type' => Constants::TAX_NAMESPACE, 'featurable_type' => config('nikolag.connections.square.order.namespace'), 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
-        $this->data->order->products()->attach($product);
+        $this->data->order->attachProduct($product);
 
         $this->data->order->products->get(0)->pivot->discounts()->attach($productDiscount->id, ['deductible_type' => Constants::DISCOUNT_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
 
@@ -434,12 +1491,13 @@ class SquareServiceTest extends TestCase
         $this->data->order->discounts()->attach($orderDiscountFixed->id, ['deductible_type' => Constants::DISCOUNT_NAMESPACE, 'featurable_type' => config('nikolag.connections.square.order.namespace'), 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
         $this->data->order->taxes()->attach($taxAdditive->id, ['deductible_type' => Constants::TAX_NAMESPACE, 'featurable_type' => config('nikolag.connections.square.order.namespace'), 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
         $this->data->order->taxes()->attach($taxInclusive->id, ['deductible_type' => Constants::TAX_NAMESPACE, 'featurable_type' => config('nikolag.connections.square.order.namespace'), 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
-        $this->data->order->products()->attach($product);
+        $this->data->order->attachProduct($product);
 
         $square = Square::setMerchant($this->data->merchant)
             ->setCustomer($this->data->customer)
             ->setOrder($this->data->order, env('SQUARE_LOCATION'))
             ->save();
+
         $calculatedCost = Util::calculateTotalOrderCostByModel($square->getOrder());
 
         $this->assertEquals(707, $calculatedCost);
@@ -477,5 +1535,52 @@ class SquareServiceTest extends TestCase
             $transaction->order->taxes->where('name', $taxAdditive->name)->first()->pivot->scope, 'Tax scope is not \'LINE_ITEM\'');
         $this->assertEquals(Constants::DEDUCTIBLE_SCOPE_ORDER,
             $transaction->order->discounts->where('name', $orderDiscount->name)->first()->pivot->scope, 'Discount scope is not \'ORDER\'');
+    }
+
+    /**
+     * Tests retrieving catalog information.
+     *
+     * @return void
+     */
+    public function test_square_list_catalog(): void
+    {
+        $catalog = Square::listCatalog();
+
+        $this->assertNotNull($catalog);
+        $this->assertIsArray($catalog);
+        foreach ($catalog as $item) {
+            $this->assertInstanceOf('\Square\Models\CatalogObject', $item);
+        }
+    }
+
+    /**
+     * Ensures filtering the catalog by type is supported
+     *
+     * @return void
+     */
+    public function test_square_list_catalog_by_type(): void
+    {
+        $catalogItems = Square::listCatalog([CatalogObjectType::ITEM]);
+
+        $this->assertNotNull($catalogItems);
+        $this->assertIsArray($catalogItems);
+        foreach ($catalogItems as $item) {
+            $this->assertInstanceOf(CatalogObject::class, $item);
+            $this->assertEquals('ITEM', $item->getType());
+        }
+    }
+
+    /**
+     * Ensures an exception is thrown when retrieving non-standard catalog information.
+     *
+     * @return void
+     */
+    public function test_square_list_catalog_unsupported_type(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('INVALID_REQUEST_ERROR: Unknown object type "UNSUPPORTED_ITEM"');
+        $this->expectExceptionCode(400);
+
+        Square::listCatalog(['unsupported_item']);
     }
 }

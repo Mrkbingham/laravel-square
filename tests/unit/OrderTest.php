@@ -5,16 +5,30 @@ namespace Nikolag\Square\Tests\Unit;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Discount;
+use Nikolag\Square\Models\OrderReturn;
 use Nikolag\Square\Models\Product;
+use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\Models\User;
 use Nikolag\Square\Tests\TestCase;
+use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Utils\Constants;
 
 class OrderTest extends TestCase
 {
+    private TestDataHolder $data;
+
+    /**
+     * @return void
+     */
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->data = TestDataHolder::create();
+    }
+
     /**
      * Order creation with relationships.
      *
@@ -22,17 +36,24 @@ class OrderTest extends TestCase
      */
     public function test_order_make(): void
     {
+        /** @var Order */
+        $order = factory(Order::class)->create();
         $discounts = factory(Discount::class, 5)->create();
         $taxes = factory(Tax::class, 3)->create();
-        $order = factory(Order::class)->create();
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'amount_money' => 10_00,
+        ]);
 
         $order->discounts()->attach($discounts, ['deductible_type' => Constants::DISCOUNT_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
         $order->taxes()->attach($taxes, ['deductible_type' => Constants::TAX_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
+        $order->serviceCharges()->attach($serviceCharge, ['deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER]);
 
         $this->assertNotNull($order->discounts, 'Discounts are empty.');
         $this->assertCount(5, $order->discounts, 'Discounts count doesn\'t match');
         $this->assertNotNull($order->taxes, 'Taxes are empty.');
         $this->assertCount(3, $order->taxes, 'Taxes count doesn\'t match');
+        $this->assertNotNull($order->serviceCharges, 'Service charges are empty.');
+        $this->assertCount(1, $order->serviceCharges, 'Service charges count doesn\'t match');
     }
 
     /**
@@ -126,7 +147,7 @@ class OrderTest extends TestCase
         $product = factory(Product::class)->create([
             'price' => 110,
         ]);
-        $order->products()->attach($product);
+        $order->attachProduct($product);
 
         $response = $order->charge(110, 'cnon:card-nonce-ok', env('SQUARE_LOCATION'), $merchant);
 
@@ -134,5 +155,27 @@ class OrderTest extends TestCase
         $this->assertTrue($response->payment_service_type == 'square');
         $this->assertEquals($response->status, Constants::TRANSACTION_STATUS_PASSED);
         $this->assertEquals($response->amount, 110);
+    }
+
+    /**
+     * Tests the hasReturns trait functionality.
+     *
+     * @return void
+     */
+    public function test_order_has_returns_trait(): void
+    {
+        $testUUID = fake()->unique->uuid;
+        $order = factory(Order::class)->create([
+            'payment_service_id' => $testUUID,
+        ]);
+
+        /** @var OrderReturn */
+        $orderReturn = factory(OrderReturn::class)->create([
+            'source_order_id' => $testUUID,
+            'data' => $this->data->squareOrderReturn,
+        ]);
+
+        $this->assertContainsOnlyInstancesOf(OrderReturn::class, $order->returns);
+        $this->assertEquals($orderReturn->payment_service_id, $order->returns->first()->payment_service_id);
     }
 }

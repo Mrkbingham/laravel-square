@@ -20,9 +20,22 @@ class OrderBuilder
      */
     private DiscountBuilder $discountBuilder;
     /**
+     * @var FulfillmentBuilder
+     */
+    private FulfillmentBuilder $fulfillmentBuilder;
+    /**
+     * @var ModifiersBuilder
+     */
+    private ModifiersBuilder $modifiersBuilder;
+    /**
      * @var TaxesBuilder
      */
     private TaxesBuilder $taxesBuilder;
+
+    /**
+     * @var ServiceChargesBuilder
+     */
+    private ServiceChargesBuilder $serviceChargesBuilder;
 
     /**
      * OrderBuilder constructor.
@@ -31,7 +44,10 @@ class OrderBuilder
     {
         $this->productBuilder = new ProductBuilder();
         $this->discountBuilder = new DiscountBuilder();
+        $this->fulfillmentBuilder = new FulfillmentBuilder();
+        $this->modifiersBuilder = new ModifiersBuilder();
         $this->taxesBuilder = new TaxesBuilder();
+        $this->serviceChargesBuilder = new ServiceChargesBuilder();
     }
 
     /**
@@ -95,6 +111,23 @@ class OrderBuilder
             }
         }
 
+        // Check if order has service charges
+        if ($orderCopy->serviceCharges->isNotEmpty()) {
+            // For each service charge in order
+            foreach ($orderCopy->serviceCharges as $serviceCharge) {
+                // Assign to temp variable
+                $scope = $serviceCharge->scope;
+                // Remove temp scope attribute
+                unset($serviceCharge->scope);
+                // Save service charge
+                $serviceCharge->save();
+                // If order doesn't have service charge, add it
+                if (! $order->hasServiceCharge($serviceCharge)) {
+                    $order->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => $scope]);
+                }
+            }
+        }
+
         // Check if order has products
         if ($orderCopy->products->isNotEmpty()) {
             // For each product in order
@@ -107,20 +140,35 @@ class OrderBuilder
                     $discounts = $product->discounts;
                     // Create taxes
                     $taxes = $product->taxes;
+                    // Create service charges
+                    $serviceCharges = $product->serviceCharges ?? collect([]);
                     // Remove because laravel doesn't recognize it because its Collection/array
                     unset($product->pivot);
                     unset($product->discounts);
                     unset($product->taxes);
+                    unset($product->serviceCharges);
+
                     // Save product
                     $product->save();
 
                     $product->pivot = $productPivot;
+
+                    // Create modifiers
+                    $productModifiers = $productPivot->modifiers;
+                    // Remove because laravel doesn't recognize it because its Collection/array
+                    unset($productPivot->modifiers);
+
                     // Associate product with it
                     $productPivot->product()->associate($product);
                     // Associate order with it
                     $productPivot->order()->associate($order);
                     // Save intermediate model
                     $productPivot->save();
+
+                    // Associate the modifiers
+                    if ($productModifiers->isNotEmpty()) {
+                        $productPivot->modifiers()->saveMany($productModifiers);
+                    }
 
                     // For each discount in product
                     foreach ($discounts as $discount) {
@@ -151,11 +199,65 @@ class OrderBuilder
                             $productPivot->taxes()->attach($tax->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::TAX_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                     }
+
+                    // For each service charge in product
+                    foreach ($serviceCharges as $serviceCharge) {
+                        // Save service charge
+                        $serviceCharge->save();
+                        // If order doesn't have service charge, add it
+                        if (! $order->hasServiceCharge($serviceCharge)) {
+                            $order->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                        }
+                        // If product doesn't have service charge, add it
+                        if (! $productPivot->hasServiceCharge($serviceCharge)) {
+                            $productPivot->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                        }
+                    }
                 }
             }
         }
         // Eagerly load products, for future use
-        $order->load('products', 'taxes', 'discounts');
+        $order->load('products', 'taxes', 'discounts', 'serviceCharges');
+
+        // Check if order has fulfillments
+        if (
+            property_exists($orderCopy, 'fulfillments')
+            && $orderCopy->fulfillments->isNotEmpty()
+        ) {
+            // For each fulfillment in order
+            foreach ($orderCopy->fulfillments as $fulfillment) {
+                // If order doesn't have fulfillment
+                if (! $order->hasFulfillment($fulfillment)) {
+                    // A fulfillment cannot exist without a recipient - make sure it's present
+                    if (! $fulfillment->fulfillmentDetails->recipient) {
+                        throw new MissingPropertyException('Recipient is missing from fulfillment details');
+                    }
+                    // Create the recipient
+                    $recipient = $fulfillment->fulfillmentDetails->recipient;
+                    $recipient->save();
+
+                    // Unset the recipient from the fulfillment details (due to many-to-one relationship)
+                    unset($fulfillment->fulfillmentDetails->recipient);
+
+                    // Associate the recipient with the fulfillment details
+                    $fulfillment->fulfillmentDetails->recipient()->associate($recipient);
+
+                    // Create the fulfillment details
+                    $fulfillment->fulfillmentDetails->save();
+                    $fulfillment->fulfillmentDetails()->associate($fulfillment->fulfillmentDetails);
+
+                    // Associate order with the fulfillment
+                    $fulfillment->order()->associate($order);
+
+                    // Save the fulfillment details after saving the fulfillment
+                    unset($fulfillment->fulfillmentDetails);
+                    $fulfillment->save();
+
+                    // Add the fulfillment to the order
+                    $order->fulfillments->add($fulfillment);
+                }
+            }
+        }
 
         // Return order model, ready for use
         return $order;
@@ -224,7 +326,54 @@ class OrderBuilder
                             $orderCopy->discounts = $orderCopy->discounts->merge($missingDiscounts);
                         }
                     }
+
+                    // Create initial service charges
+                    $productTemp->serviceCharges = collect([]);
+                    //Product Service Charges
+                    if ($product->pivot->serviceCharges->isNotEmpty()) {
+                        $productTemp->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($product->pivot->serviceCharges->toArray(), Constants::DEDUCTIBLE_SCOPE_PRODUCT, $productTemp->pivot);
+                    }
+
+                    //Product price - support for variable pricing
+                    // Use the pivot price if it exists (order-specific pricing),
+                    // otherwise fallback to product model price
+                    $productTemp->pivot->price = filled($product->pivot->price_money_amount)
+                        ? $product->pivot->price_money_amount // Pivot takes precedence for variable pricing support
+                        : $product->price;
+
+                    //Product Modifiers
+                    $productTemp->modifiers = collect([]);
+                    if ($product->pivot->modifiers->isNotEmpty()) {
+                        // Map modifiers-product-pivot to modifiable modifier (Modifier|ModifierOption)
+                        $modifiers = $product->pivot->modifiers->map(function ($modifier) {
+                            $modifierItem = $modifier->modifiable;
+                            // Make sure to add quantity and text
+                            $modifierItem->quantity = $modifier->quantity;
+                            $modifierItem->text     = $modifier->text;
+                            return $modifierItem;
+                        });
+                        $this->modifiersBuilder->addModifiers($productTemp->pivot, $modifiers);
+                    }
+
                     $orderCopy->products->push($productTemp);
+                }
+            }
+
+            // Create service charges Collection
+            $orderCopy->serviceCharges = collect([]);
+            //Service Charges
+            if ($order->serviceCharges->isNotEmpty()) {
+                $orderCopy->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($order->serviceCharges->toArray(), Constants::DEDUCTIBLE_SCOPE_ORDER, $order);
+            }
+
+            // Create fulfillments Collection
+            $orderCopy->fulfillments = collect([]);
+            // Fulfillments
+            if ($order->fulfillments->isNotEmpty()) {
+                foreach ($order->fulfillments as $fulfillment) {
+                    // Create fulfillment
+                    $fulfillmentTemp = $this->fulfillmentBuilder->createFulfillmentFromModel($fulfillment, $order);
+                    $orderCopy->fulfillments->push($fulfillmentTemp);
                 }
             }
 
@@ -301,6 +450,26 @@ class OrderBuilder
                 }
             }
 
+            // Create service charges Collection
+            $orderCopy->serviceCharges = collect([]);
+            //Service Charges
+            if (Arr::has($order, 'service_charges') && $order['service_charges'] != null) {
+                $orderCopy->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($order['service_charges'], Constants::DEDUCTIBLE_SCOPE_ORDER);
+            }
+
+
+            // Create fulfillments Collection
+            $orderCopy->fulfillments = collect([]);
+            //Fulfillments
+            if (Arr::has($order, 'fulfillments') && $order['fulfillments'] != null) {
+                foreach ($order['fulfillments'] as $fulfillment) {
+                    // Create fulfillment from array
+                    $fulfillmentTemp = $this->fulfillmentBuilder->createFulfillmentFromArray($fulfillment);
+
+                    $orderCopy->fulfillments->push($fulfillmentTemp);
+                }
+            }
+
             return $orderCopy;
         } catch (MissingPropertyException $e) {
             throw new MissingPropertyException('Required field is missing', 500, $e);
@@ -325,6 +494,8 @@ class OrderBuilder
                 && $key != 'taxes'
                 && $key != 'discounts'
                 && $key != 'products'
+                && $key != 'fulfillments'
+                && $key != 'service_charges'
                 && $key != $property
                 && $key != 'payment_service_type'
                 && $emptyModel->hasColumn($key)) {
