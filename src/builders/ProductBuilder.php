@@ -18,28 +18,39 @@ class ProductBuilder
      */
     private DiscountBuilder $discountBuilder;
     /**
+     * @var ModifiersBuilder
+     */
+    private ModifiersBuilder $modifiersBuilder;
+    /**
      * @var TaxesBuilder
      */
     private TaxesBuilder $taxesBuilder;
+    /**
+     * @var ServiceChargesBuilder
+     */
+    private ServiceChargesBuilder $serviceChargesBuilder;
 
     public function __construct()
     {
         $this->discountBuilder = new DiscountBuilder();
+        $this->modifiersBuilder = new ModifiersBuilder();
         $this->taxesBuilder = new TaxesBuilder();
+        $this->serviceChargesBuilder = new ServiceChargesBuilder();
     }
 
     /**
      * Add a product to the order from model as source.
      *
-     * @param  Model  $order
-     * @param  Model  $product
-     * @param  int  $quantity
+     * @param  Model $order
+     * @param  Model $product
+     * @param  int   $quantity
+     * @param  array $modifiers
      * @return Product|stdClass
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
      */
-    public function addProductFromModel(Model $order, Model $product, int $quantity): Product|stdClass
+    public function addProductFromModel(Model $order, Model $product, int $quantity, array $modifiers = []): Product|stdClass
     {
         try {
             // If quantity is null or 0
@@ -48,7 +59,7 @@ class ProductBuilder
                 throw new MissingPropertyException('$quantity property is missing on Product', 500);
             }
 
-            $productCopy = $this->createProductFromModel($product, $order, $quantity);
+            $productCopy = $this->createProductFromModel($product, $order, $quantity, $modifiers);
             // Create discounts Collection
             $productCopy->discounts = collect([]);
             // //Discounts
@@ -60,6 +71,13 @@ class ProductBuilder
             //Taxes
             if ($product->taxes && $product->taxes->isNotEmpty()) {
                 $productCopy->taxes = $this->taxesBuilder->createTaxes($product->taxes->toArray(), Constants::DEDUCTIBLE_SCOPE_PRODUCT, $productCopy->product);
+            }
+
+            // Create service charges Collection
+            $productCopy->serviceCharges = collect([]);
+            // Service Charges
+            if ($product->serviceCharges && $product->serviceCharges->isNotEmpty()) {
+                $productCopy->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($product->serviceCharges->toArray(), Constants::DEDUCTIBLE_SCOPE_PRODUCT, $productCopy->product);
             }
 
             return $productCopy;
@@ -127,6 +145,18 @@ class ProductBuilder
                 });
             }
 
+            // Create service charges Collection
+            $productCopy->serviceCharges = collect([]);
+            // Service Charges
+            if (Arr::has($product, 'service_charges')) {
+                $productCopy->serviceCharges = $this->serviceChargesBuilder->createServiceCharges($product['service_charges'], Constants::DEDUCTIBLE_SCOPE_PRODUCT, $productCopy->productPivot);
+                $productCopy->serviceCharges->each(function ($serviceCharge) use ($orderCopy) {
+                    if (! $orderCopy->serviceCharges->contains($serviceCharge)) {
+                        $orderCopy->serviceCharges->add($serviceCharge);
+                    }
+                });
+            }
+
             return $productCopy;
         } catch (MissingPropertyException $e) {
             throw new MissingPropertyException('Required field is missing', 500, $e);
@@ -151,6 +181,13 @@ class ProductBuilder
         if (! Arr::has($product, 'quantity') || $product['quantity'] == null || $product['quantity'] == 0) {
             throw new MissingPropertyException('$quantity property for object Product is missing', 500);
         }
+
+        // For variable pricing, check if price is available in the order
+        $price = Arr::get($product, 'price');
+        if (!filled($price) && (!Arr::has($product, 'id') || !filled(Product::find(Arr::get($product, 'id'))?->price))) {
+            throw new MissingPropertyException('Product does not have required attribute: price. For variable pricing, price must be provided in the order.', 500);
+        }
+
         //Check if order is present and if already has this product
         //or if product doesn't have property $id then create new Product object
         if (($order && ! $order->hasProduct($product)) || ! Arr::has($product, 'id')) {
@@ -162,6 +199,11 @@ class ProductBuilder
             if (! $productPivot) {
                 $productPivot = new OrderProductPivot($product);
             }
+        }
+
+        // Make sure price is set in the pivot for variable pricing
+        if (Arr::has($product, 'price')) {
+            $productPivot->price_money_amount = $product['price'];
         }
 
         $productObj = $tempProduct;
@@ -176,13 +218,25 @@ class ProductBuilder
      * @param  Model  $product
      * @param  Model|null  $order
      * @param  int|null  $quantity
+     * @param  array  $modifiers
      * @return Product|stdClass
      *
      * @throws MissingPropertyException
      */
-    public function createProductFromModel(Model $product, Model $order = null, int $quantity = null): Product|stdClass
+    public function createProductFromModel(Model $product, Model $order = null, int $quantity = null, array $modifiers = []): Product|stdClass
     {
         $productObj = new stdClass();
+        // Get price - for variable pricing, price can be null in the product model but must be provided in the pivot
+        $price = $product->pivot && filled($product->pivot->price_money_amount)
+            ? $product->pivot->price_money_amount // Pivot takes precedence for variable pricing support
+            : $product->price;
+
+        // For variable pricing, price can be null in the product model but must be provided in the pivot
+        // Only throw if price is not available from either source
+        if (!filled($price)) {
+            throw new MissingPropertyException('Product does not have required attribute: price. For variable pricing, price must be provided in the order.', 500);
+        }
+
         //If product doesn't have quantity in pivot table
         //throw new exception because every product should
         //have at least 1 quantity
@@ -206,7 +260,13 @@ class ProductBuilder
             }
         }
 
+        // Add modifiers to the order product pivot
+        if ($modifiers) {
+            $productPivot = $this->modifiersBuilder->addModifiers($productPivot, $modifiers);
+        }
+
         $productPivot->quantity = $quantity;
+        $productPivot->price_money_amount = $price;
         $productObj = $tempProduct;
         $productObj->pivot = $productPivot;
 

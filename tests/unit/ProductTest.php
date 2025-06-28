@@ -12,13 +12,26 @@ use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\OrderProductPivot;
 use Nikolag\Square\Models\Product;
+use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
+use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\Util;
 
 class ProductTest extends TestCase
 {
+    private TestDataHolder $data;
+
+    /**
+     * @return void
+     */
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->data = TestDataHolder::make();
+    }
     /**
      * Product creation.
      *
@@ -56,15 +69,33 @@ class ProductTest extends TestCase
      */
     public function test_product_create_with_orders(): void
     {
-        $name = $this->faker->name;
+        $name = 'Test Product ' . uniqid();
+        $variation = 'Test Variation ' . uniqid();
         $order1 = factory(Order::class)->create();
         $order2 = factory(Order::class)->create();
 
         $product = factory(Product::class)->create([
             'name' => $name,
+            'variation_name' => $variation,
+            'price' => 10_00,
         ]);
 
-        $product->orders()->attach([$order1->id, $order2->id]);
+        // Create order product pivots directly to have more control
+        $orderProduct1 = new OrderProductPivot([
+            'price_money_amount' => 10_00,
+            'quantity' => 1
+        ]);
+        $orderProduct1->order()->associate($order1);
+        $orderProduct1->product()->associate($product);
+        $orderProduct1->save();
+
+        $orderProduct2 = new OrderProductPivot([
+            'price_money_amount' => 10_00,
+            'quantity' => 1
+        ]);
+        $orderProduct2->order()->associate($order2);
+        $orderProduct2->product()->associate($product);
+        $orderProduct2->save();
 
         $this->assertCount(2, $product->orders);
         $this->assertContainsOnlyInstancesOf(Order::class, $product->orders);
@@ -96,6 +127,30 @@ class ProductTest extends TestCase
     }
 
     /**
+     * Check product persisting with taxes.
+     *
+     * @return void
+     */
+    public function test_product_create_with_service_charge(): void
+    {
+        $product = factory(Product::class)->create();
+        $productPivot = factory(OrderProductPivot::class)->create();
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'amount_money' => 10_00,
+        ]);
+
+        // Attach service charge to the product pivot and then associate the product
+        $productPivot->serviceCharges()->attach($serviceCharge->id, ['deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+        $productPivot->product()->associate($product);
+
+        // Make assertions
+        $this->assertTrue($productPivot->hasServiceCharge($serviceCharge));
+        $this->assertCount(1, $productPivot->serviceCharges);
+        $this->assertContainsOnlyInstancesOf(Constants::SERVICE_CHARGE_NAMESPACE, $productPivot->serviceCharges);
+    }
+
+    /**
      * Order creation without location id, testing exception case.
      *
      * @return void
@@ -110,5 +165,44 @@ class ProductTest extends TestCase
         $this->expectExceptionCode(500);
 
         Square::setOrder($order, env('SQUARE_LOCATION'))->addProduct($product, 0);
+    }
+
+    /**
+     * Test variable item pricing when adding a product to an order
+     *
+     * @return void
+     */
+    public function test_variable_item_pricing_when_adding_product_to_order(): void
+    {
+        // Create a product with a base price (we'll override in the order)
+        $uniqueId = uniqid();
+        $variablePriceProduct = factory(Product::class)->create([
+            'price' => 1000, // Base price in product record
+            'name' => 'Variable Price Product ' . $uniqueId,
+            'variation_name' => 'Test Variation ' . $uniqueId,
+        ]);
+
+        // Create an order
+        $order = factory(Order::class)->create();
+
+        // Create OrderProductPivot with variable pricing directly
+        $orderProduct = new OrderProductPivot([
+            'price_money_amount' => 800, // Different price in the order than in the product
+            'quantity' => 2  // Quantity is 2
+        ]);
+        $orderProduct->order()->associate($order);
+        $orderProduct->product()->associate($variablePriceProduct);
+        $orderProduct->save();
+
+        // Check that the product was saved with the correct price in the pivot
+        $this->assertNotNull($order->products->first(), 'Product was not saved to order');
+        $this->assertEquals(800, $order->products->first()->pivot->price_money_amount, 'Variable price not correctly stored in pivot');
+        $this->assertEquals(1000, $order->products->first()->price, 'Product should retain its base price');
+
+        // Calculate and verify total cost
+        $calculatedCost = Util::calculateTotalOrderCostByModel($order);
+        $expectedCost = 2 * 800; // Quantity 2 × price 800 = 1600
+
+        $this->assertEquals($expectedCost, $calculatedCost, 'Order total with variable pricing not calculated correctly');
     }
 }
