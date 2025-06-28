@@ -303,7 +303,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     {
         // Retrieve the main location (since we're seeding for tests, just base it on the main location)
         /** @var array<CatalogObject> */
-        $discountCatalogObjects = self::listCatalog('DISCOUNT');
+        $discountCatalogObjects = self::listCatalog(['DISCOUNT']);
 
         foreach ($discountCatalogObjects as $discountObject) {
             $discountData = $discountObject->getDiscountData();
@@ -351,7 +351,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     {
         // Retrieve the main location (since we're seeding for tests, just base it on the main location)
         /** @var array<CatalogObject> */
-        $modifierListCatalogObjects = self::listCatalog('MODIFIER_LIST');
+        $modifierListCatalogObjects = self::listCatalog(['MODIFIER_LIST']);
 
         foreach ($modifierListCatalogObjects as $modifierListObject) {
             $catalogModifierList = $modifierListObject->getModifierListData();
@@ -392,7 +392,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         /** @var array<CatalogObject> */
         $modifierCatalogObjects = cache()
             ->store('array')
-            ->remember(__METHOD__, now()->addMinutes(1), fn () => self::listCatalog('MODIFIER'));
+            ->remember(__METHOD__, now()->addMinutes(1), fn () => self::listCatalog(['MODIFIER']));
 
         // Filter the modifier options to only include the ones that are part of the modifier list
         $modifierCatalogObjects = collect($modifierCatalogObjects)->filter(function ($modifierObject) use ($modifierModel) {
@@ -458,7 +458,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     {
         // Retrieve the main location (since we're seeding for tests, just base it on the main location)
         /** @var array<CatalogObject> */
-        $itemCatalogObjects = self::listCatalog('ITEM');
+        $itemCatalogObjects = self::listCatalog(['ITEM']);
 
         foreach ($itemCatalogObjects as $itemObject) {
             $itemData = $itemObject->getItemData();
@@ -527,7 +527,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     {
         // Retrieve the main location (since we're seeding for tests, just base it on the main location)
         /** @var array<CatalogObject> */
-        $taxCatalogObjects = self::listCatalog('TAX');
+        $taxCatalogObjects = self::listCatalog(['TAX']);
 
         foreach ($taxCatalogObjects as $taxObject) {
             $taxData = $taxObject->getTaxData();
