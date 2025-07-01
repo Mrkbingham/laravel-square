@@ -4,10 +4,13 @@ namespace Nikolag\Square;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Http\Request;
 use Nikolag\Core\Abstracts\CorePaymentService;
 use Nikolag\Square\Builders\CustomerBuilder;
+use Nikolag\Square\Builders\FulfillmentBuilder;
 use Nikolag\Square\Builders\OrderBuilder;
 use Nikolag\Square\Builders\ProductBuilder;
+use Nikolag\Square\Builders\RecipientBuilder;
 use Nikolag\Square\Builders\SquareRequestBuilder;
 use Nikolag\Square\Builders\WebhookBuilder;
 use Nikolag\Square\Contracts\SquareServiceContract;
@@ -16,6 +19,13 @@ use Nikolag\Square\Exceptions\InvalidSquareAmountException;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\InvalidSquareSignatureException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
+use Nikolag\Square\Models\Discount;
+use Nikolag\Square\Models\Location;
+use Nikolag\Square\Models\Modifier;
+use Nikolag\Square\Models\ModifierOption;
+use Nikolag\Square\Models\ModifierOptionLocationPivot;
+use Nikolag\Square\Models\Product;
+use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Models\WebhookSubscription;
 use Nikolag\Square\Models\WebhookEvent;
@@ -24,11 +34,22 @@ use Nikolag\Square\Utils\Util;
 use Nikolag\Square\Utils\WebhookProcessor;
 use Square\Exceptions\ApiException;
 use Square\Http\ApiResponse;
+use Square\Models\BatchDeleteCatalogObjectsResponse;
+use Square\Models\BatchUpsertCatalogObjectsRequest;
+use Square\Models\BatchUpsertCatalogObjectsResponse;
+use Square\Models\CatalogModifier;
+use Square\Models\CatalogObject;
+use Square\Models\CatalogModifierListInfo;
+use Square\Models\CatalogModifierListSelectionType;
 use Square\Models\Builders\TestWebhookSubscriptionRequestBuilder;
 use Square\Models\Builders\UpdateWebhookSubscriptionSignatureKeyRequestBuilder;
 use Square\Models\CreateCustomerRequest;
 use Square\Models\CreateOrderRequest;
+use Square\Models\CreateCatalogImageRequest;
+use Square\Models\CreateCatalogImageResponse;
+use Square\Models\ListCatalogResponse;
 use Square\Models\ListLocationsResponse;
+use Square\Models\RetrieveLocationResponse;
 use Square\Models\ListPaymentsResponse;
 use Square\Models\ListWebhookEventTypesResponse;
 use Square\Models\ListWebhookSubscriptionsResponse;
@@ -37,6 +58,7 @@ use Square\Models\TestWebhookSubscriptionResponse;
 use Square\Models\WebhookSubscription as SquareWebhookSubscription;
 use Square\Models\UpdateCustomerRequest;
 use Square\Models\UpdateWebhookSubscriptionSignatureKeyResponse;
+use Square\Utils\FileWrapper;
 use stdClass;
 
 class SquareService extends CorePaymentService implements SquareServiceContract
@@ -62,6 +84,14 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      */
     protected CustomerBuilder $customerBuilder;
     /**
+     * @var FulfillmentBuilder
+     */
+    private FulfillmentBuilder $fulfillmentBuilder;
+    /**
+     * @var RecipientBuilder
+     */
+    private RecipientBuilder $recipientBuilder;
+    /**
      * @var string
      */
     private string $locationId;
@@ -69,6 +99,18 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @var string
      */
     private string $currency;
+    /**
+     * @var mixed
+     */
+    protected mixed $fulfillment = null;
+    /**
+     * @var mixed
+     */
+    protected mixed $fulfillmentDetails = null;
+    /**
+     * @var mixed
+     */
+    protected mixed $fulfillmentRecipient = null;
     /**
      * @var CreateOrderRequest
      */
@@ -86,14 +128,123 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         $this->squareBuilder = new SquareRequestBuilder();
         $this->productBuilder = new ProductBuilder();
         $this->customerBuilder = new CustomerBuilder();
+        $this->fulfillmentBuilder = new FulfillmentBuilder();
+        $this->recipientBuilder = new RecipientBuilder();
+    }
+
+    /**
+     * Batch deletes catalog objects.
+     *
+     * @param array<string> $catalogObjectIds The catalog object IDs to delete.
+     *
+     * @throws Exception When an error occurs.
+     *
+     * @return BatchDeleteCatalogObjectsResponse
+     */
+    public function batchDeleteCatalogObjects(array $catalogObjectIds)
+    {
+        $request = $this->getSquareBuilder()->buildBatchDeleteCategoryObjectsRequest($catalogObjectIds);
+
+        // Call the Catalog API function batchDeleteCatalogObjects to delete all our items at once.
+        $apiResponse = $this->config->catalogAPI()->batchDeleteCatalogObjects($request);
+
+        if ($apiResponse->isSuccess()) {
+            /** @var BatchDeleteCatalogObjectsResponse $results */
+            $results = $apiResponse->getResult();
+
+            return $results;
+        } else {
+            throw $this->_handleApiResponseErrors($apiResponse);
+        }
+    }
+
+    /**
+     * Uploads the items, and adds images, when creating new items for the catalog.
+     *
+     * @param BatchUpsertCatalogObjectsRequest $batchUpsertCatalogRequest The request to upload the items.
+     *
+     * @throws Exception When an error occurs.
+     *
+     * @return BatchUpsertCatalogObjectsResponse
+     */
+    public function batchUpsertCatalog(BatchUpsertCatalogObjectsRequest $batchUpsertCatalogRequest)
+    {
+        // We call the Catalog API function batchUpsertCatalogObjects to upload all our
+        // items at once.
+        $apiResponse = $this->config->catalogAPI()->batchUpsertCatalogObjects($batchUpsertCatalogRequest);
+
+        if ($apiResponse->isSuccess()) {
+            /** @var BatchUpsertCatalogObjectsResponse $results */
+            $results = $apiResponse->getResult();
+
+            return $results;
+        } else {
+            throw $this->_handleApiResponseErrors($apiResponse);
+        }
+    }
+
+    /**
+     * Creates a catalog image.
+     *
+     * @param CreateCatalogImageRequest $createCatalogImageRequest The request to create the image.
+     * @param string                    $filePath                  The image to upload.
+     *
+     * @throws Exception When an error occurs.
+     *
+     * @return CreateCatalogImageResponse
+     */
+    public function createCatalogImage(
+        CreateCatalogImageRequest $createCatalogImageRequest,
+        string $filePath
+    ) {
+        // Check to see if the file exists
+        if (!file_exists($filePath)) {
+            throw new Exception('The file does not exist');
+        }
+        // Create a file wrapper
+        $fileWrapper = FileWrapper::createFromPath($filePath);
+
+        // Call the Catalog API function createCatalogImage to upload the image
+        $apiResponse = $this->config->catalogAPI()->createCatalogImage($createCatalogImageRequest, $fileWrapper);
+
+        if ($apiResponse->isSuccess()) {
+            /** @var CreateCatalogImageResponse $results */
+            $results = $apiResponse->getResult();
+
+            return $results;
+        } else {
+            throw $this->_handleApiResponseErrors($apiResponse);
+        }
+    }
+
+    /**
+     * Helper function to get the appropriate currency to be used based on the location ID provided.
+     *
+     * @param string|null $locationId The location ID.
+     *
+     *
+     * @return string The currency code
+     */
+    public function getCurrency($locationId = 'main')
+    {
+        // Get the currency for the location
+        return $this->retrieveLocation($locationId)->getLocation()->getCurrency();
+    }
+
+    /**
+     * Retrieves the Square API request builder.
+     *
+     * @return SquareRequestBuilder
+     */
+    public function getSquareBuilder(): SquareRequestBuilder
+    {
+        return $this->squareBuilder;
     }
 
     /**
      * List locations.
      *
      * @return ListLocationsResponse
-     *
-     * @throws ApiException
      */
     public function locations(): ListLocationsResponse
     {
@@ -129,6 +280,271 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         } while ($cursor);
 
         return $catalogItems;
+    }
+
+    /**
+     * Retrieves a specific location.
+     *
+     * @param string $locationId The location ID.
+     *
+     * @return RetrieveLocationResponse
+     *
+     * @throws ApiException
+     */
+    public function retrieveLocation(string $locationId): RetrieveLocationResponse
+    {
+        return $this->config->locationsAPI()->retrieveLocation($locationId)->getResult();
+    }
+
+    /**
+     * Sync all discounts to the discount table.
+     *
+     * @return void
+     */
+    public function syncDiscounts(): void
+    {
+        // Retrieve the main location (since we're seeding for tests, just base it on the main location)
+        /** @var array<CatalogObject> */
+        $discountCatalogObjects = self::listCatalog(['DISCOUNT']);
+
+        foreach ($discountCatalogObjects as $discountObject) {
+            $discountData = $discountObject->getDiscountData();
+            $itemData = [
+                'name' => $discountData->getName(),
+                'percentage' => $discountData->getPercentage(),
+                'amount' => $discountData->getAmountMoney()?->getAmount(),
+            ];
+
+            $squareID = $discountObject->getId();
+
+            // Create or update the product
+            Discount::updateOrCreate(['square_catalog_object_id' => $squareID], $itemData);
+        }
+    }
+
+    /**
+     * Syncs all the locations and their data.
+     *
+     * @return void
+     *
+     * @throws Exception If an error occurs.
+     */
+    public function syncLocations()
+    {
+        // Map the locations to the Location model so we can do one bulk-insert
+        $allLocationData = collect($this->locations()->getLocations())->map(function ($location) {
+            return Location::processLocationData($location);
+        })->toArray();
+
+        foreach ($allLocationData as $locationData) {
+            // Create or update the location
+            Location::updateOrCreate([
+                'square_id' => $locationData['square_id']
+            ], $locationData);
+        }
+    }
+
+    /**
+     * Sync all product modifiers and their options to the database.
+     *
+     * @return void
+     */
+    public function syncModifiers(): void
+    {
+        // Retrieve the main location (since we're seeding for tests, just base it on the main location)
+        /** @var array<CatalogObject> */
+        $modifierListCatalogObjects = self::listCatalog(['MODIFIER_LIST']);
+
+        foreach ($modifierListCatalogObjects as $modifierListObject) {
+            $catalogModifierList = $modifierListObject->getModifierListData();
+            $catalogModifierListData = [
+                'name' => $catalogModifierList->getName(),
+                'ordinal' => $catalogModifierList?->getOrdinal(),
+                'selection_type' => $catalogModifierList->getSelectionType() ?? CatalogModifierListSelectionType::MULTIPLE,
+                'type' => $catalogModifierList->getModifierType(),
+            ];
+
+            $squareID = $modifierListObject->getId();
+
+            // Create or update the product
+            $modifierModel = Modifier::updateOrCreate([
+                'square_catalog_object_id' => $squareID
+            ], $catalogModifierListData);
+
+            $catalogModifiers = $catalogModifierList->getModifiers();
+            if (! $catalogModifiers) {
+                continue;
+            }
+
+            // Sync the modifier options if there are any
+            $this->syncModifierOptions($modifierModel);
+        }
+    }
+
+    /**
+     * Sync all modifiers options and their relationships to the database.
+     *
+     * @param Modifier $modifierModel The modifier model to sync the options for.
+     *
+     * @return void
+     */
+    public function syncModifierOptions(Modifier $modifierModel): void
+    {
+        // Array cache the results of the modifier list so we only make this call once during the sync
+        /** @var array<CatalogObject> */
+        $modifierCatalogObjects = cache()
+            ->store('array')
+            ->remember(__METHOD__, now()->addMinutes(1), fn () => self::listCatalog(['MODIFIER']));
+
+        // Filter the modifier options to only include the ones that are part of the modifier list
+        $modifierCatalogObjects = collect($modifierCatalogObjects)->filter(function ($modifierObject) use ($modifierModel) {
+            $modifierData = $modifierObject->getModifierData();
+
+            return $modifierData->getModifierListId() === $modifierModel->square_catalog_object_id;
+        });
+
+        foreach ($modifierCatalogObjects as $modifierObject) {
+            $catalogModifier = $modifierObject->getModifierData();
+
+            $modifierOptionData = [
+                'name' => $catalogModifier->getName(),
+                'price_money_amount' => $catalogModifier->getPriceMoney()?->getAmount(),
+                'price_money_currency' => $catalogModifier->getPriceMoney()?->getCurrency(),
+                'modifier_id' => $modifierModel->id
+            ];
+
+            $modifierDataSquareID = $modifierObject->getId();
+
+            // Create or update the product
+            $modifierOption = ModifierOption::updateOrCreate([
+                'square_catalog_object_id' => $modifierDataSquareID
+            ], $modifierOptionData);
+
+            // Determine if there are any location-option overrides
+            $locationOverrides = $catalogModifier->getLocationOverrides();
+            $absentAtLocations = $modifierObject->getAbsentAtLocationIds();
+            if (! $locationOverrides && ! $absentAtLocations) {
+                continue;
+            }
+
+            // Map the square location IDs to our local location IDs
+            $squareLocationIDs = collect($locationOverrides)->map(function ($locationOverride) {
+                return $locationOverride->getLocationId();
+            })
+                // Add the absent at locations to the list
+                ->merge(collect($absentAtLocations))
+                ->toArray();
+
+            // Get the local location IDs
+            $locationIDs = Location::whereIn('square_id', $squareLocationIDs)->pluck('id');
+
+            $insertData = [];
+            foreach ($locationIDs as $locationID) {
+                $insertData[] = [
+                    'modifier_option_id' => $modifierOption->id,
+                    'location_id' => $locationID
+                ];
+            }
+
+            // Create new location overrides
+            ModifierOptionLocationPivot::insert($insertData);
+        }
+    }
+
+    /**
+     * Sync all products and their variations to the products table.
+     *
+     * @return void
+     */
+    public function syncProducts(): void
+    {
+        // Retrieve the main location (since we're seeding for tests, just base it on the main location)
+        /** @var array<CatalogObject> */
+        $itemCatalogObjects = self::listCatalog(['ITEM']);
+
+        foreach ($itemCatalogObjects as $itemObject) {
+            $itemData = $itemObject->getItemData();
+
+            // Check for modifier data
+            $modifierListInfo = $itemData->getModifierListInfo();
+
+            // Sync the variations to the database
+            foreach ($itemData->getVariations() as $variation) {
+                $variationItemData = [
+                    'name'           => $itemData->getName(),
+                    'description'    => $itemData->getDescriptionHtml(),
+                    'variation_name' => $variation->getItemVariationData()->getName(),
+                    'description'    => $itemData->getDescription(),
+                    'price'          => $variation->getItemVariationData()->getPriceMoney()?->getAmount(),
+                ];
+
+                $squareID = $variation->getId();
+
+                // Create or update the product
+                $product = Product::updateOrCreate(['square_catalog_object_id' => $squareID], $variationItemData);
+
+                // Check for modifier data for this specific product
+                if ($modifierListInfo) {
+                    $this->syncProductModifiers($product, $modifierListInfo);
+                }
+            }
+        }
+    }
+
+    /**
+     * Sync a given product and it's modifiers.
+     *
+     * @param Product $product The product model to sync the modifiers for.
+     * @param CatalogModifierListInfo[] $modifierListInfo The modifier list info for the product.
+     *
+     * @return void
+     */
+    public function syncProductModifiers(Product $product, array $modifierListInfo): void
+    {
+        foreach ($modifierListInfo as $modifierList) {
+            $modifierListID = $modifierList->getModifierListId();
+            $modifier = Modifier::where('square_catalog_object_id', $modifierList->getModifierListId())->first();
+            if (!$modifier) {
+                throw new Exception(
+                    "Modifier list ID: $modifierListID not found during product sync for product ID: $product->id"
+                );
+            }
+
+            // If the pivot table link already exists, skip
+            if ($product->modifiers->contains($modifier->id)) {
+                continue;
+            }
+
+            // Attach the modifier to the product
+            $product->modifiers()->attach($modifier->id);
+        }
+    }
+
+    /**
+     * Sync all taxes to the taxes table.
+     *
+     * @return void
+     */
+    public function syncTaxes(): void
+    {
+        // Retrieve the main location (since we're seeding for tests, just base it on the main location)
+        /** @var array<CatalogObject> */
+        $taxCatalogObjects = self::listCatalog(['TAX']);
+
+        foreach ($taxCatalogObjects as $taxObject) {
+            $taxData = $taxObject->getTaxData();
+
+            $itemData = [
+                'name'       => $taxData->getName(),
+                'type'       => $taxData->getInclusionType(),
+                'percentage' => $taxData->getPercentage(),
+            ];
+
+            $squareID = $taxObject->getId();
+
+            // Create or update the product
+            Tax::updateOrCreate(['square_catalog_object_id' => $squareID], $itemData);
+        }
     }
 
     /**
@@ -242,7 +658,8 @@ class SquareService extends CorePaymentService implements SquareServiceContract
                 $this->_saveOrder();
             }
         } catch (MissingPropertyException $e) {
-            throw new MissingPropertyException('Required fields are missing', 500, $e);
+            $message = 'Required fields are missing: '.$e->getMessage();
+            throw new MissingPropertyException($message, 500, $e);
         } catch (InvalidSquareOrderException $e) {
             throw new MissingPropertyException('Invalid order data', 500, $e);
         } catch (Exception|ApiException $e) {
@@ -251,6 +668,16 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         }
 
         return $this;
+    }
+
+    /**
+     * Updates order on Square using local data.
+     *
+     * @return void
+     */
+    public function saveToSquare(): void
+    {
+        $this->_saveOrder(true);
     }
 
     /**
@@ -410,25 +837,105 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     }
 
     /**
+     * Add a fulfillment to the order.
+     * NOTE: This currently supports ONE fulfillment per order.  While the Square API supports multiple fulfillments per
+     * order, the standard UI does not, so this is limited to a single fulfillment.
+     *
+     * @param  mixed  $fulfillment
+     * @param  string  $type
+     * @return self
+     *
+     * @throws Exception If the order already has a fulfillment.
+     */
+    public function setFulfillment(mixed $fulfillment): static
+    {
+        // Fulfillment class
+        $fulfillmentClass = Constants::FULFILLMENT_NAMESPACE;
+
+        // Validate the order exists
+        if (! $this->getOrder()) {
+            throw new InvalidSquareOrderException('Fulfillment cannot be set without an order.', 500);
+        }
+
+        if (is_a($fulfillment, $fulfillmentClass)) {
+            $this->fulfillment = $this->fulfillmentBuilder->createFulfillmentFromModel(
+                $fulfillment,
+                $this->getOrder(),
+            );
+        } else {
+            $this->fulfillment = $this->fulfillmentBuilder->createFulfillmentFromArray(
+                $fulfillment,
+                $this->getOrder(),
+            );
+        }
+
+        // Check if order already has this fulfillment
+        if (! Util::hasFulfillment($this->orderCopy->fulfillments, $this->getFulfillment())) {
+            // Add the fulfillment to the order
+            $this->orderCopy->fulfillments->push($this->getFulfillment());
+        } else {
+            throw new InvalidSquareOrderException('This order already has a fulfillment', 500);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Add a recipient to the fulfillment details.
+     * NOTE: This currently supports ONE recipient per fulfillment.  While the Square API supports multiple fulfillments
+     * which would allow multiple recipients, the standard UI does not, so this is limited to a single recipient.
+     *
+     * @param  mixed  $recipient
+     * @return self
+     *
+     * @throws Exception If the order's fulfillment details already has a recipient.
+     */
+    public function setFulfillmentRecipient(mixed $recipient): static
+    {
+        // Make sure we have a fulfillment
+        if (! $this->getFulfillment()) {
+            throw new MissingPropertyException('Fulfillment must be added before adding a fulfillment recipient', 500);
+        }
+
+        $recipientClass = Constants::RECIPIENT_NAMESPACE;
+
+        if (is_a($recipient, $recipientClass)) {
+            $this->fulfillmentRecipient = $this->recipientBuilder->load($recipient->toArray());
+        } elseif (is_array($recipient)) {
+            $this->fulfillmentRecipient = $this->recipientBuilder->load($recipient);
+        }
+
+        // Check if this order's fulfillment details already has a recipient
+        if (! $this->getFulfillmentDetails()->recipient) {
+            $this->orderCopy->fulfillments->first()->fulfillmentDetails->recipient = $this->getFulfillmentRecipient();
+        } else {
+            throw new Exception('This order\'s fulfillment details already has a recipient', 500);
+        }
+
+        return $this;
+    }
+
+    /**
      * Add a product to the order.
      *
      * @param  mixed  $product
      * @param  int  $quantity
      * @param  string  $currency
+     * @param array  $modifiers
      * @return self
      *
      * @throws AlreadyUsedSquareProductException
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
      */
-    public function addProduct(mixed $product, int $quantity = 1, string $currency = 'USD'): static
+    public function addProduct(mixed $product, int $quantity = 1, string $currency = 'USD', array $modifiers = []): static
     {
         //Product class
         $productClass = Constants::PRODUCT_NAMESPACE;
 
         try {
             if (is_a($product, $productClass)) {
-                $productPivot = $this->productBuilder->addProductFromModel($this->getOrder(), $product, $quantity);
+                $productPivot = $this->productBuilder->addProductFromModel($this->getOrder(), $product, $quantity, $modifiers);
             } else {
                 $productPivot = $this->productBuilder->addProductFromArray($this->orderCopy, $this->getOrder(), $product, $quantity);
             }
@@ -451,6 +958,30 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     public function getCreateCustomerRequest(): UpdateCustomerRequest|CreateCustomerRequest
     {
         return $this->createCustomerRequest;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getFulfillment(): mixed
+    {
+        return $this->fulfillment;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getFulfillmentDetails(): mixed
+    {
+        return $this->fulfillment->fulfillmentDetails;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getFulfillmentRecipient(): mixed
+    {
+        return $this->fulfillmentRecipient;
     }
 
     /**
@@ -539,6 +1070,8 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         } elseif (is_array($order)) {
             $this->order = $this->orderBuilder->buildOrderModelFromArray($order, new $orderClass());
             $this->orderCopy = $this->orderBuilder->buildOrderCopyFromArray($order);
+        } else {
+            throw new InvalidSquareOrderException('Order must be an instance of '.$orderClass.' or an array', 500);
         }
 
         return $this;

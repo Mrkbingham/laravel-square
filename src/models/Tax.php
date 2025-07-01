@@ -3,11 +3,200 @@
 namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
+use Illuminate\Validation\ValidationException;
 use Nikolag\Core\Models\Tax as CoreTax;
 use Nikolag\Square\Utils\Constants;
+use Square\Models\TaxCalculationPhase;
+use Square\Models\TaxInclusionType;
 
 class Tax extends CoreTax
 {
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'name',
+        'type',
+        'percentage',
+        'amount_money',
+        'amount_currency',
+        'reference_id',
+        'square_catalog_object_id',
+        'calculation_phase',
+        'inclusion_type',
+        'applies_to_custom_amounts',
+        'enabled',
+    ];
+
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'percentage' => 'float',
+        'applies_to_custom_amounts' => 'boolean',
+        'enabled' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'square_created_at' => 'datetime',
+        'square_updated_at' => 'datetime',
+    ];
+
+    //
+    // Square CatalogTax Helper Methods
+    //
+
+    /**
+     * Check if tax is calculated on subtotal phase.
+     *
+     * @return bool
+     */
+    public function isCalculatedOnSubtotal(): bool
+    {
+        return $this->calculation_phase === TaxCalculationPhase::TAX_SUBTOTAL_PHASE;
+    }
+
+    /**
+     * Check if tax is calculated on total phase.
+     *
+     * @return bool
+     */
+    public function isCalculatedOnTotal(): bool
+    {
+        return is_null($this->calculation_phase) || $this->calculation_phase === TaxCalculationPhase::TAX_TOTAL_PHASE;
+    }
+
+    /**
+     * Check if tax is additive (added to the amount).
+     *
+     * @return bool
+     */
+    public function isAdditive(): bool
+    {
+        return $this->inclusion_type === TaxInclusionType::ADDITIVE;
+    }
+
+    /**
+     * Check if tax is inclusive (already included in the amount).
+     *
+     * @return bool
+     */
+    public function isInclusive(): bool
+    {
+        return $this->inclusion_type === TaxInclusionType::INCLUSIVE;
+    }
+
+    /**
+     * Check if tax applies to custom amounts.
+     *
+     * @return bool
+     */
+    public function appliesToCustomAmounts(): bool
+    {
+        return $this->applies_to_custom_amounts === true;
+    }
+
+    /**
+     * Check if tax is enabled.
+     *
+     * @return bool
+     */
+    public function isEnabled(): bool
+    {
+        return $this->enabled === true;
+    }
+
+    /**
+     * Boot the model and set up event listeners.
+     *
+     * @return void
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($serviceCharge) {
+            $serviceCharge->validateTaxType();
+        });
+
+        static::updating(function ($serviceCharge) {
+            $serviceCharge->validateTaxType();
+        });
+    }
+
+    //
+    // Accessors and Mutators
+    //
+
+    /**
+     * Set the percentage attribute.
+     *
+     * @param mixed $value
+     * @return void
+     */
+    public function setPercentageAttribute($value)
+    {
+        if (!is_null($this->amount_money) && !is_null($value)) {
+            throw ValidationException::withMessages([
+                'tax' => 'Tax cannot have percentage while amount_money is set.'
+            ]);
+        }
+
+        $this->attributes['percentage'] = $value;
+    }
+
+    /**
+     * Set the amount_money attribute.
+     *
+     * @param mixed $value
+     * @return void
+     */
+    public function setAmountMoneyAttribute($value)
+    {
+        if (!is_null($this->amount_money) && !is_null($value)) {
+            throw ValidationException::withMessages([
+                'tax' => 'Tax cannot have amount_money while percentage is set.'
+            ]);
+        }
+
+        $this->attributes['amount_money'] = $value;
+    }
+
+    //
+    // Validation methods
+    //
+
+    /**
+     * Validate that only one of percentage or amount_money is set.
+     *
+     * @return void
+     * @throws ValidationException
+     */
+    protected function validateTaxType()
+    {
+        $hasPercentage = !is_null($this->percentage) && $this->percentage !== 0;
+        $hasAmount = !is_null($this->amount_money) && $this->amount_money !== 0;
+
+        if ($hasPercentage && $hasAmount) {
+            throw ValidationException::withMessages([
+                'service_charge' => 'Tax cannot have both percentage and amount_money set. Please specify only one.'
+            ]);
+        }
+
+        if (!$hasPercentage && !$hasAmount) {
+            throw ValidationException::withMessages([
+                'service_charge' => 'Tax must have either percentage or amount_money set.'
+            ]);
+        }
+    }
+
+    //
+    // Relationships
+    //
+
     /**
      * Return a list of orders which use this tax.
      *
@@ -27,6 +216,10 @@ class Tax extends CoreTax
     {
         return $this->morphToMany(Constants::ORDER_PRODUCT_NAMESPACE, 'deductible', 'nikolag_deductibles', 'deductible_id', 'featurable_id');
     }
+
+    //
+    // Serialization
+    //
 
     /**
      * Prepare a date for array / JSON serialization.
