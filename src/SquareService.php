@@ -4,7 +4,6 @@ namespace Nikolag\Square;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Http\Request;
 use Nikolag\Core\Abstracts\CorePaymentService;
 use Nikolag\Square\Builders\CustomerBuilder;
 use Nikolag\Square\Builders\FulfillmentBuilder;
