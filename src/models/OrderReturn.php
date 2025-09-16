@@ -6,6 +6,7 @@ use DateTimeInterface;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Square\Models\Builders\OrderReturnBuilder;
 use Square\Models\OrderReturn as SquareOrderReturn;
 
 class OrderReturn extends Model
@@ -60,7 +61,25 @@ class OrderReturn extends Model
     protected function data(): Attribute
     {
         return Attribute::make(
-            get: fn (mixed $value) => is_null($value) ? new SquareOrderReturn() : new SquareOrderReturn(json_decode($value, true)),
+            get: function (mixed $value) {
+                if (is_null($value)) {
+                    return new SquareOrderReturn();
+                }
+                // Parse the array
+                $array = json_decode($value, true);
+
+                // Build a new order return
+                return OrderReturnBuilder::init()
+                    ->uid($this->uid)
+                    ->sourceOrderId($array['source_order_id'])
+                    ->returnLineItems($array['return_line_items'] ?? null)
+                    ->returnServiceCharges($array['return_service_charges'] ?? null)
+                    ->returnTaxes($array['return_taxes'] ?? null)
+                    ->returnDiscounts($array['return_discounts'] ?? null)
+                    ->returnTips($array['return_tips'] ?? null)
+                    ->roundingAdjustment($array['rounding_adjustment'] ?? null)
+                    ->returnAmounts($array['return_amounts'] ?? null);
+            },
             set: fn (SquareOrderReturn $value) => json_encode($value)
         );
 
