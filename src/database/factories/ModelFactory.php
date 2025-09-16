@@ -336,7 +336,7 @@ $factory->define(User::class, function (Faker\Generator $faker) {
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Constants::ORDER_RETURN_NAMESPACE, function (Faker\Generator $faker) {
     return [
-        'uid' => $faker->unique()->uuid,
+        'order_id' => $faker->unique()->uuid,
         'source_order_id' => function () use($faker) {
             // Create a new order and spoof an id
             $order = factory(config('nikolag.connections.square.order.namespace'))->create();

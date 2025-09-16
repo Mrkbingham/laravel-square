@@ -24,7 +24,7 @@ class OrderReturn extends Model
      * @var array
      */
     protected $fillable = [
-        'uid',
+        'order_id',
         'source_order_id',
         'data',
     ];
@@ -70,8 +70,8 @@ class OrderReturn extends Model
 
                 // Build a new order return
                 return OrderReturnBuilder::init()
-                    ->uid($this->uid)
-                    ->sourceOrderId($array['source_order_id'])
+                    ->uid($array['uid'] ?? null)
+                    ->sourceOrderId($array['source_order_id'] ?? null)
                     ->returnLineItems($array['return_line_items'] ?? null)
                     ->returnServiceCharges($array['return_service_charges'] ?? null)
                     ->returnTaxes($array['return_taxes'] ?? null)

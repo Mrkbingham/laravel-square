@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('nikolag_order_returns', function (Blueprint $table) {
             $table->id();
-            $table->string('uid', 60)->nullable();
+            $table->string('order_id')->nullable();
             $table->string('source_order_id')->nullable();
 
             // Since we only need to read OrderReturns and cannot make new returns, just shove
@@ -23,9 +23,9 @@ return new class extends Migration
             $table->timestamps();
 
             // Indexes
-            $table->index('uid');
+            $table->index('order_id');
             $table->index('source_order_id');
-            $table->index(['source_order_id', 'uid']);
+            $table->index(['source_order_id', 'order_id']);
         });
     }
 
