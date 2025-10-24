@@ -53,15 +53,37 @@ $factory->state(Constants::TAX_NAMESPACE, 'INCLUSIVE', [
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Constants::ORDER_PRODUCT_NAMESPACE, function (Faker\Generator $faker) {
+    $quantity = $faker->numberBetween(1, 3);
+    $basePrice = $faker->numberBetween(5_00, 50_00);
+    $variationTotal = $basePrice * $quantity;
+
     return [
-        'quantity' => 1,
+        'quantity' => $quantity,
         'order_id' => function () {
             return factory(Order::class)->create();
         },
         'product_id' => function () {
             return factory(Constants::PRODUCT_NAMESPACE)->create();
         },
-        'price_money_amount' => $faker->numberBetween(5_00, 10_00),
+        'square_uid' => $faker->optional()->uuid,
+        'name' => $faker->optional()->words(3, true),
+        'variation_name' => $faker->optional()->word,
+        'catalog_object_id' => $faker->optional()->uuid,
+        'catalog_version' => $faker->optional()->numberBetween(1, 10),
+        'item_type' => $faker->optional()->randomElement(['ITEM', 'CUSTOM_AMOUNT', 'GIFT_CARD']),
+        'note' => $faker->optional()->sentence,
+        'price_money_amount' => $basePrice,
+        'price_money_currency' => 'USD',
+        'variation_total_price_money_amount' => $variationTotal,
+        'variation_total_price_money_currency' => 'USD',
+        'gross_sales_money_amount' => $variationTotal,
+        'gross_sales_money_currency' => 'USD',
+        'total_tax_money_amount' => $faker->numberBetween(0, 5_00),
+        'total_tax_money_currency' => 'USD',
+        'total_discount_money_amount' => $faker->numberBetween(0, 3_00),
+        'total_discount_money_currency' => 'USD',
+        'total_money_amount' => $variationTotal,
+        'total_money_currency' => 'USD',
     ];
 });
 

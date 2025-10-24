@@ -10,6 +10,13 @@ use Nikolag\Square\Utils\Constants;
 class OrderProductPivot extends IntermediateTable
 {
     /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = true;
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
@@ -18,6 +25,41 @@ class OrderProductPivot extends IntermediateTable
         'quantity',
         'price_money_amount',
         'price_money_currency',
+        'square_uid',
+        'name',
+        'variation_name',
+        'catalog_object_id',
+        'catalog_version',
+        'item_type',
+        'note',
+        'variation_total_price_money_amount',
+        'variation_total_price_money_currency',
+        'gross_sales_money_amount',
+        'gross_sales_money_currency',
+        'total_tax_money_amount',
+        'total_tax_money_currency',
+        'total_discount_money_amount',
+        'total_discount_money_currency',
+        'total_money_amount',
+        'total_money_currency',
+    ];
+
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'quantity' => 'integer',
+        'price_money_amount' => 'integer',
+        'catalog_version' => 'integer',
+        'variation_total_price_money_amount' => 'integer',
+        'gross_sales_money_amount' => 'integer',
+        'total_tax_money_amount' => 'integer',
+        'total_discount_money_amount' => 'integer',
+        'total_money_amount' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
