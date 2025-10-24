@@ -385,7 +385,7 @@ class SquareServiceWebhookTest extends TestCase
     {
         $response = Square::listWebhookEventTypes('2018-07-12');
         $this->assertInstanceOf(ListWebhookEventTypesResponse::class, $response);
-        $this->assertNull($response->getEventTypes());
+        $this->assertIsArray($response->getEventTypes());
     }
 
     /**
