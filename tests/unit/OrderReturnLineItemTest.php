@@ -4,7 +4,7 @@ namespace Nikolag\Square\Tests\Unit;
 
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\OrderReturn;
-use Nikolag\Square\Models\OrderReturnLineItemPivot;
+use Nikolag\Square\Models\OrderReturnLineItem;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
@@ -27,7 +27,7 @@ class OrderReturnLineItemTest extends TestCase
     }
 
     /**
-     * Test OrderReturnLineItemPivot creation and basic properties.
+     * Test OrderReturnLineItem creation and basic properties.
      *
      * @return void
      */
@@ -49,8 +49,8 @@ class OrderReturnLineItemTest extends TestCase
             'price' => 15_00,
         ]);
 
-        /** @var OrderReturnLineItemPivot */
-        $lineItem = factory(OrderReturnLineItemPivot::class)->create([
+        /** @var OrderReturnLineItem */
+        $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
             'product_id' => $product->id,
             'quantity' => 2,
@@ -68,7 +68,7 @@ class OrderReturnLineItemTest extends TestCase
     }
 
     /**
-     * Test OrderReturnLineItemPivot relationships with OrderReturn.
+     * Test OrderReturnLineItem relationships with OrderReturn.
      *
      * @return void
      */
@@ -88,8 +88,8 @@ class OrderReturnLineItemTest extends TestCase
         /** @var Product */
         $product = factory(Product::class)->create();
 
-        /** @var OrderReturnLineItemPivot */
-        $lineItem = factory(OrderReturnLineItemPivot::class)->create([
+        /** @var OrderReturnLineItem */
+        $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
             'product_id' => $product->id,
         ]);
@@ -99,7 +99,7 @@ class OrderReturnLineItemTest extends TestCase
     }
 
     /**
-     * Test OrderReturnLineItemPivot relationships with Product.
+     * Test OrderReturnLineItem relationships with Product.
      *
      * @return void
      */
@@ -119,8 +119,8 @@ class OrderReturnLineItemTest extends TestCase
         /** @var Product */
         $product = factory(Product::class)->create();
 
-        /** @var OrderReturnLineItemPivot */
-        $lineItem = factory(OrderReturnLineItemPivot::class)->create([
+        /** @var OrderReturnLineItem */
+        $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
             'product_id' => $product->id,
         ]);
@@ -130,7 +130,7 @@ class OrderReturnLineItemTest extends TestCase
     }
 
     /**
-     * Test OrderReturnLineItemPivot with taxes.
+     * Test OrderReturnLineItem with taxes.
      *
      * @return void
      */
@@ -150,8 +150,8 @@ class OrderReturnLineItemTest extends TestCase
         /** @var Product */
         $product = factory(Product::class)->create();
 
-        /** @var OrderReturnLineItemPivot */
-        $lineItem = factory(OrderReturnLineItemPivot::class)->create([
+        /** @var OrderReturnLineItem */
+        $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
             'product_id' => $product->id,
         ]);
@@ -171,7 +171,7 @@ class OrderReturnLineItemTest extends TestCase
     }
 
     /**
-     * Test OrderReturnLineItemPivot with discounts.
+     * Test OrderReturnLineItem with discounts.
      *
      * @return void
      */
@@ -191,8 +191,8 @@ class OrderReturnLineItemTest extends TestCase
         /** @var Product */
         $product = factory(Product::class)->create();
 
-        /** @var OrderReturnLineItemPivot */
-        $lineItem = factory(OrderReturnLineItemPivot::class)->create([
+        /** @var OrderReturnLineItem */
+        $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
             'product_id' => $product->id,
         ]);
@@ -212,7 +212,7 @@ class OrderReturnLineItemTest extends TestCase
     }
 
     /**
-     * Test OrderReturnLineItemPivot with service charges.
+     * Test OrderReturnLineItem with service charges.
      *
      * @return void
      */
@@ -232,8 +232,8 @@ class OrderReturnLineItemTest extends TestCase
         /** @var Product */
         $product = factory(Product::class)->create();
 
-        /** @var OrderReturnLineItemPivot */
-        $lineItem = factory(OrderReturnLineItemPivot::class)->create([
+        /** @var OrderReturnLineItem */
+        $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
             'product_id' => $product->id,
         ]);
@@ -253,7 +253,7 @@ class OrderReturnLineItemTest extends TestCase
     }
 
     /**
-     * Test OrderReturnLineItemPivot hasProduct method.
+     * Test OrderReturnLineItem hasProduct method.
      *
      * @return void
      */
@@ -273,8 +273,8 @@ class OrderReturnLineItemTest extends TestCase
         /** @var Product */
         $product = factory(Product::class)->create();
 
-        /** @var OrderReturnLineItemPivot */
-        $lineItem = factory(OrderReturnLineItemPivot::class)->create([
+        /** @var OrderReturnLineItem */
+        $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
             'product_id' => $product->id,
         ]);
@@ -291,8 +291,8 @@ class OrderReturnLineItemTest extends TestCase
      */
     public function test_factory_creation_with_all_fields(): void
     {
-        /** @var OrderReturnLineItemPivot */
-        $lineItem = factory(OrderReturnLineItemPivot::class)->create([
+        /** @var OrderReturnLineItem */
+        $lineItem = factory(OrderReturnLineItem::class)->create([
             'quantity' => 3,
             'square_uid' => 'test-square-uid',
             'source_line_item_uid' => 'test-source-line-item-uid',
