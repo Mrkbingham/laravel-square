@@ -5,6 +5,7 @@ namespace Nikolag\Square\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Carbon;
 use Nikolag\Square\Models\OrderReturn;
 
@@ -173,7 +174,7 @@ class OrderReturnLineItem extends Model
      * @param  mixed  $discount
      * @return bool
      */
-    public function hasDiscount($discount)
+    public function hasDiscount($discount): bool
     {
         $val = is_array($discount)
             ? (array_key_exists('id', $discount) ? Discount::find($discount['id']) : $discount)
@@ -188,7 +189,7 @@ class OrderReturnLineItem extends Model
      * @param  mixed  $tax
      * @return bool
      */
-    public function hasTax($tax)
+    public function hasTax($tax): bool
     {
         $val = is_array($tax)
             ? (array_key_exists('id', $tax) ? Tax::find($tax['id']) : $tax)
@@ -203,7 +204,7 @@ class OrderReturnLineItem extends Model
      * @param  mixed  $serviceCharge
      * @return bool
      */
-    public function hasServiceCharge($serviceCharge)
+    public function hasServiceCharge($serviceCharge): bool
     {
         $val = is_array($serviceCharge)
             ? (array_key_exists('id', $serviceCharge) ? ServiceCharge::find($serviceCharge['id']) : $serviceCharge)
@@ -263,10 +264,10 @@ class OrderReturnLineItem extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param  DateTimeInterface  $date
      * @return string
      */
-    protected function serializeDate(DateTimeInterface $date)
+    protected function serializeDate(DateTimeInterface $date): string
     {
         return $date->format('Y-m-d H:i:s');
     }
