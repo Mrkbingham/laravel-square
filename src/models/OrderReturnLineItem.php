@@ -140,7 +140,7 @@ class OrderReturnLineItem extends Model
      */
     public function taxes(): MorphToMany
     {
-        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::TAX_NAMESPACE)->withPivot('scope');
+        return $this->morphToMany(Tax::class, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Tax::class)->withPivot('scope');
     }
 
     /**
@@ -150,7 +150,7 @@ class OrderReturnLineItem extends Model
      */
     public function discounts(): MorphToMany
     {
-        return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::DISCOUNT_NAMESPACE)->withPivot('scope');
+        return $this->morphToMany(Discount::class, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Discount::class)->withPivot('scope');
     }
 
     /**
@@ -160,7 +160,7 @@ class OrderReturnLineItem extends Model
      */
     public function serviceCharges(): MorphToMany
     {
-        return $this->morphToMany(Constants::SERVICE_CHARGE_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::SERVICE_CHARGE_NAMESPACE)->withPivot('scope');
+        return $this->morphToMany(ServiceCharge::class, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', ServiceCharge::class)->withPivot('scope');
     }
 
     //
