@@ -121,7 +121,7 @@ class OrderReturnLineItem extends Model
      */
     public function sourceLineItem(): BelongsTo
     {
-        return $this->belongsTo(OrderLineItem::class, 'source_line_item_uid', 'square_uid');
+        return $this->belongsTo(OrderProductPivot::class, 'source_line_item_uid', 'square_uid');
     }
 
     /**
