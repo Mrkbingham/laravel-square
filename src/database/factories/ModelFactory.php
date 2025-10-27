@@ -9,7 +9,6 @@ use Nikolag\Square\Models\Modifier;
 use Nikolag\Square\Models\ModifierOption;
 use Nikolag\Square\Models\OrderProductModifierPivot;
 use Nikolag\Square\Models\OrderProductPivot;
-use Nikolag\Square\Models\OrderReturnLineItemPivot;
 use Nikolag\Square\Models\PickupDetails;
 use Nikolag\Square\Models\Recipient;
 use Nikolag\Square\Models\ShipmentDetails;
