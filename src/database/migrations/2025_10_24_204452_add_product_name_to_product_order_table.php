@@ -14,8 +14,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('nikolag_product_order', function (Blueprint $table) {
-            $table->string('name')->nullable();
-            $table->string('variation_name')->nullable();
+            $table->string('name', 512)->nullable();
+            $table->string('variation_name', 400)->nullable();
         });
     }
 

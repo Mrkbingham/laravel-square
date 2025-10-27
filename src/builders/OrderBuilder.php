@@ -342,8 +342,8 @@ class OrderBuilder
                     //Product price - support for variable pricing
                     // Use the pivot price if it exists (order-specific pricing),
                     // otherwise fallback to product model price
-                    $productTemp->pivot->price = filled($product->pivot->price_money_amount)
-                        ? $product->pivot->price_money_amount // Pivot takes precedence for variable pricing support
+                    $productTemp->pivot->price = filled($product->pivot->base_price_money_amount)
+                        ? $product->pivot->base_price_money_amount // Pivot takes precedence for variable pricing support
                         : $product->price;
 
                     //Product Modifiers

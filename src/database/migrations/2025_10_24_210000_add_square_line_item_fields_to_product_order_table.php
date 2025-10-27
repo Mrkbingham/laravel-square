@@ -24,8 +24,12 @@ return new class extends Migration
             $table->bigInteger('catalog_version')->nullable();
 
             // Line item metadata
-            $table->string('item_type')->nullable();
+            $table->string('item_type', 25)->nullable();
             $table->text('note')->nullable();
+
+            // Money fields - base price
+            $table->integer('base_price_money_amount')->default(0)->nullable();
+            $table->string('base_price_money_currency', 3)->default('USD')->nullable();
 
             // Money fields - variation total (base price × quantity)
             $table->integer('variation_total_price_money_amount')->default(0)->nullable();
@@ -49,6 +53,11 @@ return new class extends Migration
 
             // Timestamps for audit trail
             $table->timestamps();
+        });
+
+        // Drop the `price_money_amount` and `price_money_currency` columns as they are now redundant
+        Schema::table('nikolag_product_order', function (Blueprint $table) {
+            $table->dropColumn(['price_money_amount', 'price_money_currency']);
         });
     }
 

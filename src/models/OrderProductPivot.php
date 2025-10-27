@@ -22,9 +22,9 @@ class OrderProductPivot extends IntermediateTable
      * @var array
      */
     protected $fillable = [
+        'order_id',
+        'product_id',
         'quantity',
-        'price_money_amount',
-        'price_money_currency',
         'square_uid',
         'name',
         'variation_name',
@@ -32,6 +32,8 @@ class OrderProductPivot extends IntermediateTable
         'catalog_version',
         'item_type',
         'note',
+        'base_price_money_amount',
+        'base_price_money_currency',
         'variation_total_price_money_amount',
         'variation_total_price_money_currency',
         'gross_sales_money_amount',
@@ -51,7 +53,7 @@ class OrderProductPivot extends IntermediateTable
      */
     protected $casts = [
         'quantity' => 'integer',
-        'price_money_amount' => 'integer',
+        'base_price_money_amount' => 'integer',
         'catalog_version' => 'integer',
         'variation_total_price_money_amount' => 'integer',
         'gross_sales_money_amount' => 'integer',
