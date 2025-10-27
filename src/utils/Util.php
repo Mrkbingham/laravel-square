@@ -105,7 +105,7 @@ class Util
         });
 
         if ($product) {
-            return ($discount->percentage) ? ($product->pivot->price_money_amount * $product->pivot->quantity * $discount->percentage / 100):
+            return ($discount->percentage) ? ($product->pivot->base_price_money_amount * $product->pivot->quantity * $discount->percentage / 100):
                 $discount->amount;
         } else {
             return 0;
@@ -129,7 +129,7 @@ class Util
 
         if ($product) {
             // Get the total product cost (price * quantity)
-            $totalCost = $product->pivot->price_money_amount * $product->pivot->quantity;
+            $totalCost = $product->pivot->base_price_money_amount * $product->pivot->quantity;
 
             // Calculate order discounts as this will impact the taxes calculated
             $discountCost = $totalCost - self::_calculateDiscounts($discounts, $totalCost, $products);
@@ -202,7 +202,7 @@ class Util
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE) {
             // Apply percentage to total product value - use cached calculation if available
             $totalValue = $products->sum(function ($product) {
-                return $product->pivot->price_money_amount * $product->pivot->quantity;
+                return $product->pivot->base_price_money_amount * $product->pivot->quantity;
             });
             return $totalValue * $serviceCharge->percentage / 100;
         }
@@ -218,7 +218,7 @@ class Util
 
         $pivot = $targetProduct->pivot;
         return $serviceCharge->percentage ?
-            ($pivot->price_money_amount * $pivot->quantity * $serviceCharge->percentage / 100) :
+            ($pivot->base_price_money_amount * $pivot->quantity * $serviceCharge->percentage / 100) :
             $serviceCharge->amount_money;
     }
 
@@ -331,7 +331,7 @@ class Util
     {
         return $products->sum(function ($product) {
             $pivot = $product->pivot;
-            $productPrice = $pivot->price_money_amount;
+            $productPrice = $pivot->base_price_money_amount;
 
             // Add modifier costs efficiently
             if ($pivot->modifiers->isNotEmpty()) {
@@ -478,7 +478,7 @@ class Util
 
         foreach ($products as $product) {
             $pivot = $product->pivot;
-            $productPrice = $pivot->price_money_amount;
+            $productPrice = $pivot->base_price_money_amount;
 
             // Calculate modifier cost once
             $modifierCost = 0;

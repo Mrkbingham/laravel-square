@@ -4,7 +4,7 @@ namespace Nikolag\Square\Tests\Unit;
 
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\OrderReturn;
-use Nikolag\Square\Models\OrderReturnLineItemPivot;
+use Nikolag\Square\Models\OrderReturnLineItem;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
@@ -104,20 +104,20 @@ class OrderReturnTest extends TestCase
         $product1 = factory(Product::class)->create(['price' => 10_00]);
         $product2 = factory(Product::class)->create(['price' => 15_00]);
 
-        $lineItem1 = factory(OrderReturnLineItemPivot::class)->create([
+        $lineItem1 = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
             'product_id' => $product1->id,
             'quantity' => 1,
         ]);
 
-        $lineItem2 = factory(OrderReturnLineItemPivot::class)->create([
+        $lineItem2 = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
             'product_id' => $product2->id,
             'quantity' => 2,
         ]);
 
         $this->assertCount(2, $orderReturn->returnLineItems);
-        $this->assertContainsOnlyInstancesOf(OrderReturnLineItemPivot::class, $orderReturn->returnLineItems);
+        $this->assertContainsOnlyInstancesOf(OrderReturnLineItem::class, $orderReturn->returnLineItems);
     }
 
     /**
@@ -146,7 +146,7 @@ class OrderReturnTest extends TestCase
             'note' => 'Test return line item',
         ]);
 
-        $this->assertInstanceOf(OrderReturnLineItemPivot::class, $lineItem);
+        $this->assertInstanceOf(OrderReturnLineItem::class, $lineItem);
         $this->assertEquals($orderReturn->id, $lineItem->order_return_id);
         $this->assertEquals($product->id, $lineItem->product_id);
         $this->assertEquals(3, $lineItem->quantity);

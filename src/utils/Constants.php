@@ -47,7 +47,7 @@ class Constants extends CoreConstants
     //Return info
     const ORDER_RETURN_NAMESPACE = 'Nikolag\Square\Models\OrderReturn';
     const ORDER_RETURN_IDENTIFIER = 'id';
-    const ORDER_RETURN_LINE_ITEM_NAMESPACE = 'Nikolag\Square\Models\OrderReturnLineItemPivot';
+    const ORDER_RETURN_LINE_ITEM_NAMESPACE = 'Nikolag\Square\Models\OrderReturnLineItem';
     //Webhook info
     const WEBHOOK_SUBSCRIPTION_NAMESPACE = 'Nikolag\Square\Models\WebhookSubscription';
     const WEBHOOK_EVENT_NAMESPACE = 'Nikolag\Square\Models\WebhookEvent';

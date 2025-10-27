@@ -161,11 +161,6 @@ class OrderReturn extends Model
             });
     }
 
-    public function getLineItems()
-    {
-        return $this->data->getReturnLineItems();
-    }
-
     /**
      * Prepare a date for array / JSON serialization.
      *

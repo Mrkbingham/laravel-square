@@ -9,7 +9,6 @@ use Nikolag\Square\Models\Modifier;
 use Nikolag\Square\Models\ModifierOption;
 use Nikolag\Square\Models\OrderProductModifierPivot;
 use Nikolag\Square\Models\OrderProductPivot;
-use Nikolag\Square\Models\OrderReturnLineItemPivot;
 use Nikolag\Square\Models\PickupDetails;
 use Nikolag\Square\Models\Recipient;
 use Nikolag\Square\Models\ShipmentDetails;
@@ -53,15 +52,67 @@ $factory->state(Constants::TAX_NAMESPACE, 'INCLUSIVE', [
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Constants::ORDER_PRODUCT_NAMESPACE, function (Faker\Generator $faker) {
+    $quantity = $faker->numberBetween(1, 3);
+    $basePrice = $faker->numberBetween(5_00, 50_00);
+    $variationTotal = $basePrice * $quantity;
+
     return [
-        'quantity' => 1,
+        'quantity' => $quantity,
         'order_id' => function () {
             return factory(Order::class)->create();
         },
         'product_id' => function () {
             return factory(Constants::PRODUCT_NAMESPACE)->create();
         },
-        'price_money_amount' => $faker->numberBetween(5_00, 10_00),
+        'square_uid' => $faker->optional()->uuid,
+        'name' => $faker->optional()->words(3, true),
+        'variation_name' => $faker->optional()->word,
+        'catalog_object_id' => $faker->optional()->uuid,
+        'catalog_version' => $faker->optional()->numberBetween(1, 10),
+        'item_type' => $faker->optional()->randomElement(['ITEM', 'CUSTOM_AMOUNT', 'GIFT_CARD']),
+        'note' => $faker->optional()->sentence,
+        'base_price_money_amount' => $basePrice,
+        'base_price_money_currency' => 'USD',
+        'variation_total_price_money_amount' => $variationTotal,
+        'variation_total_price_money_currency' => 'USD',
+        'gross_sales_money_amount' => $variationTotal,
+        'gross_sales_money_currency' => 'USD',
+        'total_tax_money_amount' => $faker->numberBetween(0, 5_00),
+        'total_tax_money_currency' => 'USD',
+        'total_discount_money_amount' => $faker->numberBetween(0, 3_00),
+        'total_discount_money_currency' => 'USD',
+        'total_money_amount' => $variationTotal,
+        'total_money_currency' => 'USD',
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::ORDER_RETURN_LINE_ITEM_NAMESPACE, function (Faker\Generator $faker) {
+    return [
+        'quantity' => $faker->numberBetween(1, 3),
+        'order_return_id' => function () {
+            return factory(Constants::ORDER_RETURN_NAMESPACE)->create();
+        },
+        'product_id' => function () {
+            return factory(Constants::PRODUCT_NAMESPACE)->create();
+        },
+        'square_uid' => $faker->unique()->uuid,
+        'source_line_item_uid' => $faker->unique()->uuid,
+        'catalog_object_id' => $faker->unique()->uuid,
+        'catalog_version' => $faker->numberBetween(1, 10),
+        'variation_name' => $faker->word,
+        'item_type' => 'ITEM',
+        'note' => $faker->optional()->sentence,
+        'base_price_money_amount' => $faker->numberBetween(5_00, 50_00),
+        'base_price_money_currency' => 'USD',
+        'variation_total_price_money_amount' => $faker->numberBetween(5_00, 50_00),
+        'variation_total_price_money_currency' => 'USD',
+        'gross_return_money_amount' => $faker->numberBetween(5_00, 50_00),
+        'gross_return_money_currency' => 'USD',
+        'total_discount_money_amount' => $faker->numberBetween(0, 5_00),
+        'total_discount_money_currency' => 'USD',
+        'total_service_charge_money_amount' => $faker->numberBetween(0, 2_00),
+        'total_service_charge_money_currency' => 'USD',
     ];
 });
 

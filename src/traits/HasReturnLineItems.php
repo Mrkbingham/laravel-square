@@ -5,7 +5,7 @@ namespace Nikolag\Square\Traits;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Schema;
 use Nikolag\Square\Models\Discount;
-use Nikolag\Square\Models\OrderReturnLineItemPivot;
+use Nikolag\Square\Models\OrderReturnLineItem;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
@@ -131,9 +131,9 @@ trait HasReturnLineItems
      *
      * @param mixed $product
      * @param array $attributes
-     * @return OrderReturnLineItemPivot
+     * @return OrderReturnLineItem
      */
-    public function attachReturnLineItem($product, array $attributes = []): OrderReturnLineItemPivot
+    public function attachReturnLineItem($product, array $attributes = []): OrderReturnLineItem
     {
         $productModel = $product instanceof Product ? $product : Product::find($product);
 
@@ -146,7 +146,7 @@ trait HasReturnLineItems
             'base_price_money_currency' => 'USD',
         ], $attributes);
 
-        return OrderReturnLineItemPivot::create($lineItemData);
+        return OrderReturnLineItem::create($lineItemData);
     }
 
     /**
@@ -157,7 +157,7 @@ trait HasReturnLineItems
      */
     public function hasReturnLineItem(mixed $lineItem): bool
     {
-        $val = is_array($lineItem) ? (array_key_exists('id', $lineItem) ? OrderReturnLineItemPivot::find($lineItem['id']) : $lineItem) : $lineItem;
+        $val = is_array($lineItem) ? (array_key_exists('id', $lineItem) ? OrderReturnLineItem::find($lineItem['id']) : $lineItem) : $lineItem;
 
         return $this->returnLineItems()->get()->contains($val);
     }
