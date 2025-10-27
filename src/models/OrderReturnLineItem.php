@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square\Models;
 
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -132,9 +133,84 @@ class OrderReturnLineItem extends Model
         return $this->belongsTo(Product::class, 'product_id', 'id');
     }
 
+    /**
+     * Return a list of taxes which are included in this line item.
+     *
+     * @return MorphToMany
+     */
+    public function taxes(): MorphToMany
+    {
+        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::TAX_NAMESPACE)->withPivot('scope');
+    }
+
+    /**
+     * Return a list of discounts which are included in this line item.
+     *
+     * @return MorphToMany
+     */
+    public function discounts(): MorphToMany
+    {
+        return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::DISCOUNT_NAMESPACE)->withPivot('scope');
+    }
+
+    /**
+     * Return a list of service charges which are included in this line item.
+     *
+     * @return MorphToMany
+     */
+    public function serviceCharges(): MorphToMany
+    {
+        return $this->morphToMany(Constants::SERVICE_CHARGE_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::SERVICE_CHARGE_NAMESPACE)->withPivot('scope');
+    }
+
     //
     // Helper Methods
     //
+
+    /**
+     * Does line item have discount.
+     *
+     * @param  mixed  $discount
+     * @return bool
+     */
+    public function hasDiscount($discount)
+    {
+        $val = is_array($discount)
+            ? (array_key_exists('id', $discount) ? Discount::find($discount['id']) : $discount)
+            : $discount;
+
+        return $this->discounts()->get()->contains($val);
+    }
+
+    /**
+     * Does line item have tax.
+     *
+     * @param  mixed  $tax
+     * @return bool
+     */
+    public function hasTax($tax)
+    {
+        $val = is_array($tax)
+            ? (array_key_exists('id', $tax) ? Tax::find($tax['id']) : $tax)
+            : $tax;
+
+        return $this->taxes()->get()->contains($val);
+    }
+
+    /**
+     * Does line item have service charge.
+     *
+     * @param  mixed  $serviceCharge
+     * @return bool
+     */
+    public function hasServiceCharge($serviceCharge)
+    {
+        $val = is_array($serviceCharge)
+            ? (array_key_exists('id', $serviceCharge) ? ServiceCharge::find($serviceCharge['id']) : $serviceCharge)
+            : $serviceCharge;
+
+        return $this->serviceCharges()->get()->contains($val);
+    }
 
     /**
      * Get the return quantity as an integer.
@@ -182,5 +258,16 @@ class OrderReturnLineItem extends Model
     public function hasProduct(): bool
     {
         return ! empty($this->product_id);
+    }
+
+    /**
+     * Prepare a date for array / JSON serialization.
+     *
+     * @param  \DateTimeInterface  $date
+     * @return string
+     */
+    protected function serializeDate(DateTimeInterface $date)
+    {
+        return $date->format('Y-m-d H:i:s');
     }
 }
