@@ -17,6 +17,7 @@ use Nikolag\Square\Exceptions\AlreadyUsedSquareProductException;
 use Nikolag\Square\Exceptions\InvalidSquareAmountException;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\InvalidSquareSignatureException;
+use Nikolag\Square\Exceptions\InvalidSquareVersionException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\Location;
@@ -44,6 +45,7 @@ use Square\Models\Builders\TestWebhookSubscriptionRequestBuilder;
 use Square\Models\Builders\UpdateWebhookSubscriptionSignatureKeyRequestBuilder;
 use Square\Models\CreateCustomerRequest;
 use Square\Models\CreateOrderRequest;
+use Square\Models\UpdateOrderRequest;
 use Square\Models\CreateCatalogImageRequest;
 use Square\Models\CreateCatalogImageResponse;
 use Square\Models\ListCatalogResponse;
@@ -114,6 +116,10 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @var CreateOrderRequest
      */
     private CreateOrderRequest $createOrderRequest;
+    /**
+     * @var UpdateOrderRequest
+     */
+    private UpdateOrderRequest $updateOrderRequest;
     /**
      * @var CreateCustomerRequest
      */
@@ -1021,6 +1027,25 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     public function setCreateOrderRequest(CreateOrderRequest $createOrderRequest): static
     {
         $this->createOrderRequest = $createOrderRequest;
+
+        return $this;
+    }
+
+    /**
+     * @return UpdateOrderRequest
+     */
+    public function getUpdateOrderRequest(): UpdateOrderRequest
+    {
+        return $this->updateOrderRequest;
+    }
+
+    /**
+     * @param  UpdateOrderRequest  $updateOrderRequest
+     * @return self
+     */
+    public function setUpdateOrderRequest(UpdateOrderRequest $updateOrderRequest): static
+    {
+        $this->updateOrderRequest = $updateOrderRequest;
 
         return $this;
     }
