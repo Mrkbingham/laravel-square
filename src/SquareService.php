@@ -17,6 +17,7 @@ use Nikolag\Square\Exceptions\AlreadyUsedSquareProductException;
 use Nikolag\Square\Exceptions\InvalidSquareAmountException;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\InvalidSquareSignatureException;
+use Nikolag\Square\Exceptions\InvalidSquareVersionException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\Location;
@@ -44,6 +45,7 @@ use Square\Models\Builders\TestWebhookSubscriptionRequestBuilder;
 use Square\Models\Builders\UpdateWebhookSubscriptionSignatureKeyRequestBuilder;
 use Square\Models\CreateCustomerRequest;
 use Square\Models\CreateOrderRequest;
+use Square\Models\UpdateOrderRequest;
 use Square\Models\CreateCatalogImageRequest;
 use Square\Models\CreateCatalogImageResponse;
 use Square\Models\ListCatalogResponse;
@@ -114,6 +116,10 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @var CreateOrderRequest
      */
     private CreateOrderRequest $createOrderRequest;
+    /**
+     * @var UpdateOrderRequest
+     */
+    private UpdateOrderRequest $updateOrderRequest;
     /**
      * @var CreateCustomerRequest
      */
@@ -597,6 +603,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @return void
      *
      * @throws InvalidSquareOrderException
+     * @throws InvalidSquareVersionException
      * @throws MissingPropertyException
      * @throws Exception
      * @throws ApiException
@@ -622,18 +629,105 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         if (! $this->getOrder()->hasColumn($property)) {
             throw new InvalidSquareOrderException('Table orders is missing a required column: '.$property, 500);
         }
-        $orderRequest = $this->squareBuilder->buildOrderRequest($this->getOrder(), $this->locationId, $this->currency);
-        $this->setCreateOrderRequest($orderRequest);
-        // If want to save to square, make a request
+
         if ($saveToSquare) {
-            $response = $this->config->ordersAPI()->createOrder($this->getCreateOrderRequest());
-            if ($response->isError()) {
-                throw $this->_handleApiResponseErrors($response);
+            // Determine if this is a create or update operation
+            $isUpdate = !empty($this->getOrder()->{$property});
+
+            // Check if we need to verify version column exists
+            $versionProperty = config('nikolag.connections.square.order.version_identifier');
+            if (! $this->getOrder()->hasColumn($versionProperty)) {
+                throw new InvalidSquareOrderException('Table orders is missing a required column: '.$versionProperty, 500);
             }
-            //Save id of a real order inside of Square to our local model for future use
-            $this->getOrder()->{$property} = $response->getResult()->getOrder()->getId();
+
+            if ($isUpdate) {
+                $this->updateSquareOrder($property, $versionProperty);
+            } else {
+                $this->createSquareOrder($property, $versionProperty);
+            }
         }
         $this->getOrder()->save();
+    }
+
+    /**
+     * Create a new order in Square.
+     *
+     * @param  string  $property
+     * @param  string  $versionProperty
+     * @return void
+     *
+     * @throws Exception
+     * @throws ApiException
+     */
+    private function createSquareOrder(string $property, string $versionProperty): void
+    {
+        $orderRequest = $this->squareBuilder->buildOrderRequest($this->getOrder(), $this->locationId, $this->currency);
+        $this->setCreateOrderRequest($orderRequest);
+
+        $response = $this->config->ordersAPI()->createOrder($this->getCreateOrderRequest());
+        if ($response->isError()) {
+            throw $this->_handleApiResponseErrors($response);
+        }
+
+        //Save id and version of order from Square
+        $createdOrder = $response->getResult()->getOrder();
+        $this->getOrder()->{$property} = $createdOrder->getId();
+        $this->getOrder()->{$versionProperty} = $createdOrder->getVersion();
+    }
+
+    /**
+     * Update an existing order in Square.
+     *
+     * @param  string  $property
+     * @param  string  $versionProperty
+     * @return void
+     *
+     * @throws InvalidSquareVersionException
+     * @throws Exception
+     * @throws ApiException
+     */
+    private function updateSquareOrder(string $property, string $versionProperty): void
+    {
+        $version = $this->getOrder()->{$versionProperty};
+
+        // Validate version exists for update
+        if (is_null($version)) {
+            throw new InvalidSquareVersionException(
+                'Cannot update order: version is missing. Order may need to be retrieved from Square first.',
+                500
+            );
+        }
+
+        $updateRequest = $this->squareBuilder->buildUpdateOrderRequest(
+            $this->getOrder(),
+            $this->locationId,
+            $this->currency,
+            $version
+        );
+        $this->setUpdateOrderRequest($updateRequest);
+
+        $orderId = $this->getOrder()->{$property};
+        $response = $this->config->ordersAPI()->updateOrder($orderId, $this->getUpdateOrderRequest());
+
+        if ($response->isError()) {
+            // Check for version conflict
+            $errors = $response->getErrors();
+            if (!empty($errors)) {
+                $firstError = $errors[0];
+                if ($firstError->getCode() === 'CONFLICT' || $firstError->getCategory() === 'INVALID_REQUEST_ERROR') {
+                    throw new InvalidSquareVersionException(
+                        'Version conflict: ' . $firstError->getDetail() .
+                        '. The order may have been modified. Please refresh and try again.',
+                        409
+                    );
+                }
+            }
+            throw $this->_handleApiResponseErrors($response);
+        }
+
+        // Update version from response
+        $updatedOrder = $response->getResult()->getOrder();
+        $this->getOrder()->{$versionProperty} = $updatedOrder->getVersion();
     }
 
     /**
@@ -1021,6 +1115,25 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     public function setCreateOrderRequest(CreateOrderRequest $createOrderRequest): static
     {
         $this->createOrderRequest = $createOrderRequest;
+
+        return $this;
+    }
+
+    /**
+     * @return UpdateOrderRequest
+     */
+    public function getUpdateOrderRequest(): UpdateOrderRequest
+    {
+        return $this->updateOrderRequest;
+    }
+
+    /**
+     * @param  UpdateOrderRequest  $updateOrderRequest
+     * @return self
+     */
+    public function setUpdateOrderRequest(UpdateOrderRequest $updateOrderRequest): static
+    {
+        $this->updateOrderRequest = $updateOrderRequest;
 
         return $this;
     }

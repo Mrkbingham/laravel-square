@@ -1608,4 +1608,206 @@ class SquareServiceTest extends TestCase
 
         Square::retrieveOrder('non-existent-order-id');
     }
+
+    /**
+     * Test saveToSquare creates order when payment_service_id is null.
+     *
+     * @return void
+     */
+    public function test_save_to_square_creates_order_when_new(): void
+    {
+        $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
+
+        // Create order without payment_service_id
+        $order = Order::create([
+            'payment_service_type' => 'square',
+            'location_id' => $locationId,
+        ]);
+
+        // Create a product
+        $product = Product::create([
+            'name' => 'Test Product',
+            'price' => 1000,
+            'quantity' => 1,
+        ]);
+
+        // Mock successful createOrder response
+        $this->mockCreateOrderSuccess([
+            'id' => 'SQUARE_ORDER_123',
+            'locationId' => $locationId,
+            'state' => 'OPEN',
+            'version' => 1,
+            'createdAt' => now()->toISOString(),
+            'updatedAt' => now()->toISOString(),
+        ]);
+
+        // Call saveToSquare
+        $square = Square::setOrder($order, $locationId, 'USD');
+        $square->addProduct($product, 1);
+        $square->saveToSquare();
+
+        // Verify payment_service_id and payment_service_version were set
+        $this->assertNotNull($square->getOrder()->payment_service_id);
+        $this->assertNotNull($square->getOrder()->payment_service_version);
+        $this->assertEquals(1, $square->getOrder()->payment_service_version);
+    }
+
+    /**
+     * Test saveToSquare updates order when payment_service_id exists.
+     *
+     * @return void
+     */
+    public function test_save_to_square_updates_order_when_existing(): void
+    {
+        $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
+
+        // Create order with payment_service_id and version
+        $order = Order::create([
+            'payment_service_type' => 'square',
+            'payment_service_id' => 'SQUARE_ORDER_123',
+            'payment_service_version' => 1,
+            'location_id' => $locationId,
+        ]);
+
+        // Create a product
+        $product = Product::create([
+            'name' => 'Test Product',
+            'price' => 1000,
+            'quantity' => 1,
+        ]);
+
+        // Mock successful updateOrder response
+        $this->mockUpdateOrderSuccess([
+            'id' => 'SQUARE_ORDER_123',
+            'locationId' => $locationId,
+            'state' => 'OPEN',
+            'version' => 2,
+            'createdAt' => now()->subHour()->toISOString(),
+            'updatedAt' => now()->toISOString(),
+        ]);
+
+        // Call saveToSquare (should update, not create)
+        $square = Square::setOrder($order, $locationId, 'USD');
+        $square->addProduct($product, 1);
+        $square->saveToSquare();
+
+        // Verify version was incremented
+        $this->assertEquals('SQUARE_ORDER_123', $square->getOrder()->payment_service_id);
+        $this->assertEquals(2, $square->getOrder()->payment_service_version);
+    }
+
+    /**
+     * Test saveToSquare throws exception when version is missing on update.
+     *
+     * @return void
+     */
+    public function test_save_to_square_throws_when_version_missing_on_update(): void
+    {
+        $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
+
+        // Create order with payment_service_id but NULL version
+        $order = Order::create([
+            'payment_service_type' => 'square',
+            'payment_service_id' => 'SQUARE_ORDER_123',
+            'payment_service_version' => null,
+            'location_id' => $locationId,
+        ]);
+
+        // Create a product
+        $product = Product::create([
+            'name' => 'Test Product',
+            'price' => 1000,
+            'quantity' => 1,
+        ]);
+
+        // Expect InvalidSquareVersionException
+        $this->expectException(\Nikolag\Square\Exceptions\InvalidSquareVersionException::class);
+        $this->expectExceptionMessage('Cannot update order: version is missing');
+
+        // Call saveToSquare
+        $square = Square::setOrder($order, $locationId, 'USD');
+        $square->addProduct($product, 1);
+        $square->saveToSquare();
+    }
+
+    /**
+     * Test saveToSquare throws exception on version conflict.
+     *
+     * @return void
+     */
+    public function test_save_to_square_throws_on_version_conflict(): void
+    {
+        $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
+
+        // Create order with outdated version
+        $order = Order::create([
+            'payment_service_type' => 'square',
+            'payment_service_id' => 'SQUARE_ORDER_123',
+            'payment_service_version' => 1,
+            'location_id' => $locationId,
+        ]);
+
+        // Create a product
+        $product = Product::create([
+            'name' => 'Test Product',
+            'price' => 1000,
+            'quantity' => 1,
+        ]);
+
+        // Mock version conflict error
+        $this->mockUpdateOrderVersionConflict();
+
+        // Expect InvalidSquareVersionException
+        $this->expectException(\Nikolag\Square\Exceptions\InvalidSquareVersionException::class);
+        $this->expectExceptionMessage('Version conflict');
+
+        // Call saveToSquare
+        $square = Square::setOrder($order, $locationId, 'USD');
+        $square->addProduct($product, 1);
+        $square->saveToSquare();
+    }
+
+    /**
+     * Test buildUpdateOrderRequest method.
+     *
+     * @return void
+     */
+    public function test_build_update_order_request(): void
+    {
+        $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
+
+        // Create order with products
+        $order = Order::create([
+            'payment_service_type' => 'square',
+            'payment_service_id' => 'SQUARE_ORDER_123',
+            'payment_service_version' => 1,
+            'location_id' => $locationId,
+        ]);
+
+        // Create a product and attach to order
+        $product = Product::create([
+            'name' => 'Test Product',
+            'price' => 1000,
+            'quantity' => 1,
+        ]);
+        $order->products()->attach($product->id, [
+            'quantity' => 1,
+            'order_product_id' => uniqid(),
+        ]);
+        $order->refresh();
+
+        // Build update request
+        $updateRequest = Square::getSquareBuilder()->buildUpdateOrderRequest(
+            $order,
+            $locationId,
+            'USD',
+            1
+        );
+
+        // Verify request structure
+        $this->assertInstanceOf(\Square\Models\UpdateOrderRequest::class, $updateRequest);
+        $this->assertNotNull($updateRequest->getOrder());
+        $this->assertEquals(1, $updateRequest->getOrder()->getVersion());
+        $this->assertEquals($locationId, $updateRequest->getOrder()->getLocationId());
+    }
 }
