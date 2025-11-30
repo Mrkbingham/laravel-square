@@ -634,10 +634,16 @@ class SquareService extends CorePaymentService implements SquareServiceContract
             // Determine if this is a create or update operation
             $isUpdate = !empty($this->getOrder()->{$property});
 
+            // Check if we need to verify version column exists
+            $versionProperty = config('nikolag.connections.square.order.version_identifier');
+            if (! $this->getOrder()->hasColumn($versionProperty)) {
+                throw new InvalidSquareOrderException('Table orders is missing a required column: '.$versionProperty, 500);
+            }
+
             if ($isUpdate) {
-                $this->updateSquareOrder($property);
+                $this->updateSquareOrder($property, $versionProperty);
             } else {
-                $this->createSquareOrder($property);
+                $this->createSquareOrder($property, $versionProperty);
             }
         }
         $this->getOrder()->save();
@@ -653,7 +659,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @throws Exception
      * @throws ApiException
      */
-    private function createSquareOrder(string $property): void
+    private function createSquareOrder(string $property, string $versionProperty): void
     {
         $orderRequest = $this->squareBuilder->buildOrderRequest($this->getOrder(), $this->locationId, $this->currency);
         $this->setCreateOrderRequest($orderRequest);
@@ -666,26 +672,22 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         //Save id and version of order from Square
         $createdOrder = $response->getResult()->getOrder();
         $this->getOrder()->{$property} = $createdOrder->getId();
+        $this->getOrder()->{$versionProperty} = $createdOrder->getVersion();
     }
 
     /**
      * Update an existing order in Square.
      *
      * @param  string  $property
+     * @param  string  $versionProperty
      * @return void
      *
      * @throws InvalidSquareVersionException
      * @throws Exception
      * @throws ApiException
      */
-    private function updateSquareOrder(string $property): void
+    private function updateSquareOrder(string $property, string $versionProperty): void
     {
-        // Verify version property exists
-        $versionProperty = config('nikolag.connections.square.order.version_identifier');
-        if (! $this->getOrder()->hasColumn($versionProperty)) {
-            throw new InvalidSquareOrderException('Table orders is missing a required column: '.$versionProperty, 500);
-        }
-
         $version = $this->getOrder()->{$versionProperty};
 
         // Validate version exists for update
