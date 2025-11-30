@@ -33,6 +33,9 @@ class Order extends Model
      * @var array
      */
     protected $fillable = [
+        'payment_service_type',
         'payment_service_id',
+        'payment_service_version',
+        'location_id',
     ];
 }
