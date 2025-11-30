@@ -603,6 +603,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @return void
      *
      * @throws InvalidSquareOrderException
+     * @throws InvalidSquareVersionException
      * @throws MissingPropertyException
      * @throws Exception
      * @throws ApiException
@@ -628,18 +629,103 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         if (! $this->getOrder()->hasColumn($property)) {
             throw new InvalidSquareOrderException('Table orders is missing a required column: '.$property, 500);
         }
-        $orderRequest = $this->squareBuilder->buildOrderRequest($this->getOrder(), $this->locationId, $this->currency);
-        $this->setCreateOrderRequest($orderRequest);
-        // If want to save to square, make a request
+
         if ($saveToSquare) {
-            $response = $this->config->ordersAPI()->createOrder($this->getCreateOrderRequest());
-            if ($response->isError()) {
-                throw $this->_handleApiResponseErrors($response);
+            // Determine if this is a create or update operation
+            $isUpdate = !empty($this->getOrder()->{$property});
+
+            if ($isUpdate) {
+                $this->updateSquareOrder($property);
+            } else {
+                $this->createSquareOrder($property);
             }
-            //Save id of a real order inside of Square to our local model for future use
-            $this->getOrder()->{$property} = $response->getResult()->getOrder()->getId();
         }
         $this->getOrder()->save();
+    }
+
+    /**
+     * Create a new order in Square.
+     *
+     * @param  string  $property
+     * @param  string  $versionProperty
+     * @return void
+     *
+     * @throws Exception
+     * @throws ApiException
+     */
+    private function createSquareOrder(string $property): void
+    {
+        $orderRequest = $this->squareBuilder->buildOrderRequest($this->getOrder(), $this->locationId, $this->currency);
+        $this->setCreateOrderRequest($orderRequest);
+
+        $response = $this->config->ordersAPI()->createOrder($this->getCreateOrderRequest());
+        if ($response->isError()) {
+            throw $this->_handleApiResponseErrors($response);
+        }
+
+        //Save id and version of order from Square
+        $createdOrder = $response->getResult()->getOrder();
+        $this->getOrder()->{$property} = $createdOrder->getId();
+    }
+
+    /**
+     * Update an existing order in Square.
+     *
+     * @param  string  $property
+     * @return void
+     *
+     * @throws InvalidSquareVersionException
+     * @throws Exception
+     * @throws ApiException
+     */
+    private function updateSquareOrder(string $property): void
+    {
+        // Verify version property exists
+        $versionProperty = config('nikolag.connections.square.order.version_identifier');
+        if (! $this->getOrder()->hasColumn($versionProperty)) {
+            throw new InvalidSquareOrderException('Table orders is missing a required column: '.$versionProperty, 500);
+        }
+
+        $version = $this->getOrder()->{$versionProperty};
+
+        // Validate version exists for update
+        if (is_null($version)) {
+            throw new InvalidSquareVersionException(
+                'Cannot update order: version is missing. Order may need to be retrieved from Square first.',
+                500
+            );
+        }
+
+        $updateRequest = $this->squareBuilder->buildUpdateOrderRequest(
+            $this->getOrder(),
+            $this->locationId,
+            $this->currency,
+            $version
+        );
+        $this->setUpdateOrderRequest($updateRequest);
+
+        $orderId = $this->getOrder()->{$property};
+        $response = $this->config->ordersAPI()->updateOrder($orderId, $this->getUpdateOrderRequest());
+
+        if ($response->isError()) {
+            // Check for version conflict
+            $errors = $response->getErrors();
+            if (!empty($errors)) {
+                $firstError = $errors[0];
+                if ($firstError->getCode() === 'CONFLICT' || $firstError->getCategory() === 'INVALID_REQUEST_ERROR') {
+                    throw new InvalidSquareVersionException(
+                        'Version conflict: ' . $firstError->getDetail() .
+                        '. The order may have been modified. Please refresh and try again.',
+                        409
+                    );
+                }
+            }
+            throw $this->_handleApiResponseErrors($response);
+        }
+
+        // Update version from response
+        $updatedOrder = $response->getResult()->getOrder();
+        $this->getOrder()->{$versionProperty} = $updatedOrder->getVersion();
     }
 
     /**
