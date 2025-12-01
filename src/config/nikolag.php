@@ -74,6 +74,7 @@ return [
                 'identifier' => env('SQUARE_ORDER_IDENTIFIER', 'id'),
                 'service_identifier' => env('SQUARE_PAYMENT_IDENTIFIER', 'payment_service_id'),
                 'version_identifier' => env('SQUARE_VERSION_IDENTIFIER', 'payment_service_version'),
+                'reference_id' => env('SQUARE_REFERENCE_IDENTIFIER', 'id'),
             ],
         ],
     ],

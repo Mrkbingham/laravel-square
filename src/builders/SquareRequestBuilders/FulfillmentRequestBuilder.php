@@ -64,6 +64,9 @@ class FulfillmentRequestBuilder
             foreach ($fulfillments as $fulfillment) {
                 $tempFulfillment = new SquareFulfillment();
 
+                // Set the unique identifier
+                $tempFulfillment->setUid($fulfillment->uid);
+
                 // Set the state
                 $tempFulfillment->setState($fulfillment->state);
 
