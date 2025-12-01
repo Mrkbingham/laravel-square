@@ -424,8 +424,12 @@ class SquareRequestBuilder
      */
     public function buildUpdateOrderRequest(Model $order, string $locationId, string $currency, int $version): UpdateOrderRequest
     {
+        $serviceIdentifierProperty = config('nikolag.connections.square.order.service_identifier');
+        $referenceIdProperty = config('nikolag.connections.square.order.reference_id');
+
         $squareOrder = new Order($locationId);
-        $squareOrder->setReferenceId($order->id);
+        $squareOrder->setId($order->{$serviceIdentifierProperty});
+        $squareOrder->setReferenceId($order->{$referenceIdProperty});
         $squareOrder->setVersion($version);
         $squareOrder->setLineItems($this->buildProducts($order->products, $currency));
         $squareOrder->setDiscounts($this->buildDiscounts($order->discounts, $currency));
@@ -797,6 +801,7 @@ class SquareRequestBuilder
                 $money->setCurrency($currency);
                 $tempProduct = new OrderLineItem($quantity);
                 $tempProduct->setName($product->name);
+                $tempProduct->setUid($product->pivot->square_uid);
                 $tempProduct->setBasePriceMoney($money);
                 $tempProduct->setQuantity((string) $quantity);
                 $tempProduct->setCatalogObjectId($product->square_catalog_object_id);

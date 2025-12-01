@@ -1775,6 +1775,7 @@ class SquareServiceTest extends TestCase
     public function test_build_update_order_request(): void
     {
         $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
+        $squareUid = 'test-square-uid-' . uniqid();
 
         // Create order with products
         $order = Order::create([
@@ -1784,7 +1785,7 @@ class SquareServiceTest extends TestCase
             'location_id' => $locationId,
         ]);
 
-        // Create a product and attach to order
+        // Create a product and attach to order with square_uid
         $product = Product::create([
             'name' => 'Test Product',
             'price' => 1000,
@@ -1792,6 +1793,7 @@ class SquareServiceTest extends TestCase
         ]);
         $order->products()->attach($product->id, [
             'quantity' => 1,
+            'square_uid' => $squareUid,
             'order_product_id' => uniqid(),
         ]);
         $order->refresh();
@@ -1807,7 +1809,118 @@ class SquareServiceTest extends TestCase
         // Verify request structure
         $this->assertInstanceOf(\Square\Models\UpdateOrderRequest::class, $updateRequest);
         $this->assertNotNull($updateRequest->getOrder());
+
+        // Verify version is set correctly
         $this->assertEquals(1, $updateRequest->getOrder()->getVersion());
+
+        // Verify location ID is set correctly
         $this->assertEquals($locationId, $updateRequest->getOrder()->getLocationId());
+
+        // Verify Square order ID is set from payment_service_id
+        $this->assertEquals('SQUARE_ORDER_123', $updateRequest->getOrder()->getId());
+
+        // Verify reference ID is set from configured property (defaults to 'id')
+        $referenceIdProperty = config('nikolag.connections.square.order.reference_id');
+        $this->assertEquals($order->{$referenceIdProperty}, $updateRequest->getOrder()->getReferenceId());
+
+        // Verify line items have UIDs from pivot's square_uid field
+        $lineItems = $updateRequest->getOrder()->getLineItems();
+        $this->assertNotEmpty($lineItems, 'Line items should not be empty');
+        $this->assertEquals($squareUid, $lineItems[0]->getUid(), 'Line item UID should match pivot square_uid');
+
+        // Verify idempotency key is set
+        $this->assertNotNull($updateRequest->getIdempotencyKey());
+    }
+
+    /**
+     * Test buildOrderRequest method (create order flow).
+     *
+     * @return void
+     */
+    public function test_build_create_order_request(): void
+    {
+        $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
+        $squareUid = 'test-square-uid-' . uniqid();
+
+        // Create order WITHOUT payment_service_id (simulates new order)
+        $order = Order::create([
+            'payment_service_type' => 'square',
+            'location_id' => $locationId,
+        ]);
+
+        // Create a product and attach to order with square_uid
+        $product = Product::create([
+            'name' => 'Test Product for Create',
+            'price' => 1500,
+            'quantity' => 1,
+        ]);
+        $order->products()->attach($product->id, [
+            'quantity' => 2,
+            'square_uid' => $squareUid,
+            'order_product_id' => uniqid(),
+        ]);
+
+        // Create a discount to test comprehensive building
+        $discount = factory(Discount::class)->create([
+            'name' => 'Test Discount',
+            'percentage' => 10.0,
+        ]);
+        $order->discounts()->attach($discount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        // Create a tax to test comprehensive building
+        $tax = factory(Tax::class)->create([
+            'name' => 'Test Tax',
+            'percentage' => 8.5,
+        ]);
+        $order->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+        ]);
+
+        $order->refresh();
+
+        // Build create request
+        $createRequest = Square::getSquareBuilder()->buildOrderRequest(
+            $order,
+            $locationId,
+            'USD'
+        );
+
+        // Verify request structure
+        $this->assertInstanceOf(\Square\Models\CreateOrderRequest::class, $createRequest);
+        $this->assertNotNull($createRequest->getOrder());
+
+        // Verify reference ID equals local order ID (not configurable for create)
+        $this->assertEquals($order->id, $createRequest->getOrder()->getReferenceId());
+
+        // Verify order ID is NOT set (since it's a create operation)
+        $this->assertNull($createRequest->getOrder()->getId());
+
+        // Verify version is NOT set (no version on create)
+        $this->assertNull($createRequest->getOrder()->getVersion());
+
+        // Verify location ID is correct
+        $this->assertEquals($locationId, $createRequest->getOrder()->getLocationId());
+
+        // Verify line items are built correctly with UIDs
+        $lineItems = $createRequest->getOrder()->getLineItems();
+        $this->assertNotEmpty($lineItems, 'Line items should not be empty');
+        $this->assertEquals($squareUid, $lineItems[0]->getUid(), 'Line item UID should match pivot square_uid');
+        $this->assertEquals('Test Product for Create', $lineItems[0]->getName(), 'Line item name should match product name');
+        $this->assertEquals('2', $lineItems[0]->getQuantity(), 'Line item quantity should be 2');
+
+        // Verify discounts are included
+        $discounts = $createRequest->getOrder()->getDiscounts();
+        $this->assertNotEmpty($discounts, 'Discounts should not be empty');
+
+        // Verify taxes are included
+        $taxes = $createRequest->getOrder()->getTaxes();
+        $this->assertNotEmpty($taxes, 'Taxes should not be empty');
+
+        // Verify idempotency key is set
+        $this->assertNotNull($createRequest->getIdempotencyKey());
     }
 }
