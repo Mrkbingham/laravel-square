@@ -20,6 +20,8 @@ use Nikolag\Square\Utils\Util;
 use Square\Models\CatalogModifierListSelectionType;
 use Square\Models\FulfillmentState;
 use Square\Models\FulfillmentType;
+use Square\Models\InvoiceDeliveryMethod;
+use Square\Models\InvoiceStatus;
 
 /*
 |--------------------------------------------------------------------------
@@ -881,8 +883,12 @@ $factory->define(Constants::INVOICE_NAMESPACE, function (Faker\Generator $faker)
         'title' => $faker->sentence(3),
         'description' => $faker->paragraph(),
         'scheduled_at' => $faker->optional()->dateTimeBetween('now', '+30 days'),
-        'status' => Constants::INVOICE_STATUS_DRAFT,
-        'delivery_method' => $faker->randomElement(['EMAIL', 'SMS', 'SHARE_MANUALLY']),
+        'status' => InvoiceStatus::DRAFT,
+        'delivery_method' => $faker->randomElement([
+            InvoiceDeliveryMethod::EMAIL,
+            InvoiceDeliveryMethod::SHARE_MANUALLY,
+            InvoiceDeliveryMethod::SMS
+        ]),
         'timezone' => $faker->timezone,
         'sale_or_service_date' => $faker->optional()->dateTimeBetween('-30 days', 'now'),
         'store_payment_method_enabled' => $faker->boolean(30),
@@ -891,24 +897,24 @@ $factory->define(Constants::INVOICE_NAMESPACE, function (Faker\Generator $faker)
 
 /* DRAFT STATE */
 $factory->state(Constants::INVOICE_NAMESPACE, 'DRAFT', [
-    'status' => Constants::INVOICE_STATUS_DRAFT,
+    'status' => InvoiceStatus::DRAFT,
 ]);
 
 /* UNPAID STATE */
 $factory->state(Constants::INVOICE_NAMESPACE, 'UNPAID', [
-    'status' => Constants::INVOICE_STATUS_UNPAID,
+    'status' => InvoiceStatus::UNPAID,
     'public_url' => 'https://squareup.com/pay-invoice/abc123',
 ]);
 
 /* PAID STATE */
 $factory->state(Constants::INVOICE_NAMESPACE, 'PAID', [
-    'status' => Constants::INVOICE_STATUS_PAID,
+    'status' => InvoiceStatus::PAID,
     'public_url' => 'https://squareup.com/pay-invoice/abc123',
 ]);
 
 /* CANCELED STATE */
 $factory->state(Constants::INVOICE_NAMESPACE, 'CANCELED', [
-    'status' => Constants::INVOICE_STATUS_CANCELED,
+    'status' => InvoiceStatus::CANCELED,
 ]);
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
