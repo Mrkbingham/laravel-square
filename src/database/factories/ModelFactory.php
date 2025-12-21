@@ -867,3 +867,130 @@ $factory->state(Constants::WEBHOOK_EVENT_NAMESPACE, 'PAYMENT_CREATED_EVENT', fun
         ]
     ];
 });
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::INVOICE_NAMESPACE, function (Faker\Generator $faker) {
+    return [
+        'order_id' => function () {
+            return factory(Order::class)->create();
+        },
+        'location_id' => function () {
+            return factory(Location::class)->create();
+        },
+        'invoice_number' => $faker->unique()->numerify('inv:0-####'),
+        'title' => $faker->sentence(3),
+        'description' => $faker->paragraph(),
+        'scheduled_at' => $faker->optional()->dateTimeBetween('now', '+30 days'),
+        'status' => Constants::INVOICE_STATUS_DRAFT,
+        'delivery_method' => $faker->randomElement(['EMAIL', 'SMS', 'SHARE_MANUALLY']),
+        'timezone' => $faker->timezone,
+        'sale_or_service_date' => $faker->optional()->dateTimeBetween('-30 days', 'now'),
+        'store_payment_method_enabled' => $faker->boolean(30),
+    ];
+});
+
+/* DRAFT STATE */
+$factory->state(Constants::INVOICE_NAMESPACE, 'DRAFT', [
+    'status' => Constants::INVOICE_STATUS_DRAFT,
+]);
+
+/* UNPAID STATE */
+$factory->state(Constants::INVOICE_NAMESPACE, 'UNPAID', [
+    'status' => Constants::INVOICE_STATUS_UNPAID,
+    'public_url' => 'https://squareup.com/pay-invoice/abc123',
+]);
+
+/* PAID STATE */
+$factory->state(Constants::INVOICE_NAMESPACE, 'PAID', [
+    'status' => Constants::INVOICE_STATUS_PAID,
+    'public_url' => 'https://squareup.com/pay-invoice/abc123',
+]);
+
+/* CANCELED STATE */
+$factory->state(Constants::INVOICE_NAMESPACE, 'CANCELED', [
+    'status' => Constants::INVOICE_STATUS_CANCELED,
+]);
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::INVOICE_RECIPIENT_NAMESPACE, function (Faker\Generator $faker) {
+    return [
+        'invoice_id' => function () {
+            return factory(Constants::INVOICE_NAMESPACE)->create();
+        },
+        'customer_id' => function () {
+            return factory(Constants::CUSTOMER_NAMESPACE)->create();
+        },
+        'given_name' => $faker->firstName,
+        'family_name' => $faker->lastName,
+        'email_address' => $faker->email,
+        'phone_number' => $faker->phoneNumber,
+        'company_name' => $faker->optional()->company,
+        'address_line_1' => $faker->optional()->streetAddress,
+        'locality' => $faker->optional()->city,
+        'administrative_district_level_1' => $faker->optional()->state,
+        'postal_code' => $faker->optional()->postcode,
+        'country' => $faker->optional()->countryCode,
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::INVOICE_PAYMENT_REQUEST_NAMESPACE, function (Faker\Generator $faker) {
+    $amount = $faker->numberBetween(1000, 100000);
+
+    return [
+        'invoice_id' => function () {
+            return factory(Constants::INVOICE_NAMESPACE)->create();
+        },
+        'square_uid' => $faker->optional()->uuid,
+        'request_type' => $faker->randomElement(['BALANCE', 'INSTALLMENT']),
+        'due_date' => $faker->dateTimeBetween('now', '+30 days'),
+        'tipping_enabled' => $faker->boolean(30),
+        'automatic_payment_source' => $faker->randomElement(['NONE', 'CARD_ON_FILE', 'BANK_ON_FILE']),
+        'computed_amount_money_amount' => $amount,
+        'computed_amount_money_currency' => 'USD',
+        'total_completed_amount_money_amount' => $faker->optional()->numberBetween(0, $amount),
+        'total_completed_amount_money_currency' => 'USD',
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::INVOICE_ACCEPTED_PAYMENT_METHODS_NAMESPACE, function (Faker\Generator $faker) {
+    return [
+        'invoice_id' => function () {
+            return factory(Constants::INVOICE_NAMESPACE)->create();
+        },
+        'card' => $faker->boolean(80),
+        'square_gift_card' => $faker->boolean(30),
+        'bank_account' => $faker->boolean(40),
+        'buy_now_pay_later' => $faker->boolean(20),
+        'cash_app_pay' => $faker->boolean(50),
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::INVOICE_CUSTOM_FIELD_NAMESPACE, function (Faker\Generator $faker) {
+    return [
+        'invoice_id' => function () {
+            return factory(Constants::INVOICE_NAMESPACE)->create();
+        },
+        'label' => $faker->words(2, true),
+        'value' => $faker->optional()->sentence,
+        'placement' => $faker->randomElement(['ABOVE_LINE_ITEMS', 'BELOW_LINE_ITEMS']),
+    ];
+});
+
+/* @var \Illuminate\Database\Eloquent\Factory $factory */
+$factory->define(Constants::INVOICE_ATTACHMENT_NAMESPACE, function (Faker\Generator $faker) {
+    return [
+        'invoice_id' => function () {
+            return factory(Constants::INVOICE_NAMESPACE)->create();
+        },
+        'attachment_id' => $faker->uuid,
+        'filename' => $faker->word . '.' . $faker->fileExtension,
+        'description' => $faker->optional()->sentence,
+        'filesize' => $faker->numberBetween(1024, 1024 * 1024),
+        'hash' => $faker->md5,
+        'mime_type' => $faker->mimeType,
+        'uploaded_at' => $faker->dateTimeThisMonth,
+    ];
+});
