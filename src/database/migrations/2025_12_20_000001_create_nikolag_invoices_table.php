@@ -43,7 +43,7 @@ class CreateNikolagInvoicesTable extends Migration
             $table->dateTime('scheduled_at')->nullable();
             $table->text('public_url')->nullable();
             $table->bigInteger('next_payment_amount_money_amount')->nullable();
-            $table->string('next_payment_amount_money_currency')->nullable();
+            $table->string('next_payment_amount_money_currency', 3)->nullable();
             $table->enum('status', [
                 InvoiceStatus::DRAFT,
                 InvoiceStatus::UNPAID,
