@@ -168,4 +168,71 @@ class InvoiceTest extends TestCase
         ]);
         $this->assertTrue($canceledInvoice->isTerminal(), 'CANCELED should be terminal');
     }
+
+    /**
+     * Test order has invoice relationship.
+     *
+     * @return void
+     */
+    public function test_order_has_invoice_relationship(): void
+    {
+        $order = factory(Order::class)->create();
+        $invoice = factory(Constants::INVOICE_NAMESPACE)->create([
+            'order_id' => $order->id,
+        ]);
+
+        $this->assertNotNull($order->invoice, 'Order invoice is null');
+        $this->assertEquals($invoice->id, $order->invoice->id, 'Invoice ID doesn\'t match');
+        $this->assertTrue($order->hasInvoice(), 'Order should have invoice');
+    }
+
+    /**
+     * Test creating invoice for an order locally.
+     *
+     * @return void
+     */
+    public function test_create_invoice_for_order(): void
+    {
+        $order = factory(Order::class)->create();
+        $customer = factory(Constants::CUSTOMER_NAMESPACE)->create([
+            'email' => 'test@example.com',
+        ]);
+
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => env('SQUARE_LOCATION', 'main'),
+            'title' => 'Test Invoice',
+            'description' => 'Test invoice description',
+            'delivery_method' => 'EMAIL',
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        // Create recipient
+        $invoice->recipient()->create([
+            'customer_id' => $customer->id,
+            'email_address' => 'test@example.com',
+            'given_name' => 'John',
+            'family_name' => 'Doe',
+        ]);
+
+        // Create payment request
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
+            'computed_amount_money_amount' => 10000,
+            'computed_amount_money_currency' => 'USD',
+        ]);
+
+        // Create accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
+            'bank_account' => false,
+        ]);
+
+        $this->assertNotNull($invoice, 'Invoice is null');
+        $this->assertEquals($order->id, $invoice->order_id, 'Order ID doesn\'t match');
+        $this->assertNotNull($invoice->recipient, 'Recipient is null');
+        $this->assertCount(1, $invoice->paymentRequests, 'Payment requests count doesn\'t match');
+        $this->assertNotNull($invoice->acceptedPaymentMethods, 'Accepted payment methods are null');
+    }
 }
