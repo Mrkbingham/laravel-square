@@ -56,6 +56,8 @@ class Invoice extends Model
         'store_payment_method_enabled' => 'boolean',
         'next_payment_amount_money_amount' => 'integer',
         'payment_service_version' => 'integer',
+        'square_created_at' => 'datetime',
+        'square_updated_at' => 'datetime',
     ];
 
     /**
