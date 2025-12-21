@@ -5,6 +5,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Nikolag\Square\Models\DeliveryDetails;
 use Nikolag\Square\Models\Fulfillment;
+use Nikolag\Square\Models\Location;
 use Nikolag\Square\Models\Modifier;
 use Nikolag\Square\Models\ModifierOption;
 use Nikolag\Square\Models\OrderProductModifierPivot;
@@ -49,6 +50,40 @@ $factory->state(Constants::TAX_NAMESPACE, 'ADDITIVE', [
 $factory->state(Constants::TAX_NAMESPACE, 'INCLUSIVE', [
     'type' => Constants::TAX_INCLUSIVE,
 ]);
+
+/* LOCATION */
+$factory->define(Location::class, function (Faker\Generator $faker) {
+    return [
+        'name' => $faker->company,
+        'address' => json_encode([
+            'address_line_1' => $faker->streetAddress,
+            'address_line_2' => $faker->secondaryAddress,
+            'locality' => $faker->city,
+            'administrative_district_level_1' => $faker->state,
+            'postal_code' => $faker->postcode,
+            'country' => $faker->country,
+        ]),
+        'timezone' => $faker->timezone,
+        'capabilities' => ['CREDIT_CARD_PROCESSING', 'IN_STORE_PICKUP'],
+        'status' => Arr::random(['ACTIVE', 'INACTIVE']),
+        'square_created_at' => $faker->dateTimeBetween('-1 year', 'now'),
+        'merchant_id' => 'merchant_' . $faker->uuid,
+        'country' => $faker->countryCode,
+        'language_code' => 'en-US',
+        'currency' => 'USD',
+        'phone_number' => $faker->phoneNumber,
+        'business_name' => $faker->company,
+        'type' => Arr::random(['PHYSICAL', 'MOBILE']),
+        'website_url' => $faker->url,
+        'business_hours' => null,
+        'business_email' => $faker->companyEmail,
+        'twitter_username' => $faker->userName,
+        'instagram_username' => $faker->userName,
+        'facebook_url' => $faker->url,
+        'mcc' => $faker->numberBetween(1000, 9999),
+        'square_id' => 'location_' . $faker->uuid,
+    ];
+});
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Constants::ORDER_PRODUCT_NAMESPACE, function (Faker\Generator $faker) {
