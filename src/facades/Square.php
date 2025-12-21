@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Facade;
 use Nikolag\Square\Builders\WebhookBuilder;
 use Nikolag\Square\Contracts\SquareServiceContract;
 use Nikolag\Square\Builders\SquareRequestBuilder;
+use Nikolag\Square\Models\Invoice;
 use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Models\WebhookEvent;
 use Nikolag\Square\Models\WebhookSubscription;
@@ -67,6 +68,11 @@ use Square\Models\UpdateWebhookSubscriptionSignatureKeyResponse;
  * @method static WebhookBuilder webhookBuilder()
  * @method static bool markWebhookEventProcessed(string $eventId)
  * @method static bool markWebhookEventFailed(string $eventId)
+ *
+ * Invoice Management Methods
+ * @method static void saveInvoice(Invoice $invoice)
+ * @method static void publishInvoice(Invoice $invoice)
+ * @method static Invoice getInvoice(string $squareInvoiceId)
  *
  * @see \Nikolag\Square\SquareService
  */

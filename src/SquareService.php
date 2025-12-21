@@ -7,6 +7,7 @@ use Illuminate\Support\Arr;
 use Nikolag\Core\Abstracts\CorePaymentService;
 use Nikolag\Square\Builders\CustomerBuilder;
 use Nikolag\Square\Builders\FulfillmentBuilder;
+use Nikolag\Square\Builders\InvoiceBuilder;
 use Nikolag\Square\Builders\OrderBuilder;
 use Nikolag\Square\Builders\ProductBuilder;
 use Nikolag\Square\Builders\RecipientBuilder;
@@ -20,6 +21,7 @@ use Nikolag\Square\Exceptions\InvalidSquareSignatureException;
 use Nikolag\Square\Exceptions\InvalidSquareVersionException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Models\Discount;
+use Nikolag\Square\Models\Invoice;
 use Nikolag\Square\Models\Location;
 use Nikolag\Square\Models\Modifier;
 use Nikolag\Square\Models\ModifierOption;
@@ -93,6 +95,10 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      */
     private RecipientBuilder $recipientBuilder;
     /**
+     * @var InvoiceBuilder
+     */
+    private InvoiceBuilder $invoiceBuilder;
+    /**
      * @var string
      */
     private string $locationId;
@@ -135,6 +141,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         $this->customerBuilder = new CustomerBuilder();
         $this->fulfillmentBuilder = new FulfillmentBuilder();
         $this->recipientBuilder = new RecipientBuilder();
+        $this->invoiceBuilder = new InvoiceBuilder();
     }
 
     /**
@@ -1535,4 +1542,40 @@ class SquareService extends CorePaymentService implements SquareServiceContract
             ->where('status', '!=', WebhookEvent::STATUS_PENDING)
             ->delete();
     }
+
+    // ========================================
+    // Invoice Management Methods
+    // ========================================
+
+    /**
+     * Save an invoice to Square (create or update).
+     *
+     * @param Invoice $invoice
+     * @return void
+     * @throws InvalidSquareOrderException
+     * @throws InvalidSquareVersionException
+     * @throws ApiException
+     */
+    public function saveInvoice(Invoice $invoice): void
+    {
+        // Check if invoice is in terminal state
+        if ($invoice->isTerminal()) {
+            throw new InvalidSquareOrderException(
+                "Cannot update invoice in {$invoice->status} status. This is a terminal state.",
+                400
+            );
+        }
+
+        // Determine if this is a create or update operation
+        $isUpdate = !empty($invoice->payment_service_id);
+
+        if ($isUpdate) {
+            $this->updateSquareInvoice($invoice);
+        } else {
+            $this->createSquareInvoice($invoice);
+        }
+
+        $invoice->save();
+    }
+
 }
