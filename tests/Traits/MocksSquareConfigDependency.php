@@ -7,12 +7,19 @@ use Nikolag\Square\Models\WebhookEvent;
 use Nikolag\Square\Models\WebhookSubscription;
 use Nikolag\Square\SquareConfig;
 use Nikolag\Square\Utils\WebhookProcessor;
+use Square\Apis\InvoicesApi;
 use Square\Apis\OrdersApi;
 use Square\Apis\WebhookSubscriptionsApi;
 use Square\Http\ApiResponse;
+use Square\Models\Builders\CreateInvoiceResponseBuilder;
 use Square\Models\Builders\CreateWebhookSubscriptionResponseBuilder;
 use Square\Models\Builders\CreateOrderResponseBuilder;
+use Square\Models\Builders\GetInvoiceResponseBuilder;
+use Square\Models\Builders\InvoiceBuilder;
+use Square\Models\Builders\MoneyBuilder;
 use Square\Models\Builders\UpdateOrderResponseBuilder;
+use Square\Models\Builders\UpdateInvoiceResponseBuilder;
+use Square\Models\Builders\PublishInvoiceResponseBuilder;
 use Square\Models\Builders\RetrieveOrderResponseBuilder;
 use Square\Models\Builders\OrderBuilder;
 use Square\Models\Builders\DeleteWebhookSubscriptionResponseBuilder;
@@ -23,8 +30,13 @@ use Square\Models\Builders\ErrorBuilder;
 use Square\Models\Builders\EventDataBuilder;
 use Square\Models\Builders\ListWebhookSubscriptionsResponseBuilder;
 use Square\Models\Builders\TestWebhookSubscriptionResponseBuilder;
+use Square\Models\CreateInvoiceResponse;
 use Square\Models\CreateWebhookSubscriptionResponse;
 use Square\Models\CreateOrderResponse;
+use Square\Models\GetInvoiceResponse;
+use Square\Models\Invoice as SquareInvoice;
+use Square\Models\PublishInvoiceResponse;
+use Square\Models\UpdateInvoiceResponse;
 use Square\Models\UpdateOrderResponse;
 use Square\Models\DeleteWebhookSubscriptionResponse;
 use Square\Models\ListWebhookSubscriptionsResponse;
@@ -46,6 +58,7 @@ trait MocksSquareConfigDependency
      */
     private $mockWebhooksApi;
     private $mockOrdersApi;
+    private $mockInvoicesApi;
     private $mockSquareConfig;
 
     /**
@@ -942,5 +955,339 @@ trait MocksSquareConfigDependency
         $mockApiResponse->method('getStatusCode')->willReturn(409);
 
         $this->bindMockOrdersToServiceContainer('updateOrder', $mockApiResponse);
+    }
+
+    // ========================================
+    // Invoice Mocking Methods
+    // ========================================
+
+    /**
+     * Mock the SquareConfig dependency for invoice operations.
+     *
+     * @param string  $endpoint     The invoice endpoint to mock.
+     * @param array|null   $responseData The data to include in successful responses.
+     * @param boolean $shouldFail   Whether to simulate an API error.
+     * @param string  $errorMessage Error message if shouldFail is true.
+     * @param int     $errorCode    HTTP error code if shouldFail is true.
+     */
+    protected function mockSquareInvoiceEndpoint(
+        string $endpoint,
+        ?array $responseData = null,
+        bool $shouldFail = false,
+        string $errorMessage = 'API Error',
+        int $errorCode = 400
+    ): void {
+        if ($shouldFail) {
+            $this->mockSquareInvoiceError($endpoint, $errorMessage, $errorCode);
+        } else {
+            $this->mockSquareInvoiceSuccess($endpoint, $responseData);
+        }
+    }
+
+    /**
+     * Mock a successful invoice API response.
+     *
+     * @param string $endpoint The invoice endpoint to mock.
+     * @param array|null  $responseData The data to include in the response.
+     *
+     * @return void
+     */
+    private function mockSquareInvoiceSuccess(string $endpoint, ?array $responseData = null): void
+    {
+        // Build the appropriate response based on endpoint
+        $mockResult = $this->buildInvoiceResponseForEndpoint($endpoint, $responseData);
+
+        // Create mock API response
+        $mockApiResponse = $this->createMock(ApiResponse::class);
+        $mockApiResponse->method('isError')->willReturn(false);
+        $mockApiResponse->method('isSuccess')->willReturn(true);
+        $mockApiResponse->method('getResult')->willReturn($mockResult);
+        $mockApiResponse->method('getErrors')->willReturn([]);
+
+        $this->bindInvoiceMockToServiceContainer($endpoint, $mockApiResponse);
+    }
+
+    /**
+     * Mock an error invoice API response.
+     *
+     * @param string $endpoint The invoice endpoint to mock.
+     * @param string $errorMessage Error message to include in the response.
+     * @param int    $errorCode HTTP error code to return.
+     *
+     * @return void
+     */
+    private function mockSquareInvoiceError(string $endpoint, string $errorMessage, int $errorCode): void
+    {
+        // Build error object
+        $error = ErrorBuilder::init('INVALID_REQUEST_ERROR', 'GENERIC_ERROR')
+            ->detail($errorMessage)
+            ->field(null)
+            ->build();
+
+        // Create mock API response for error
+        $mockApiResponse = $this->createMock(ApiResponse::class);
+        $mockApiResponse->method('isError')->willReturn(true);
+        $mockApiResponse->method('isSuccess')->willReturn(false);
+        $mockApiResponse->method('getResult')->willReturn(null);
+        $mockApiResponse->method('getErrors')->willReturn([$error]);
+        $mockApiResponse->method('getStatusCode')->willReturn($errorCode);
+
+        $this->bindInvoiceMockToServiceContainer($endpoint, $mockApiResponse);
+    }
+
+    /**
+     * Build the appropriate invoice response object for an endpoint.
+     *
+     * @param string $endpoint The endpoint to build a response for.
+     * @param array|null  $responseData Data to include in the response.
+     *
+     * @return CreateInvoiceResponse|UpdateInvoiceResponse|PublishInvoiceResponse|GetInvoiceResponse
+     */
+    private function buildInvoiceResponseForEndpoint(string $endpoint, ?array $responseData = null)
+    {
+        // Default response data
+        $defaultData = [
+            'invoice_id' => 'inv_' . uniqid(),
+            'version' => 1,
+            'status' => 'DRAFT',
+            'location_id' => 'main',
+            'order_id' => 'order_123',
+            'invoice_number' => 'INV-001',
+            'public_url' => null,
+            'title' => 'Test Invoice',
+        ];
+
+        $data = array_merge($defaultData, $responseData ?? []);
+
+        // Build the Square Invoice object
+        $squareInvoice = $this->buildSquareInvoice($data);
+
+        // Build the appropriate response based on endpoint
+        switch ($endpoint) {
+            case 'createInvoice':
+                return CreateInvoiceResponseBuilder::init()
+                    ->invoice($squareInvoice)
+                    ->build();
+
+            case 'updateInvoice':
+                return UpdateInvoiceResponseBuilder::init()
+                    ->invoice($squareInvoice)
+                    ->build();
+
+            case 'publishInvoice':
+                return PublishInvoiceResponseBuilder::init()
+                    ->invoice($squareInvoice)
+                    ->build();
+
+            case 'getInvoice':
+                return GetInvoiceResponseBuilder::init()
+                    ->invoice($squareInvoice)
+                    ->build();
+
+            default:
+                throw new \InvalidArgumentException("Unknown invoice endpoint: {$endpoint}");
+        }
+    }
+
+    /**
+     * Build a Square Invoice object from data array.
+     *
+     * @param array $data Invoice data.
+     *
+     * @return SquareInvoice
+     */
+    private function buildSquareInvoice(array $data): SquareInvoice
+    {
+        $builder = InvoiceBuilder::init()
+            ->id($data['invoice_id'] ?? 'inv_' . uniqid())
+            ->version($data['version'] ?? 1)
+            ->locationId($data['location_id'] ?? 'main')
+            ->orderId($data['order_id'] ?? 'order_123');
+
+        // Add optional fields
+        if (isset($data['status'])) {
+            $builder->status($data['status']);
+        }
+
+        if (isset($data['invoice_number'])) {
+            $builder->invoiceNumber($data['invoice_number']);
+        }
+
+        if (isset($data['public_url'])) {
+            $builder->publicUrl($data['public_url']);
+        }
+
+        if (isset($data['title'])) {
+            $builder->title($data['title']);
+        }
+
+        if (isset($data['description'])) {
+            $builder->description($data['description']);
+        }
+
+        if (isset($data['next_payment_amount_money_amount'])) {
+            $money = MoneyBuilder::init()
+                ->amount($data['next_payment_amount_money_amount'])
+                ->currency($data['next_payment_amount_money_currency'] ?? 'USD')
+                ->build();
+            $builder->nextPaymentAmountMoney($money);
+        }
+
+        return $builder->build();
+    }
+
+    /**
+     * Bind invoice mock to the service container.
+     *
+     * @param string $endpoint The invoice endpoint being mocked.
+     * @param ApiResponse $mockApiResponse The mocked API response.
+     *
+     * @return void
+     */
+    private function bindInvoiceMockToServiceContainer(string $endpoint, ApiResponse $mockApiResponse): void
+    {
+        // Get or create a persistent mock invoices API
+        if (!isset($this->mockInvoicesApi)) {
+            $this->mockInvoicesApi = $this->createMock(InvoicesApi::class);
+        }
+
+        // Configure the specific endpoint on the existing mock
+        $this->mockInvoicesApi->method($endpoint)->willReturn($mockApiResponse);
+
+        // Get or create a persistent mock SquareConfig
+        if (!isset($this->mockSquareConfig)) {
+            $this->mockSquareConfig = $this->createMock(SquareConfig::class);
+            $this->mockSquareConfig->method('invoicesAPI')->willReturn($this->mockInvoicesApi);
+
+            // Bind once to the service container
+            $this->app->instance(SquareConfig::class, $this->mockSquareConfig);
+        } else {
+            // Update existing mock to return invoicesAPI
+            $this->mockSquareConfig->method('invoicesAPI')->willReturn($this->mockInvoicesApi);
+        }
+    }
+
+    /**
+     * Mock the invoicesAPI()->createInvoice($request) method in the SquareService class.
+     *
+     * @param array $responseData Data to include in the successful response.
+     *
+     * @return void
+     */
+    protected function mockCreateInvoiceSuccess(array $responseData = []): void
+    {
+        $this->mockSquareInvoiceEndpoint('createInvoice', $responseData);
+    }
+
+    /**
+     * Mock the invoicesAPI()->createInvoice($request) method with error.
+     *
+     * @param string $message Error message to return.
+     * @param int $code HTTP error code to return.
+     *
+     * @return void
+     */
+    protected function mockCreateInvoiceError(string $message = 'Create invoice failed', int $code = 400): void
+    {
+        $this->mockSquareInvoiceEndpoint('createInvoice', [], true, $message, $code);
+    }
+
+    /**
+     * Mock the invoicesAPI()->updateInvoice($invoiceId, $request) method in the SquareService class.
+     *
+     * @param array $responseData Data to include in the successful response.
+     *
+     * @return void
+     */
+    protected function mockUpdateInvoiceSuccess(array $responseData = []): void
+    {
+        $this->mockSquareInvoiceEndpoint('updateInvoice', $responseData);
+    }
+
+    /**
+     * Mock the invoicesAPI()->updateInvoice($invoiceId, $request) method with error.
+     *
+     * @param string $message Error message to return.
+     * @param int $code HTTP error code to return.
+     *
+     * @return void
+     */
+    protected function mockUpdateInvoiceError(string $message = 'Update invoice failed', int $code = 400): void
+    {
+        $this->mockSquareInvoiceEndpoint('updateInvoice', [], true, $message, $code);
+    }
+
+    /**
+     * Mock the invoicesAPI()->updateInvoice() method with version conflict error.
+     *
+     * @return void
+     */
+    protected function mockUpdateInvoiceVersionConflict(): void
+    {
+        // Create error object for version conflict
+        $error = ErrorBuilder::init('INVALID_REQUEST_ERROR', 'CONFLICT')
+            ->detail('Version mismatch. Invoice version 2 expected but 1 provided.')
+            ->field('version')
+            ->build();
+
+        // Create mock API response for error
+        $mockApiResponse = $this->createMock(ApiResponse::class);
+        $mockApiResponse->method('isError')->willReturn(true);
+        $mockApiResponse->method('isSuccess')->willReturn(false);
+        $mockApiResponse->method('getResult')->willReturn(null);
+        $mockApiResponse->method('getErrors')->willReturn([$error]);
+        $mockApiResponse->method('getStatusCode')->willReturn(409);
+
+        $this->bindInvoiceMockToServiceContainer('updateInvoice', $mockApiResponse);
+    }
+
+    /**
+     * Mock the invoicesAPI()->publishInvoice($invoiceId, $request) method in the SquareService class.
+     *
+     * @param array $responseData Data to include in the successful response.
+     *
+     * @return void
+     */
+    protected function mockPublishInvoiceSuccess(array $responseData = []): void
+    {
+        $this->mockSquareInvoiceEndpoint('publishInvoice', $responseData);
+    }
+
+    /**
+     * Mock the invoicesAPI()->publishInvoice($invoiceId, $request) method with error.
+     *
+     * @param string $message Error message to return.
+     * @param int $code HTTP error code to return.
+     *
+     * @return void
+     */
+    protected function mockPublishInvoiceError(string $message = 'Publish invoice failed', int $code = 400): void
+    {
+        $this->mockSquareInvoiceEndpoint('publishInvoice', [], true, $message, $code);
+    }
+
+    /**
+     * Mock the invoicesAPI()->getInvoice($invoiceId) method in the SquareService class.
+     *
+     * @param array $responseData Data to include in the successful response.
+     *
+     * @return void
+     */
+    protected function mockGetInvoiceSuccess(array $responseData = []): void
+    {
+        $this->mockSquareInvoiceEndpoint('getInvoice', $responseData);
+    }
+
+    /**
+     * Mock the invoicesAPI()->getInvoice($invoiceId) method with error.
+     *
+     * @param string $message Error message to return.
+     * @param int $code HTTP error code to return.
+     *
+     * @return void
+     */
+    protected function mockGetInvoiceError(string $message = 'Invoice not found', int $code = 404): void
+    {
+        $this->mockSquareInvoiceEndpoint('getInvoice', [], true, $message, $code);
     }
 }
