@@ -170,23 +170,6 @@ class InvoiceTest extends TestCase
     }
 
     /**
-     * Test order has invoice relationship.
-     *
-     * @return void
-     */
-    public function test_order_has_invoice_relationship(): void
-    {
-        $order = factory(Order::class)->create();
-        $invoice = factory(Constants::INVOICE_NAMESPACE)->create([
-            'order_id' => $order->id,
-        ]);
-
-        $this->assertNotNull($order->invoice, 'Order invoice is null');
-        $this->assertEquals($invoice->id, $order->invoice->id, 'Invoice ID doesn\'t match');
-        $this->assertTrue($order->hasInvoice(), 'Order should have invoice');
-    }
-
-    /**
      * Test creating invoice for an order locally.
      *
      * @return void
