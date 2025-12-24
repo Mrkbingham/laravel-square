@@ -12,7 +12,7 @@ use Square\Models\Address as SquareAddress;
 class Recipient extends Model
 {
     use HasAddress;
-    
+
     /**
      * The table associated with the model.
      *
