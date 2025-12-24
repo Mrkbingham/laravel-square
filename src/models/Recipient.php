@@ -3,9 +3,10 @@
 namespace Nikolag\Square\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\Fulfillment;
-use Square\Models\Address;
+use Square\Models\Address as SquareAddress;
 
 class Recipient extends Model
 {
@@ -58,13 +59,30 @@ class Recipient extends Model
     ];
 
     /**
-     * Parses the address and returns it as a Square Address model.
+     * Get the recipient's address (polymorphic relationship).
      *
-     * @return Address
+     * @return MorphOne
      */
-    public function getSquareRequestAddress(): Address
+    public function addressRelation(): MorphOne
     {
-        $address = new Address();
+        return $this->morphOne(Address::class, 'addressable');
+    }
+
+    /**
+     * Parses the address and returns it as a Square Address model.
+     * Prioritizes polymorphic relationship over JSON address field for backward compatibility.
+     *
+     * @return SquareAddress
+     */
+    public function getSquareRequestAddress(): SquareAddress
+    {
+        // Prioritize polymorphic address relationship if it exists
+        if ($this->addressRelation) {
+            return $this->addressRelation->toSquareAddress();
+        }
+
+        // Fallback to JSON address field for backward compatibility
+        $address = new SquareAddress();
         $address->setAddressLine1($this->address['address_line_1'] ?? null);
         $address->setAddressLine2($this->address['address_line_2'] ?? null);
         $address->setAddressLine3($this->address['address_line_3'] ?? null);
