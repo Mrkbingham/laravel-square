@@ -3,6 +3,7 @@
 namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Nikolag\Core\Models\Customer as CoreCustomer;
 use Nikolag\Square\Utils\Constants;
 
@@ -16,6 +17,65 @@ class Customer extends CoreCustomer
     protected $attributes = [
         'payment_service_type' => 'square',
     ];
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        // Existing fields
+        'first_name',
+        'last_name',
+        'company_name',
+        'nickname',
+        'email',
+        'phone',
+        'note',
+        'birthday',
+        'reference_id',
+        'creation_source',
+        'preferences',
+        'group_ids',
+        'segment_ids',
+        'tax_ids',
+    ];
+
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'birthday' => 'date',
+        'preferences' => 'array',
+        'group_ids' => 'array',
+        'segment_ids' => 'array',
+        'tax_ids' => 'array',
+    ];
+
+    /**
+     * The attributes that aren't mass assignable.
+     *
+     * @var array
+     */
+    protected $guarded = [
+        'id',
+        'payment_service_id',
+        'payment_service_version',
+    ];
+
+    /**
+     * Get the customer's address.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\MorphOne
+     */
+    public function address(): MorphOne
+    {
+        return $this->morphOne(Address::class, 'addressable');
+    }
 
     /**
      * List of users this customer bought from.
