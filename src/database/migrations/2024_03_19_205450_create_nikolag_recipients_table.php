@@ -19,7 +19,6 @@ return new class extends Migration
             $table->string('square_customer_id', 191)->nullable();
             $table->string('email_address', 255)->nullable();
             $table->string('phone_number', 17)->nullable();
-            $table->json('address')->nullable();
 
             // One-to-one relationship with fulfillment - recipient belongs to fulfillment
             $table->foreignId('fulfillment_id')->unique()->constrained('nikolag_fulfillments')->cascadeOnDelete();
