@@ -24,7 +24,6 @@ class Customer extends CoreCustomer
      * @var array
      */
     protected $fillable = [
-        // Existing fields
         'first_name',
         'last_name',
         'company_name',
