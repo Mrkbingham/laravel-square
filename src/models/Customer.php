@@ -3,12 +3,14 @@
 namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Nikolag\Core\Models\Customer as CoreCustomer;
+use Nikolag\Square\Traits\HasAddress;
 use Nikolag\Square\Utils\Constants;
 
 class Customer extends CoreCustomer
 {
+    use HasAddress;
+
     /**
      * The model's attributes.
      *
@@ -65,16 +67,6 @@ class Customer extends CoreCustomer
         'payment_service_id',
         'payment_service_version',
     ];
-
-    /**
-     * Get the customer's address.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\MorphOne
-     */
-    public function address(): MorphOne
-    {
-        return $this->morphOne(Address::class, 'addressable');
-    }
 
     /**
      * List of users this customer bought from.

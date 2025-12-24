@@ -240,7 +240,7 @@ class AddressTest extends TestCase
     {
         $address = factory(Address::class)->create();
 
-        $this->recipient->addressRelation()->save($address);
+        $this->recipient->address()->save($address);
         $address->refresh();
 
         $this->assertNotNull($address->addressable_id);
@@ -275,12 +275,12 @@ class AddressTest extends TestCase
     {
         $address = factory(Address::class)->create();
 
-        $this->recipient->addressRelation()->save($address);
+        $this->recipient->address()->save($address);
 
-        $this->assertInstanceOf(Address::class, $this->recipient->addressRelation);
-        $this->assertEquals($address->id, $this->recipient->addressRelation->id);
-        $this->assertEquals($address->address_line_1, $this->recipient->addressRelation->address_line_1);
-        $this->assertEquals($address->locality, $this->recipient->addressRelation->locality);
+        $this->assertInstanceOf(Address::class, $this->recipient->address);
+        $this->assertEquals($address->id, $this->recipient->address->id);
+        $this->assertEquals($address->address_line_1, $this->recipient->address->address_line_1);
+        $this->assertEquals($address->locality, $this->recipient->address->locality);
     }
 
     /**
@@ -319,7 +319,7 @@ class AddressTest extends TestCase
             'postal_code' => '68108',
         ]);
 
-        $this->recipient->addressRelation()->save($address);
+        $this->recipient->address()->save($address);
 
         $this->assertDatabaseHas('nikolag_addresses', [
             'addressable_type' => Recipient::class,

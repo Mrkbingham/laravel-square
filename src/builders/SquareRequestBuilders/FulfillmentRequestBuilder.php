@@ -191,7 +191,7 @@ class FulfillmentRequestBuilder
         $recipient->setEmailAddress($fulfillment->recipient->email_address);
         $recipient->setPhoneNumber($fulfillment->recipient->phone_number);
         // Address is optional for pickup orders
-        if ($fulfillment->recipient->address) {
+        if ($fulfillment->recipient->hasAddress()) {
             $recipient->setAddress($fulfillment->recipient->getSquareRequestAddress());
         }
         $fulfillmentPickupDetails->setRecipient($recipient);
