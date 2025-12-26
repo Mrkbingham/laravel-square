@@ -38,7 +38,8 @@ class WebhookBuilder
     /**
      * Set the webhook name.
      *
-     * @param  string  $name
+     * @param string $name
+     *
      * @return $this
      */
     public function name(string $name): self
@@ -51,7 +52,8 @@ class WebhookBuilder
     /**
      * Set the notification URL.
      *
-     * @param  string  $url
+     * @param string $url
+     *
      * @return $this
      */
     public function notificationUrl(string $url): self
@@ -64,7 +66,8 @@ class WebhookBuilder
     /**
      * Set the event types to subscribe to.
      *
-     * @param  array  $eventTypes
+     * @param array $eventTypes
+     *
      * @return $this
      */
     public function eventTypes(array $eventTypes): self
@@ -77,12 +80,13 @@ class WebhookBuilder
     /**
      * Add a single event type to subscribe to.
      *
-     * @param  string  $eventType
+     * @param string $eventType
+     *
      * @return $this
      */
     public function addEventType(string $eventType): self
     {
-        if (! in_array($eventType, $this->eventTypes)) {
+        if (!in_array($eventType, $this->eventTypes)) {
             $this->eventTypes[] = $eventType;
         }
 
@@ -92,7 +96,8 @@ class WebhookBuilder
     /**
      * Set the API version.
      *
-     * @param  string  $version
+     * @param string $version
+     *
      * @return $this
      */
     public function apiVersion(string $version): self
@@ -105,7 +110,8 @@ class WebhookBuilder
     /**
      * Set whether the webhook is enabled.
      *
-     * @param  bool  $enabled
+     * @param bool $enabled
+     *
      * @return $this
      */
     public function enabled(bool $enabled = true): self
@@ -128,9 +134,9 @@ class WebhookBuilder
     /**
      * Build a CreateWebhookSubscriptionRequest.
      *
-     * @return CreateWebhookSubscriptionRequest
-     *
      * @throws MissingPropertyException
+     *
+     * @return CreateWebhookSubscriptionRequest
      */
     public function buildCreateRequest(): CreateWebhookSubscriptionRequest
     {
@@ -151,9 +157,9 @@ class WebhookBuilder
     /**
      * Build an UpdateWebhookSubscriptionRequest.
      *
-     * @return UpdateWebhookSubscriptionRequest
-     *
      * @throws MissingPropertyException
+     *
+     * @return UpdateWebhookSubscriptionRequest
      */
     public function buildUpdateRequest(): UpdateWebhookSubscriptionRequest
     {
@@ -167,7 +173,7 @@ class WebhookBuilder
             $subscription->setNotificationUrl($this->notificationUrl);
         }
 
-        if (! empty($this->eventTypes)) {
+        if (!empty($this->eventTypes)) {
             $subscription->setEventTypes($this->eventTypes);
         }
 
@@ -216,8 +222,8 @@ class WebhookBuilder
         }
 
         // Validate URL format
-        if (! filter_var($this->notificationUrl, FILTER_VALIDATE_URL) ||
-            ! str_starts_with($this->notificationUrl, 'https://')) {
+        if (!filter_var($this->notificationUrl, FILTER_VALIDATE_URL) ||
+            !str_starts_with($this->notificationUrl, 'https://')) {
             throw new MissingPropertyException('Notification URL must be a valid HTTPS URL');
         }
     }

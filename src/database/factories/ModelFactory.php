@@ -24,8 +24,8 @@ $factory = app(EloquentFactory::class);
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Constants::TAX_NAMESPACE, function (Faker\Generator $faker) {
     return [
-        'name' => $faker->unique()->company,
-        'type' => Arr::random([Constants::TAX_ADDITIVE, Constants::TAX_INCLUSIVE]),
+        'name'       => $faker->unique()->company,
+        'type'       => Arr::random([Constants::TAX_ADDITIVE, Constants::TAX_INCLUSIVE]),
         'percentage' => $faker->randomFloat(2, 1, 100),
     ];
 });
@@ -72,49 +72,49 @@ $factory->state(Constants::DISCOUNT_NAMESPACE, 'AMOUNT_ONLY', function (Faker\Ge
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Constants::PRODUCT_NAMESPACE, function (Faker\Generator $faker) {
     return [
-        'name' => $faker->unique()->firstName,
-        'price' => $faker->unique()->numberBetween(5000, 50000),
+        'name'           => $faker->unique()->firstName,
+        'price'          => $faker->unique()->numberBetween(5000, 50000),
         'variation_name' => $faker->realText(10),
-        'note' => $faker->realText(50),
+        'note'           => $faker->realText(50),
     ];
 });
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Constants::CUSTOMER_NAMESPACE, function (Faker\Generator $faker) {
     return [
-        'first_name' => $faker->unique()->firstNameMale,
-        'last_name' => $faker->unique()->lastName,
+        'first_name'   => $faker->unique()->firstNameMale,
+        'last_name'    => $faker->unique()->lastName,
         'company_name' => $faker->unique()->address,
-        'nickname' => $faker->unique()->firstNameFemale,
-        'email' => $faker->unique()->companyEmail,
-        'phone' => $faker->unique()->tollFreePhoneNumber,
-        'note' => $faker->unique()->paragraph(5),
+        'nickname'     => $faker->unique()->firstNameFemale,
+        'email'        => $faker->unique()->companyEmail,
+        'phone'        => $faker->unique()->tollFreePhoneNumber,
+        'note'         => $faker->unique()->paragraph(5),
     ];
 });
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Address::class, function (Faker\Generator $faker) {
     return [
-        'address_line_1' => $faker->streetAddress,
-        'address_line_2' => $faker->optional(0.3)->secondaryAddress,
-        'address_line_3' => $faker->optional(0.1)->buildingNumber,
-        'locality' => $faker->city,
+        'address_line_1'                  => $faker->streetAddress,
+        'address_line_2'                  => $faker->optional(0.3)->secondaryAddress,
+        'address_line_3'                  => $faker->optional(0.1)->buildingNumber,
+        'locality'                        => $faker->city,
         'administrative_district_level_1' => $faker->stateAbbr,
         'administrative_district_level_2' => $faker->optional(0.2)->word,
         'administrative_district_level_3' => $faker->optional(0.1)->word,
-        'sublocality' => $faker->optional(0.2)->streetName,
-        'sublocality_2' => $faker->optional(0.1)->word,
-        'sublocality_3' => $faker->optional(0.1)->word,
-        'postal_code' => $faker->postcode,
-        'country' => 'US',
+        'sublocality'                     => $faker->optional(0.2)->streetName,
+        'sublocality_2'                   => $faker->optional(0.1)->word,
+        'sublocality_3'                   => $faker->optional(0.1)->word,
+        'postal_code'                     => $faker->postcode,
+        'country'                         => 'US',
     ];
 });
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Constants::TRANSACTION_NAMESPACE, function (Faker\Generator $faker) {
     return [
-        'status' => Arr::random([Constants::TRANSACTION_STATUS_OPENED, Constants::TRANSACTION_STATUS_PASSED, Constants::TRANSACTION_STATUS_FAILED]),
-        'amount' => $faker->numberBetween(5000, 500000),
+        'status'   => Arr::random([Constants::TRANSACTION_STATUS_OPENED, Constants::TRANSACTION_STATUS_PASSED, Constants::TRANSACTION_STATUS_FAILED]),
+        'amount'   => $faker->numberBetween(5000, 500000),
         'currency' => 'USD',
     ];
 });
@@ -135,7 +135,7 @@ $factory->state(Constants::TRANSACTION_NAMESPACE, 'FAILED', [
 $factory->define(Order::class, function (Faker\Generator $faker) {
     return [
         'payment_service_type' => 'square',
-        'location_id' => env('SQUARE_LOCATION'),
+        'location_id'          => env('SQUARE_LOCATION'),
     ];
 });
 
@@ -144,9 +144,9 @@ $factory->define(User::class, function (Faker\Generator $faker) {
     static $password;
 
     return [
-        'name' => $faker->name,
-        'email' => $faker->unique()->safeEmail,
-        'password' => $password ?: $password = bcrypt('secret'),
+        'name'           => $faker->name,
+        'email'          => $faker->unique()->safeEmail,
+        'password'       => $password ?: $password = bcrypt('secret'),
         'remember_token' => Str::random(10),
     ];
 });
@@ -154,27 +154,27 @@ $factory->define(User::class, function (Faker\Generator $faker) {
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Constants::WEBHOOK_SUBSCRIPTION_NAMESPACE, function (Faker\Generator $faker) {
     return [
-        'square_id' => 'wh_'.$faker->unique()->uuid,
-        'name' => $faker->words(3, true).' Webhook',
+        'square_id'        => 'wh_'.$faker->unique()->uuid,
+        'name'             => $faker->words(3, true).' Webhook',
         'notification_url' => 'https://'.$faker->domainName.'/webhook/'.$faker->uuid,
-        'event_types' => Arr::random([
+        'event_types'      => Arr::random([
             ['order.created'],
             ['order.updated'],
             ['order.fulfillment.updated'],
             ['order.created', 'order.updated'],
             ['order.created', 'order.updated', 'order.fulfillment.updated'],
         ]),
-        'api_version' => '2024-06-04',
+        'api_version'   => '2024-06-04',
         'signature_key' => 'wh_key_'.$faker->sha256,
-        'is_enabled' => $faker->boolean(80), // 80% chance of being enabled
-        'is_active' => $faker->boolean(90), // 90% chance of being active
+        'is_enabled'    => $faker->boolean(80), // 80% chance of being enabled
+        'is_active'     => $faker->boolean(90), // 90% chance of being active
     ];
 });
 
 /* ENABLED WEBHOOK */
 $factory->state(Constants::WEBHOOK_SUBSCRIPTION_NAMESPACE, 'ENABLED', [
     'is_enabled' => true,
-    'is_active' => true,
+    'is_active'  => true,
 ]);
 
 /* DISABLED WEBHOOK */
@@ -196,7 +196,7 @@ $factory->state(Constants::WEBHOOK_SUBSCRIPTION_NAMESPACE, 'ORDER_EVENTS', [
 $factory->define(Constants::WEBHOOK_EVENT_NAMESPACE, function (Faker\Generator $faker) {
     return [
         'square_event_id' => 'event_'.$faker->unique()->uuid,
-        'event_type' => Arr::random([
+        'event_type'      => Arr::random([
             'order.created',
             'order.updated',
             'order.fulfillment.updated',
@@ -205,23 +205,23 @@ $factory->define(Constants::WEBHOOK_EVENT_NAMESPACE, function (Faker\Generator $
         ]),
         'event_data' => [
             'merchant_id' => 'merchant_'.$faker->uuid,
-            'type' => 'order.created',
-            'event_id' => 'event_'.$faker->uuid,
-            'created_at' => $faker->iso8601,
-            'data' => [
-                'type' => 'order',
-                'id' => 'order_data_'.$faker->uuid,
+            'type'        => 'order.created',
+            'event_id'    => 'event_'.$faker->uuid,
+            'created_at'  => $faker->iso8601,
+            'data'        => [
+                'type'   => 'order',
+                'id'     => 'order_data_'.$faker->uuid,
                 'object' => [
                     'order' => [
-                        'id' => 'order_'.$faker->uuid,
+                        'id'          => 'order_'.$faker->uuid,
                         'location_id' => 'location_'.$faker->uuid,
-                        'state' => Arr::random(['DRAFT', 'OPEN', 'COMPLETED', 'CANCELED']),
+                        'state'       => Arr::random(['DRAFT', 'OPEN', 'COMPLETED', 'CANCELED']),
                     ],
                 ],
             ],
         ],
-        'event_time' => $faker->dateTimeBetween('-1 month', 'now'),
-        'status' => Arr::random(['pending', 'processed', 'failed']),
+        'event_time'              => $faker->dateTimeBetween('-1 month', 'now'),
+        'status'                  => Arr::random(['pending', 'processed', 'failed']),
         'webhook_subscription_id' => function () {
             return factory(Constants::WEBHOOK_SUBSCRIPTION_NAMESPACE)->create()->id;
         },
@@ -230,16 +230,16 @@ $factory->define(Constants::WEBHOOK_EVENT_NAMESPACE, function (Faker\Generator $
 
 /* PENDING WEBHOOK EVENT */
 $factory->state(Constants::WEBHOOK_EVENT_NAMESPACE, 'PENDING', [
-    'status' => 'pending',
-    'processed_at' => null,
+    'status'        => 'pending',
+    'processed_at'  => null,
     'error_message' => null,
 ]);
 
 /* PROCESSED WEBHOOK EVENT */
 $factory->state(Constants::WEBHOOK_EVENT_NAMESPACE, 'PROCESSED', function (Faker\Generator $faker) {
     return [
-        'status' => 'processed',
-        'processed_at' => $faker->dateTimeBetween('-1 week', 'now'),
+        'status'        => 'processed',
+        'processed_at'  => $faker->dateTimeBetween('-1 week', 'now'),
         'error_message' => null,
     ];
 });
@@ -247,8 +247,8 @@ $factory->state(Constants::WEBHOOK_EVENT_NAMESPACE, 'PROCESSED', function (Faker
 /* FAILED WEBHOOK EVENT */
 $factory->state(Constants::WEBHOOK_EVENT_NAMESPACE, 'FAILED', function (Faker\Generator $faker) {
     return [
-        'status' => 'failed',
-        'processed_at' => $faker->dateTimeBetween('-1 week', 'now'),
+        'status'        => 'failed',
+        'processed_at'  => $faker->dateTimeBetween('-1 week', 'now'),
         'error_message' => $faker->sentence,
     ];
 });
@@ -258,19 +258,19 @@ $factory->state(Constants::WEBHOOK_EVENT_NAMESPACE, 'ORDER_CREATED_EVENT', [
     'event_type' => 'order.created',
     'event_data' => [
         'merchant_id' => 'merchant-123',
-        'type' => 'order.created',
-        'event_id' => 'event-123',
-        'created_at' => now()->toIso8601String(),
-        'data' => [
-            'type' => 'order_created',
-            'id' => 'order-data-123',
+        'type'        => 'order.created',
+        'event_id'    => 'event-123',
+        'created_at'  => now()->toIso8601String(),
+        'data'        => [
+            'type'   => 'order_created',
+            'id'     => 'order-data-123',
             'object' => [
                 'order_created' => [
-                    'created_at' => now()->toIso8601String(),
+                    'created_at'  => now()->toIso8601String(),
                     'location_id' => 'location-789',
-                    'order_id' => 'order-456',
-                    'state' => 'OPEN',
-                    'version' => 1,
+                    'order_id'    => 'order-456',
+                    'state'       => 'OPEN',
+                    'version'     => 1,
                 ],
             ],
         ],
@@ -284,56 +284,56 @@ $factory->state(Constants::WEBHOOK_EVENT_NAMESPACE, 'PAYMENT_CREATED_EVENT', fun
         'event_type' => 'payment.created',
         'event_data' => [
             'merchant_id' => 'merchant_'.$faker->uuid,
-            'type' => 'payment.created',
-            'event_id' => 'event_'.$faker->uuid,
-            'created_at' => now()->toIso8601String(),
-            'data' => [
-                'type' => 'payment',
-                'id' => 'payment_data_id_'.$faker->uuid,
+            'type'        => 'payment.created',
+            'event_id'    => 'event_'.$faker->uuid,
+            'created_at'  => now()->toIso8601String(),
+            'data'        => [
+                'type'   => 'payment',
+                'id'     => 'payment_data_id_'.$faker->uuid,
                 'object' => [
                     'payment' => [
-                        'id' => 'payment_id_444',
-                        'created_at' => '2020-11-22T21:16:51.086Z',
-                        'updated_at' => '2020-11-22T21:16:51.198Z',
+                        'id'           => 'payment_id_444',
+                        'created_at'   => '2020-11-22T21:16:51.086Z',
+                        'updated_at'   => '2020-11-22T21:16:51.198Z',
                         'amount_money' => [
-                            'amount' => 100,
+                            'amount'   => 100,
                             'currency' => 'USD',
                         ],
-                        'status' => 'APPROVED',
+                        'status'         => 'APPROVED',
                         'delay_duration' => 'PT168H',
-                        'source_type' => 'CARD',
-                        'card_details' => [
+                        'source_type'    => 'CARD',
+                        'card_details'   => [
                             'status' => 'AUTHORIZED',
-                            'card' => [
-                                'card_brand' => 'MASTERCARD',
-                                'last_4' => '9029',
-                                'exp_month' => 11,
-                                'exp_year' => 2022,
-                                'fingerprint' => 'sq-1-Tvruf3vPQxlvI6n0IcKYfBukrcv6IqWr8UyBdViWXU2yzGn5VMJvrsHMKpINMhPmVg',
-                                'card_type' => 'CREDIT',
+                            'card'   => [
+                                'card_brand'   => 'MASTERCARD',
+                                'last_4'       => '9029',
+                                'exp_month'    => 11,
+                                'exp_year'     => 2022,
+                                'fingerprint'  => 'sq-1-Tvruf3vPQxlvI6n0IcKYfBukrcv6IqWr8UyBdViWXU2yzGn5VMJvrsHMKpINMhPmVg',
+                                'card_type'    => 'CREDIT',
                                 'prepaid_type' => 'NOT_PREPAID',
-                                'bin' => '540988',
+                                'bin'          => '540988',
                             ],
-                            'entry_method' => 'KEYED',
-                            'cvv_status' => 'CVV_ACCEPTED',
-                            'avs_status' => 'AVS_ACCEPTED',
+                            'entry_method'          => 'KEYED',
+                            'cvv_status'            => 'CVV_ACCEPTED',
+                            'avs_status'            => 'AVS_ACCEPTED',
                             'statement_description' => 'SQ *DEFAULT TEST ACCOUNT',
                             'card_payment_timeline' => [
                                 'authorized_at' => '2020-11-22T21:16:51.198Z',
                             ],
                         ],
-                        'location_id' => 'location-242',
-                        'order_id' => '03O3USaPaAaFnI6kkwB1JxGgBsUZY',
+                        'location_id'     => 'location-242',
+                        'order_id'        => '03O3USaPaAaFnI6kkwB1JxGgBsUZY',
                         'risk_evaluation' => [
                             'created_at' => '2020-11-22T21:16:51.198Z',
                             'risk_level' => 'NORMAL',
                         ],
                         'total_money' => [
-                            'amount' => 100,
+                            'amount'   => 100,
                             'currency' => 'USD',
                         ],
                         'approved_money' => [
-                            'amount' => 100,
+                            'amount'   => 100,
                             'currency' => 'USD',
                         ],
                         'capabilities' => [
@@ -342,9 +342,9 @@ $factory->state(Constants::WEBHOOK_EVENT_NAMESPACE, 'PAYMENT_CREATED_EVENT', fun
                             'EDIT_TIP_AMOUNT_DOWN',
                         ],
                         'receipt_number' => 'hYy9',
-                        'delay_action' => 'CANCEL',
-                        'delayed_until' => '2020-11-29T21:16:51.086Z',
-                        'version_token' => 'FfQhQJf9r3VSQIgyWBk1oqhIwiznLwVwJbVVA0bdyEv6o',
+                        'delay_action'   => 'CANCEL',
+                        'delayed_until'  => '2020-11-29T21:16:51.086Z',
+                        'version_token'  => 'FfQhQJf9r3VSQIgyWBk1oqhIwiznLwVwJbVVA0bdyEv6o',
                     ],
                 ],
             ],

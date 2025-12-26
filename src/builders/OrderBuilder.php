@@ -38,8 +38,9 @@ class OrderBuilder
      * Build order from order copy
      * and save to database simultaneously.
      *
-     * @param  Model  $order
-     * @param  stdClass  $orderCopy
+     * @param Model    $order
+     * @param stdClass $orderCopy
+     *
      * @return Model
      */
     public function buildOrderFromOrderCopy(Model $order, stdClass $orderCopy): Model
@@ -49,7 +50,7 @@ class OrderBuilder
         // Set payment type to square
         $order->payment_service_type = 'square';
         // Set location if it's not included in the order
-        if (! $order->location_id) {
+        if (!$order->location_id) {
             $order->location_id = $orderCopy->location_id;
         } elseif ($order->location_id != $orderCopy->location_id) {
             throw new InvalidSquareOrderException(
@@ -72,7 +73,7 @@ class OrderBuilder
                 // Save discount
                 $discount->save();
                 // If order doesn't have discount, add it
-                if (! $order->hasDiscount($discount)) {
+                if (!$order->hasDiscount($discount)) {
                     $order->discounts()->attach($discount->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::DISCOUNT_NAMESPACE, 'scope' => $scope]);
                 }
             }
@@ -89,7 +90,7 @@ class OrderBuilder
                 // Save tax
                 $tax->save();
                 // If order doesn't have tax, add it
-                if (! $order->hasTax($tax)) {
+                if (!$order->hasTax($tax)) {
                     $order->taxes()->attach($tax->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::TAX_NAMESPACE, 'scope' => $scope]);
                 }
             }
@@ -100,7 +101,7 @@ class OrderBuilder
             // For each product in order
             foreach ($orderCopy->products as $product) {
                 // If order doesn't have product
-                if (! $order->hasProduct($product)) {
+                if (!$order->hasProduct($product)) {
                     // Create intermediate table
                     $productPivot = $product->pivot;
                     // Create discounts
@@ -129,11 +130,11 @@ class OrderBuilder
                         // Save discount
                         $discount->save();
                         // If order doesn't have discount, add it
-                        if (! $order->hasDiscount($discount)) {
+                        if (!$order->hasDiscount($discount)) {
                             $order->discounts()->attach($discount->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::DISCOUNT_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                         // If product doesn't have discount, add it
-                        if (! $productPivot->hasDiscount($discount)) {
+                        if (!$productPivot->hasDiscount($discount)) {
                             $productPivot->discounts()->attach($discount->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::DISCOUNT_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                     }
@@ -143,11 +144,11 @@ class OrderBuilder
                         // Save tax
                         $tax->save();
                         // If order doesn't have tax, add it
-                        if (! $order->hasTax($tax)) {
+                        if (!$order->hasTax($tax)) {
                             $order->taxes()->attach($tax->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::TAX_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                         // If product doesn't have tax, add it
-                        if (! $productPivot->hasTax($tax)) {
+                        if (!$productPivot->hasTax($tax)) {
                             $productPivot->taxes()->attach($tax->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::TAX_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                     }
@@ -164,11 +165,12 @@ class OrderBuilder
     /**
      * Build order copy from model.
      *
-     * @param  Model  $order
-     * @return stdClass
+     * @param Model $order
      *
      * @throws MissingPropertyException
      * @throws InvalidSquareOrderException
+     *
+     * @return stdClass
      */
     public function buildOrderCopyFromModel(Model $order): stdClass
     {
@@ -237,11 +239,12 @@ class OrderBuilder
     /**
      * Build order copy from array.
      *
-     * @param  array  $order
-     * @return stdClass
+     * @param array $order
      *
      * @throws MissingPropertyException
      * @throws InvalidSquareOrderException
+     *
+     * @return stdClass
      */
     public function buildOrderCopyFromArray(array $order): stdClass
     {
@@ -310,12 +313,13 @@ class OrderBuilder
     /**
      * Build order model from array.
      *
-     * @param  array  $order
-     * @param  Model  $emptyModel
-     * @return Model
+     * @param array $order
+     * @param Model $emptyModel
      *
      * @throws MissingPropertyException
      * @throws InvalidSquareOrderException
+     *
+     * @return Model
      */
     public function buildOrderModelFromArray(array $order, Model $emptyModel): Model
     {

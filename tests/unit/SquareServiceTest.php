@@ -246,19 +246,19 @@ class SquareServiceTest extends TestCase
     {
         $products = [
             [
-                'name' => 'Shirt',
+                'name'           => 'Shirt',
                 'variation_name' => 'Large white',
-                'note' => 'This note can have maximum of 50 characters.',
-                'price' => 440.99,
-                'quantity' => 2,
-                'reference_id' => '5', //An optional ID to associate the product with an entity ID in your own table
+                'note'           => 'This note can have maximum of 50 characters.',
+                'price'          => 440.99,
+                'quantity'       => 2,
+                'reference_id'   => '5', //An optional ID to associate the product with an entity ID in your own table
             ],
             [
-                'name' => 'Shirt',
+                'name'           => 'Shirt',
                 'variation_name' => 'Mid-size yellow',
-                'note' => 'This note can have maximum of 50 characters.',
-                'quantity' => 1,
-                'price' => 118.02,
+                'note'           => 'This note can have maximum of 50 characters.',
+                'quantity'       => 1,
+                'price'          => 118.02,
             ],
         ];
 
@@ -297,9 +297,9 @@ class SquareServiceTest extends TestCase
     /**
      * Save and charge an order through facade.
      *
-     * @return void
-     *
      * @throws \Nikolag\Core\Exceptions\Exception
+     *
+     * @return void
      */
     public function test_square_order_facade_save_and_charge(): void
     {
@@ -327,9 +327,9 @@ class SquareServiceTest extends TestCase
      * Test we throw proper exception and message
      * when the customer has invalid phone number.
      *
-     * @return void
-     *
      * @throws \Nikolag\Core\Exceptions\Exception
+     *
+     * @return void
      */
     public function test_square_invalid_customer_phone_number(): void
     {
@@ -349,9 +349,9 @@ class SquareServiceTest extends TestCase
      * Test we throw proper exception and message
      * when the customer has invalid email address.
      *
-     * @return void
-     *
      * @throws \Nikolag\Core\Exceptions\Exception
+     *
+     * @return void
      */
     public function test_square_invalid_customer_email_address(): void
     {
@@ -422,10 +422,10 @@ class SquareServiceTest extends TestCase
     /**
      * Test all in one as models.
      *
-     * @return void
-     *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return void
      */
     public function test_square_total_calculation(): void
     {
@@ -463,8 +463,8 @@ class SquareServiceTest extends TestCase
 
         $transaction = Square::setMerchant($this->data->merchant)->setCustomer($this->data->customer)->setOrder($orderArr, env('SQUARE_LOCATION'))->addProduct($productArr)
             ->charge([
-                'amount' => 935,
-                'source_id' => 'cnon:card-nonce-ok',
+                'amount'      => 935,
+                'source_id'   => 'cnon:card-nonce-ok',
                 'location_id' => env('SQUARE_LOCATION'),
             ]);
 
@@ -473,12 +473,21 @@ class SquareServiceTest extends TestCase
         $this->assertEquals(User::find(1), $transaction->merchant, 'Merchant is not the same as in order.');
         $this->assertEquals(Customer::find(1), $transaction->customer, 'Customer is not the same as in order.');
         $this->assertContains(Product::find(1)->id, $transaction->order->products->pluck('id'), 'Product is not part of the order.');
-        $this->assertEquals(Constants::DEDUCTIBLE_SCOPE_PRODUCT,
-            $transaction->order->discounts->where('name', $productDiscount->name)->first()->pivot->scope, 'Discount scope is not \'LINE_ITEM\'');
-        $this->assertEquals(Constants::DEDUCTIBLE_SCOPE_PRODUCT,
-            $transaction->order->taxes->where('name', $taxAdditive->name)->first()->pivot->scope, 'Tax scope is not \'LINE_ITEM\'');
-        $this->assertEquals(Constants::DEDUCTIBLE_SCOPE_ORDER,
-            $transaction->order->discounts->where('name', $orderDiscount->name)->first()->pivot->scope, 'Discount scope is not \'ORDER\'');
+        $this->assertEquals(
+            Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+            $transaction->order->discounts->where('name', $productDiscount->name)->first()->pivot->scope,
+            'Discount scope is not \'LINE_ITEM\''
+        );
+        $this->assertEquals(
+            Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+            $transaction->order->taxes->where('name', $taxAdditive->name)->first()->pivot->scope,
+            'Tax scope is not \'LINE_ITEM\''
+        );
+        $this->assertEquals(
+            Constants::DEDUCTIBLE_SCOPE_ORDER,
+            $transaction->order->discounts->where('name', $orderDiscount->name)->first()->pivot->scope,
+            'Discount scope is not \'ORDER\''
+        );
     }
 
     /**

@@ -83,48 +83,50 @@ class Address extends Model
     /**
      * Create an Address model from Square Address object.
      *
-     * @param  \Square\Models\Address  $squareAddress
+     * @param \Square\Models\Address $squareAddress
+     *
      * @return static
      */
     public static function fromSquareAddress(SquareAddress $squareAddress): static
     {
         return new static([
-            'address_line_1' => $squareAddress->getAddressLine1(),
-            'address_line_2' => $squareAddress->getAddressLine2(),
-            'address_line_3' => $squareAddress->getAddressLine3(),
-            'locality' => $squareAddress->getLocality(),
+            'address_line_1'                  => $squareAddress->getAddressLine1(),
+            'address_line_2'                  => $squareAddress->getAddressLine2(),
+            'address_line_3'                  => $squareAddress->getAddressLine3(),
+            'locality'                        => $squareAddress->getLocality(),
             'administrative_district_level_1' => $squareAddress->getAdministrativeDistrictLevel1(),
             'administrative_district_level_2' => $squareAddress->getAdministrativeDistrictLevel2(),
             'administrative_district_level_3' => $squareAddress->getAdministrativeDistrictLevel3(),
-            'sublocality' => $squareAddress->getSublocality(),
-            'sublocality_2' => $squareAddress->getSublocality2(),
-            'sublocality_3' => $squareAddress->getSublocality3(),
-            'postal_code' => $squareAddress->getPostalCode(),
-            'country' => $squareAddress->getCountry(),
+            'sublocality'                     => $squareAddress->getSublocality(),
+            'sublocality_2'                   => $squareAddress->getSublocality2(),
+            'sublocality_3'                   => $squareAddress->getSublocality3(),
+            'postal_code'                     => $squareAddress->getPostalCode(),
+            'country'                         => $squareAddress->getCountry(),
         ]);
     }
 
     /**
      * Update address fields from Square Address object.
      *
-     * @param  \Square\Models\Address  $squareAddress
+     * @param \Square\Models\Address $squareAddress
+     *
      * @return void
      */
     public function updateFromSquareAddress(SquareAddress $squareAddress): void
     {
         $this->fill([
-            'address_line_1' => $squareAddress->getAddressLine1(),
-            'address_line_2' => $squareAddress->getAddressLine2(),
-            'address_line_3' => $squareAddress->getAddressLine3(),
-            'locality' => $squareAddress->getLocality(),
+            'address_line_1'                  => $squareAddress->getAddressLine1(),
+            'address_line_2'                  => $squareAddress->getAddressLine2(),
+            'address_line_3'                  => $squareAddress->getAddressLine3(),
+            'locality'                        => $squareAddress->getLocality(),
             'administrative_district_level_1' => $squareAddress->getAdministrativeDistrictLevel1(),
             'administrative_district_level_2' => $squareAddress->getAdministrativeDistrictLevel2(),
             'administrative_district_level_3' => $squareAddress->getAdministrativeDistrictLevel3(),
-            'sublocality' => $squareAddress->getSublocality(),
-            'sublocality_2' => $squareAddress->getSublocality2(),
-            'sublocality_3' => $squareAddress->getSublocality3(),
-            'postal_code' => $squareAddress->getPostalCode(),
-            'country' => $squareAddress->getCountry(),
+            'sublocality'                     => $squareAddress->getSublocality(),
+            'sublocality_2'                   => $squareAddress->getSublocality2(),
+            'sublocality_3'                   => $squareAddress->getSublocality3(),
+            'postal_code'                     => $squareAddress->getPostalCode(),
+            'country'                         => $squareAddress->getCountry(),
         ]);
     }
 }

@@ -38,9 +38,9 @@ class OrderTest extends TestCase
     /**
      * Charge with order.
      *
-     * @return void
-     *
      * @throws \Nikolag\Core\Exceptions\Exception
+     *
+     * @return void
      */
     public function test_order_charge(): void
     {
@@ -68,8 +68,8 @@ class OrderTest extends TestCase
 
         $data = [
             'location_id' => env('SQUARE_LOCATION'),
-            'amount' => 445,
-            'source_id' => 'cnon:card-nonce-ok',
+            'amount'      => 445,
+            'source_id'   => 'cnon:card-nonce-ok',
         ];
 
         $square = Square::setOrder($order, env('SQUARE_LOCATION'));

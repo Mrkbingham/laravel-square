@@ -35,7 +35,7 @@ trait HasAddress
      */
     public function getSquareAddress(): ?SquareAddress
     {
-        if (! $this->address) {
+        if (!$this->address) {
             return null;
         }
 
@@ -45,7 +45,8 @@ trait HasAddress
     /**
      * Create or update address from Square Address object.
      *
-     * @param  SquareAddress  $squareAddress
+     * @param SquareAddress $squareAddress
+     *
      * @return Address
      */
     public function syncAddressFromSquare(SquareAddress $squareAddress): Address

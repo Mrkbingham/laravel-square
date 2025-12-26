@@ -43,7 +43,8 @@ class Customer extends CoreCustomer
     /**
      * Initiate this customer.
      *
-     * @param  array  $data
+     * @param array $data
+     *
      * @return \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Model|null
      */
     public function initiateOrSave(array $data)
@@ -58,7 +59,8 @@ class Customer extends CoreCustomer
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

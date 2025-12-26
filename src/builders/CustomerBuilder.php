@@ -24,17 +24,18 @@ class CustomerBuilder
      * Find or create tax models
      * from taxes array.
      *
-     * @param  array  $data
-     * @return Customer $temp
+     * @param array $data
      *
      * @throws MissingPropertyException
+     *
+     * @return Customer $temp
      */
     public function load(array $data): Customer
     {
-        $temp = new $this->customerClass;
+        $temp = new $this->customerClass();
         //If email doesn't exist on the customer
         //throw new exception because it should exist
-        if (! array_key_exists('email', $data) || $data['email'] == null) {
+        if (!array_key_exists('email', $data) || $data['email'] == null) {
             throw new MissingPropertyException('$email property for object Customer is missing or is null', 500);
         }
 

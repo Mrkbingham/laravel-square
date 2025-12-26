@@ -49,14 +49,14 @@ class AddressTest extends TestCase
 
         $address = factory(Address::class)->create([
             'address_line_1' => $addressLine1,
-            'locality' => $locality,
-            'postal_code' => $postalCode,
+            'locality'       => $locality,
+            'postal_code'    => $postalCode,
         ]);
 
         $this->assertDatabaseHas('nikolag_addresses', [
             'address_line_1' => $addressLine1,
-            'locality' => $locality,
-            'postal_code' => $postalCode,
+            'locality'       => $locality,
+            'postal_code'    => $postalCode,
         ]);
     }
 
@@ -102,12 +102,12 @@ class AddressTest extends TestCase
     public function test_address_to_square_address(): void
     {
         $address = factory(Address::class)->create([
-            'address_line_1' => '300 N State St',
-            'address_line_2' => 'Unit 4629',
-            'locality' => 'Chicago',
+            'address_line_1'                  => '300 N State St',
+            'address_line_2'                  => 'Unit 4629',
+            'locality'                        => 'Chicago',
             'administrative_district_level_1' => 'IL',
-            'postal_code' => '60654',
-            'country' => 'US',
+            'postal_code'                     => '60654',
+            'country'                         => 'US',
         ]);
 
         $squareAddress = $address->toSquareAddress();
@@ -156,7 +156,7 @@ class AddressTest extends TestCase
     {
         $address = factory(Address::class)->create([
             'address_line_1' => 'Old Address',
-            'locality' => 'Old City',
+            'locality'       => 'Old City',
         ]);
 
         $squareAddress = new SquareAddress();
@@ -219,17 +219,17 @@ class AddressTest extends TestCase
     {
         $address = factory(Address::class)->make([
             'address_line_1' => '300 N State St',
-            'locality' => 'Chicago',
-            'postal_code' => '60654',
+            'locality'       => 'Chicago',
+            'postal_code'    => '60654',
         ]);
 
         $this->data->customer->address()->save($address);
 
         $this->assertDatabaseHas('nikolag_addresses', [
             'addressable_type' => Customer::class,
-            'addressable_id' => $this->data->customer->id,
-            'address_line_1' => '300 N State St',
-            'locality' => 'Chicago',
+            'addressable_id'   => $this->data->customer->id,
+            'address_line_1'   => '300 N State St',
+            'locality'         => 'Chicago',
         ]);
     }
 }
