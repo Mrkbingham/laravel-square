@@ -47,7 +47,8 @@ class SquareRequestBuilder
     /**
      * Create and return charge request.
      *
-     * @param  array  $prepData
+     * @param array $prepData
+     *
      * @return CreatePaymentRequest
      */
     public function buildChargeRequest(array $prepData): CreatePaymentRequest
@@ -72,7 +73,8 @@ class SquareRequestBuilder
     /**
      * Create and return customer request.
      *
-     * @param  Model  $customer
+     * @param Model $customer
+     *
      * @return CreateCustomerRequest|UpdateCustomerRequest
      */
     public function buildCustomerRequest(Model $customer): UpdateCustomerRequest|CreateCustomerRequest
@@ -102,13 +104,14 @@ class SquareRequestBuilder
     /**
      * Create and return order request.
      *
-     * @param  Model  $order
-     * @param  string  $locationId
-     * @param  string  $currency
-     * @return CreateOrderRequest
+     * @param Model  $order
+     * @param string $locationId
+     * @param string $currency
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return CreateOrderRequest
      */
     public function buildOrderRequest(Model $order, string $locationId, string $currency): CreateOrderRequest
     {
@@ -127,12 +130,13 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of discounts.
      *
-     * @param  Collection  $discounts
-     * @param  string  $currency
-     * @return array
+     * @param Collection $discounts
+     * @param string     $currency
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return array
      */
     public function buildDiscounts(Collection $discounts, string $currency): array
     {
@@ -190,7 +194,8 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of already applied discounts.
      *
-     * @param  Collection  $discounts
+     * @param Collection $discounts
+     *
      * @return array
      */
     public function buildAppliedDiscounts(Collection $discounts): array
@@ -210,10 +215,11 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of taxes.
      *
-     * @param  Collection  $taxes
-     * @return array
+     * @param Collection $taxes
      *
      * @throws MissingPropertyException
+     *
+     * @return array
      */
     public function buildTaxes(Collection $taxes): array
     {
@@ -255,10 +261,11 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of already applied taxes.
      *
-     * @param  Collection  $taxes
-     * @return array
+     * @param Collection $taxes
      *
      * @throws \Exception
+     *
+     * @return array
      */
     public function buildAppliedTaxes(Collection $taxes): array
     {
@@ -277,12 +284,13 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of \SquareConnect\Model\OrderLineItem for order.
      *
-     * @param  Collection  $products
-     * @param  string  $currency
-     * @return array
+     * @param Collection $products
+     * @param string     $currency
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return array
      */
     public function buildProducts(Collection $products, string $currency): array
     {

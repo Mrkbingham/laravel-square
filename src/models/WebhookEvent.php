@@ -47,9 +47,9 @@ class WebhookEvent extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'event_data' => 'array',
-        'event_time' => 'datetime',
-        'processed_at' => 'datetime',
+        'event_data'                 => 'array',
+        'event_time'                 => 'datetime',
+        'processed_at'               => 'datetime',
         'initial_delivery_timestamp' => 'datetime',
     ];
 
@@ -66,7 +66,8 @@ class WebhookEvent extends Model
     /**
      * Scope a query to only include pending events.
      *
-     * @param  Builder  $query
+     * @param Builder $query
+     *
      * @return Builder
      */
     public function scopePending($query): Builder
@@ -77,7 +78,8 @@ class WebhookEvent extends Model
     /**
      * Scope a query to only include processed events.
      *
-     * @param  Builder  $query
+     * @param Builder $query
+     *
      * @return Builder
      */
     public function scopeProcessed($query): Builder
@@ -88,7 +90,8 @@ class WebhookEvent extends Model
     /**
      * Scope a query to only include failed events.
      *
-     * @param  Builder  $query
+     * @param Builder $query
+     *
      * @return Builder
      */
     public function scopeFailed($query): Builder
@@ -99,8 +102,9 @@ class WebhookEvent extends Model
     /**
      * Scope a query to only include events of a specific type.
      *
-     * @param  Builder  $query
-     * @param  string  $eventType
+     * @param Builder $query
+     * @param string  $eventType
+     *
      * @return Builder
      */
     public function scopeForEventType($query, string $eventType): Builder
@@ -140,12 +144,12 @@ class WebhookEvent extends Model
     public static function getObjectTypeKey(string $eventType): ?string
     {
         return match ($eventType) {
-            'order.created' => 'order_created',
+            'order.created'             => 'order_created',
             'order.fulfillment.updated' => 'order_fulfillment_updated',
-            'order.updated' => 'order_updated',
-            'payment.created' => 'payment',
-            'payment.updated' => 'payment',
-            default => null,
+            'order.updated'             => 'order_updated',
+            'payment.created'           => 'payment',
+            'payment.updated'           => 'payment',
+            default                     => null,
         };
     }
 
@@ -203,8 +207,8 @@ class WebhookEvent extends Model
     public function markAsProcessed(): bool
     {
         return $this->update([
-            'status' => self::STATUS_PROCESSED,
-            'processed_at' => now(),
+            'status'        => self::STATUS_PROCESSED,
+            'processed_at'  => now(),
             'error_message' => null,
         ]);
     }
@@ -212,14 +216,15 @@ class WebhookEvent extends Model
     /**
      * Mark the event as failed with an error message.
      *
-     * @param  string  $errorMessage
+     * @param string $errorMessage
+     *
      * @return bool
      */
     public function markAsFailed(string $errorMessage): bool
     {
         return $this->update([
-            'status' => self::STATUS_FAILED,
-            'processed_at' => now(),
+            'status'        => self::STATUS_FAILED,
+            'processed_at'  => now(),
             'error_message' => $errorMessage,
         ]);
     }
@@ -271,7 +276,7 @@ class WebhookEvent extends Model
      */
     public function isRetry(): bool
     {
-        return ! is_null($this->retry_number) && $this->retry_number > 0;
+        return !is_null($this->retry_number) && $this->retry_number > 0;
     }
 
     /**
@@ -281,13 +286,13 @@ class WebhookEvent extends Model
      */
     public function getRetryInfo(): ?array
     {
-        if (! $this->isRetry()) {
+        if (!$this->isRetry()) {
             return null;
         }
 
         return [
-            'reason' => $this->retry_reason,
-            'number' => $this->retry_number,
+            'reason'                     => $this->retry_reason,
+            'number'                     => $this->retry_number,
             'initial_delivery_timestamp' => $this->initial_delivery_timestamp,
         ];
     }
@@ -295,7 +300,8 @@ class WebhookEvent extends Model
     /**
      * Scope a query to only include retry events.
      *
-     * @param  Builder  $query
+     * @param Builder $query
+     *
      * @return Builder
      */
     public function scopeRetries($query): Builder
@@ -306,7 +312,8 @@ class WebhookEvent extends Model
     /**
      * Scope a query to only include original (non-retry) events.
      *
-     * @param  Builder  $query
+     * @param Builder $query
+     *
      * @return Builder
      */
     public function scopeOriginal($query): Builder

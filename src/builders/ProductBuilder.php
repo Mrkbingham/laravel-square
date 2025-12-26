@@ -31,13 +31,14 @@ class ProductBuilder
     /**
      * Add a product to the order from model as source.
      *
-     * @param  Model  $order
-     * @param  Model  $product
-     * @param  int  $quantity
-     * @return Product|stdClass
+     * @param Model $order
+     * @param Model $product
+     * @param int   $quantity
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return Product|stdClass
      */
     public function addProductFromModel(Model $order, Model $product, int $quantity): Product|stdClass
     {
@@ -71,14 +72,15 @@ class ProductBuilder
     /**
      * Add a product to the order from array as source.
      *
-     * @param  stdClass  $orderCopy
-     * @param  Model  $order
-     * @param  array  $product
-     * @param  int  $quantity
-     * @return Product|stdClass
+     * @param stdClass $orderCopy
+     * @param Model    $order
+     * @param array    $product
+     * @param int      $quantity
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return Product|stdClass
      */
     public function addProductFromArray(stdClass $orderCopy, Model $order, array $product, int $quantity): Product|stdClass
     {
@@ -110,7 +112,7 @@ class ProductBuilder
             if (Arr::has($product, 'discounts')) {
                 $productCopy->discounts = $this->discountBuilder->createDiscounts($product['discounts'], Constants::DEDUCTIBLE_SCOPE_PRODUCT, $productCopy->productPivot);
                 $productCopy->discounts->each(function ($discount) use ($orderCopy) {
-                    if (! $orderCopy->discounts->contains($discount)) {
+                    if (!$orderCopy->discounts->contains($discount)) {
                         $orderCopy->discounts->add($discount);
                     }
                 });
@@ -121,7 +123,7 @@ class ProductBuilder
             if (Arr::has($product, 'taxes')) {
                 $productCopy->taxes = $this->taxesBuilder->createTaxes($product['taxes'], Constants::DEDUCTIBLE_SCOPE_PRODUCT, $productCopy->productPivot);
                 $productCopy->taxes->each(function ($tax) use ($orderCopy) {
-                    if (! $orderCopy->taxes->contains($tax)) {
+                    if (!$orderCopy->taxes->contains($tax)) {
                         $orderCopy->taxes->add($tax);
                     }
                 });
@@ -136,11 +138,12 @@ class ProductBuilder
     /**
      * Create product from array.
      *
-     * @param  array  $product
-     * @param  Model|null  $order
-     * @return Product|stdClass
+     * @param array      $product
+     * @param Model|null $order
      *
      * @throws MissingPropertyException
+     *
+     * @return Product|stdClass
      */
     public function createProductFromArray(array $product, ?Model $order = null): Product|stdClass
     {
@@ -148,18 +151,18 @@ class ProductBuilder
         //If product doesn't have quantity in pivot table
         //throw new exception because every product should
         //have at least 1 quantity
-        if (! Arr::has($product, 'quantity') || $product['quantity'] == null || $product['quantity'] == 0) {
+        if (!Arr::has($product, 'quantity') || $product['quantity'] == null || $product['quantity'] == 0) {
             throw new MissingPropertyException('$quantity property for object Product is missing', 500);
         }
         //Check if order is present and if already has this product
         //or if product doesn't have property $id then create new Product object
-        if (($order && ! $order->hasProduct($product)) || ! Arr::has($product, 'id')) {
+        if (($order && !$order->hasProduct($product)) || !Arr::has($product, 'id')) {
             $tempProduct = new Product($product);
             $productPivot = new OrderProductPivot($product);
         } else {
             $tempProduct = Product::find($product['id']);
             $productPivot = OrderProductPivot::where('order_id', $order->id)->where('product_id', $tempProduct->id)->first();
-            if (! $productPivot) {
+            if (!$productPivot) {
                 $productPivot = new OrderProductPivot($product);
             }
         }
@@ -173,12 +176,13 @@ class ProductBuilder
     /**
      * Create product from model.
      *
-     * @param  Model  $product
-     * @param  Model|null  $order
-     * @param  int|null  $quantity
-     * @return Product|stdClass
+     * @param Model      $product
+     * @param Model|null $order
+     * @param int|null   $quantity
      *
      * @throws MissingPropertyException
+     *
+     * @return Product|stdClass
      */
     public function createProductFromModel(Model $product, ?Model $order = null, ?int $quantity = null): Product|stdClass
     {
@@ -186,8 +190,8 @@ class ProductBuilder
         //If product doesn't have quantity in pivot table
         //throw new exception because every product should
         //have at least 1 quantity
-        if (! $quantity) {
-            if (! $product->pivot->quantity || $product->pivot->quantity == null || $product->pivot->quantity == 0) {
+        if (!$quantity) {
+            if (!$product->pivot->quantity || $product->pivot->quantity == null || $product->pivot->quantity == 0) {
                 throw new MissingPropertyException('$quantity property for object Product is missing', 500);
             } else {
                 $quantity = $product->pivot->quantity;
@@ -195,13 +199,13 @@ class ProductBuilder
         }
         // Check if order is present and if already has this product
         // or if product doesn't have property $id then create new Product object
-        if (($order && ! $order->hasProduct($product)) && ! Arr::has($product->toArray(), 'id')) {
+        if (($order && !$order->hasProduct($product)) && !Arr::has($product->toArray(), 'id')) {
             $tempProduct = new Product($product->toArray());
             $productPivot = new OrderProductPivot($product->toArray());
         } else {
             $tempProduct = Product::find($product->id);
             $productPivot = OrderProductPivot::where('order_id', $order->id)->where('product_id', $tempProduct->id)->first();
-            if (! $productPivot) {
+            if (!$productPivot) {
                 $productPivot = new OrderProductPivot($product->toArray());
             }
         }

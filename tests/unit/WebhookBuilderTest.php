@@ -77,11 +77,11 @@ class WebhookBuilderTest extends TestCase
         $validOrderEvent = [
             'type' => 'order.created',
             'data' => [
-                'type' => 'order',
-                'id' => 'test-id',
+                'type'   => 'order',
+                'id'     => 'test-id',
                 'object' => [
                     'order' => [
-                        'id' => 'order-123',
+                        'id'          => 'order-123',
                         'location_id' => 'location-456',
                     ],
                 ],
@@ -110,11 +110,11 @@ class WebhookBuilderTest extends TestCase
     {
         $eventData = [
             'merchant_id' => 'merchant-123',
-            'type' => 'order.created',
-            'data' => [
+            'type'        => 'order.created',
+            'data'        => [
                 'object' => [
                     'order' => [
-                        'id' => 'order-456',
+                        'id'          => 'order-456',
                         'location_id' => 'location-789',
                     ],
                 ],

@@ -26,7 +26,8 @@ class WebhookMockBuilder
     /**
      * Configure success response data.
      *
-     * @param  array  $data  Data to include in the success response
+     * @param array $data Data to include in the success response
+     *
      * @return $this
      */
     public function withSuccess(array $data = []): self
@@ -40,8 +41,9 @@ class WebhookMockBuilder
     /**
      * Configure error response.
      *
-     * @param  string  $message  Error message
-     * @param  int  $code  HTTP status code
+     * @param string $message Error message
+     * @param int    $code    HTTP status code
+     *
      * @return $this
      */
     public function withError(string $message, int $code = 400): self

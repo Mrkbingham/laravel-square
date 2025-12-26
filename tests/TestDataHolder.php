@@ -12,13 +12,15 @@ use Nikolag\Square\Tests\Models\User;
 
 class TestDataHolder
 {
-    public function __construct(public ?Order $order,
-                                public ?Product $product,
-                                public ?Customer $customer,
-                                public ?User $merchant,
-                                public ?Tax $tax,
-                                public ?Discount $discount,
-                                public ?Address $address)
+    public function __construct(
+        public ?Order $order,
+        public ?Product $product,
+        public ?Customer $customer,
+        public ?User $merchant,
+        public ?Tax $tax,
+        public ?Discount $discount,
+        public ?Address $address
+    )
     {
     }
 
@@ -44,13 +46,15 @@ class TestDataHolder
             factory(Address::class)->create());
     }
 
-    public function modify(string $prodFac = 'create',
-                           string $prodDiscFac = 'create',
-                           string $orderDisFac = 'create',
-                           string $orderDiscFixFac = 'create',
-                           string $taxAddFac = 'create',
-                           string $taxIncFac = 'create',
-                           string $addressFac = 'create')
+    public function modify(
+        string $prodFac = 'create',
+        string $prodDiscFac = 'create',
+        string $orderDisFac = 'create',
+        string $orderDiscFixFac = 'create',
+        string $taxAddFac = 'create',
+        string $taxIncFac = 'create',
+        string $addressFac = 'create'
+    )
     {
         $product = factory(Product::class)->{$prodFac}([
             'price' => 1000,

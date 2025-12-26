@@ -17,13 +17,14 @@ class DiscountBuilder
      * Find or create discount models
      * from discounts array.
      *
-     * @param  array  $discounts
-     * @param  string  $scope
-     * @param  Model|null  $parent
-     * @return Collection
+     * @param array      $discounts
+     * @param string     $scope
+     * @param Model|null $parent
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return Collection
      */
     public function createDiscounts(array $discounts, string $scope, ?Model $parent = null): Collection
     {
@@ -31,8 +32,8 @@ class DiscountBuilder
         foreach ($discounts as $discount) {
             //If discount doesn't have amount AND percentage in discounts table
             //throw new exception because it should have at least 1
-            if ((! isset($discount['amount']) || $discount['amount'] == null || $discount['amount'] == 0) &&
-                (! isset($discount['percentage']) || $discount['percentage'] == null || $discount['percentage'] == '')) {
+            if ((!isset($discount['amount']) || $discount['amount'] == null || $discount['amount'] == 0) &&
+                (!isset($discount['percentage']) || $discount['percentage'] == null || $discount['percentage'] == '')) {
                 throw new MissingPropertyException('Both $amount and $percentage property for object Discount are missing, 1 is required', 500);
             }
             //If discount have amount AND percentage in discount table
@@ -44,7 +45,7 @@ class DiscountBuilder
             }
             //Check if parent is present or parent already has this discount or if discount
             //doesn't have property $id then create new Discount object
-            if (($parent && ! $parent->hasDiscount($discount)) || ! Arr::has($discount, 'id')) {
+            if (($parent && !$parent->hasDiscount($discount)) || !Arr::has($discount, 'id')) {
                 $tempDiscount = new Discount($discount);
             } else {
                 // Load discount with pivot

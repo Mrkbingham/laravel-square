@@ -21,14 +21,14 @@ class WebhookSubscriptionTest extends TestCase
     public function test_webhook_subscription_make()
     {
         $subscription = factory(WebhookSubscription::class)->make([
-            'square_id' => 'test-subscription-id',
-            'name' => 'Test Webhook',
+            'square_id'        => 'test-subscription-id',
+            'name'             => 'Test Webhook',
             'notification_url' => 'https://example.com/webhook',
-            'event_types' => ['order.created', 'order.updated'],
-            'api_version' => '2024-06-04',
-            'signature_key' => 'test-signature-key',
-            'is_enabled' => true,
-            'is_active' => true,
+            'event_types'      => ['order.created', 'order.updated'],
+            'api_version'      => '2024-06-04',
+            'signature_key'    => 'test-signature-key',
+            'is_enabled'       => true,
+            'is_active'        => true,
         ]);
 
         $this->assertNotNull($subscription, 'Subscription is null.');
@@ -42,21 +42,21 @@ class WebhookSubscriptionTest extends TestCase
     public function test_webhook_subscription_create()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'square_id' => 'test-subscription-id',
-            'name' => 'Test Webhook',
+            'square_id'        => 'test-subscription-id',
+            'name'             => 'Test Webhook',
             'notification_url' => 'https://example.com/webhook',
-            'event_types' => ['order.created', 'order.updated'],
-            'api_version' => '2024-06-04',
-            'signature_key' => 'test-signature-key',
-            'is_enabled' => true,
-            'is_active' => true,
+            'event_types'      => ['order.created', 'order.updated'],
+            'api_version'      => '2024-06-04',
+            'signature_key'    => 'test-signature-key',
+            'is_enabled'       => true,
+            'is_active'        => true,
         ]);
 
         $this->assertDatabaseHas('nikolag_webhook_subscriptions', [
-            'square_id' => 'test-subscription-id',
-            'name' => 'Test Webhook',
+            'square_id'  => 'test-subscription-id',
+            'name'       => 'Test Webhook',
             'is_enabled' => true,
-            'is_active' => true,
+            'is_active'  => true,
         ]);
 
         $this->assertEquals(['order.created', 'order.updated'], $subscription->event_types);
@@ -72,17 +72,17 @@ class WebhookSubscriptionTest extends TestCase
     public function test_webhook_subscription_fillable_attributes()
     {
         $data = [
-            'square_id' => 'test-id',
-            'name' => 'Test Webhook',
+            'square_id'        => 'test-id',
+            'name'             => 'Test Webhook',
             'notification_url' => 'https://example.com/webhook',
-            'event_types' => ['order.created'],
-            'api_version' => '2024-06-04',
-            'signature_key' => 'test-key',
-            'is_enabled' => true,
-            'is_active' => true,
-            'last_tested_at' => now(),
-            'last_failed_at' => now(),
-            'last_error' => 'Test error',
+            'event_types'      => ['order.created'],
+            'api_version'      => '2024-06-04',
+            'signature_key'    => 'test-key',
+            'is_enabled'       => true,
+            'is_active'        => true,
+            'last_tested_at'   => now(),
+            'last_failed_at'   => now(),
+            'last_error'       => 'Test error',
         ];
 
         $subscription = WebhookSubscription::create($data);
@@ -104,9 +104,9 @@ class WebhookSubscriptionTest extends TestCase
     public function test_webhook_subscription_casts_work_correctly()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'event_types' => ['order.created', 'order.updated'],
-            'is_enabled' => true,
-            'is_active' => false,
+            'event_types'    => ['order.created', 'order.updated'],
+            'is_enabled'     => true,
+            'is_active'      => false,
             'last_tested_at' => '2024-06-24 10:00:00',
             'last_failed_at' => '2024-06-24 11:00:00',
         ]);
@@ -242,22 +242,22 @@ class WebhookSubscriptionTest extends TestCase
     {
         $operationalSubscription = factory(WebhookSubscription::class)->create([
             'is_enabled' => true,
-            'is_active' => true,
+            'is_active'  => true,
         ]);
 
         $disabledSubscription = factory(WebhookSubscription::class)->create([
             'is_enabled' => false,
-            'is_active' => true,
+            'is_active'  => true,
         ]);
 
         $inactiveSubscription = factory(WebhookSubscription::class)->create([
             'is_enabled' => true,
-            'is_active' => false,
+            'is_active'  => false,
         ]);
 
         $completelyOffSubscription = factory(WebhookSubscription::class)->create([
             'is_enabled' => false,
-            'is_active' => false,
+            'is_active'  => false,
         ]);
 
         $this->assertTrue($operationalSubscription->isOperational());
@@ -275,7 +275,7 @@ class WebhookSubscriptionTest extends TestCase
     {
         $subscription = factory(WebhookSubscription::class)->create([
             'last_tested_at' => null,
-            'last_error' => 'Previous error',
+            'last_error'     => 'Previous error',
         ]);
 
         $this->assertNull($subscription->last_tested_at);
@@ -299,7 +299,7 @@ class WebhookSubscriptionTest extends TestCase
     {
         $subscription = factory(WebhookSubscription::class)->create([
             'last_failed_at' => null,
-            'last_error' => null,
+            'last_error'     => null,
         ]);
 
         $errorMessage = 'Webhook endpoint returned 500 error';
@@ -320,20 +320,20 @@ class WebhookSubscriptionTest extends TestCase
     public function test_webhook_subscription_multiple_scopes_can_be_chained()
     {
         factory(WebhookSubscription::class)->create([
-            'is_enabled' => true,
-            'is_active' => true,
+            'is_enabled'  => true,
+            'is_active'   => true,
             'event_types' => ['order.created', 'order.updated'],
         ]);
 
         factory(WebhookSubscription::class)->create([
-            'is_enabled' => true,
-            'is_active' => false,
+            'is_enabled'  => true,
+            'is_active'   => false,
             'event_types' => ['order.created'],
         ]);
 
         factory(WebhookSubscription::class)->create([
-            'is_enabled' => false,
-            'is_active' => true,
+            'is_enabled'  => false,
+            'is_active'   => true,
             'event_types' => ['order.created', 'customer.created'],
         ]);
 
@@ -408,11 +408,11 @@ class WebhookSubscriptionTest extends TestCase
     public function test_webhook_subscription_get_webhook_builder_method()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'name' => 'Test Webhook Builder',
+            'name'             => 'Test Webhook Builder',
             'notification_url' => 'https://example.com/webhook-builder',
-            'event_types' => ['order.created', 'payment.updated'],
-            'api_version' => '2024-06-04',
-            'is_enabled' => true,
+            'event_types'      => ['order.created', 'payment.updated'],
+            'api_version'      => '2024-06-04',
+            'is_enabled'       => true,
         ]);
 
         $builder = $subscription->getWebhookBuilder();
@@ -432,11 +432,11 @@ class WebhookSubscriptionTest extends TestCase
     public function test_webhook_subscription_get_webhook_builder_with_disabled_subscription()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'name' => 'Disabled Webhook',
+            'name'             => 'Disabled Webhook',
             'notification_url' => 'https://example.com/disabled-webhook',
-            'event_types' => ['customer.created'],
-            'api_version' => '2024-06-04',
-            'is_enabled' => false,
+            'event_types'      => ['customer.created'],
+            'api_version'      => '2024-06-04',
+            'is_enabled'       => false,
         ]);
 
         $builder = $subscription->getWebhookBuilder();
@@ -456,11 +456,11 @@ class WebhookSubscriptionTest extends TestCase
     public function test_webhook_subscription_get_webhook_builder_with_null_values()
     {
         $subscription = new WebhookSubscription([
-            'name' => null,
+            'name'             => null,
             'notification_url' => null,
-            'event_types' => null,
-            'api_version' => null,
-            'is_enabled' => null,
+            'event_types'      => null,
+            'api_version'      => null,
+            'is_enabled'       => null,
         ]);
 
         $builder = $subscription->getWebhookBuilder();

@@ -10,7 +10,8 @@ use Orchestra\Testbench\TestCase as BaseTestCase;
 
 class TestCase extends BaseTestCase
 {
-    use DatabaseMigrations, WithoutMiddleware;
+    use DatabaseMigrations;
+    use WithoutMiddleware;
 
     /**
      * @var \Faker\Factory
@@ -58,7 +59,8 @@ class TestCase extends BaseTestCase
     /**
      * Define environment setup.
      *
-     * @param  \Illuminate\Foundation\Application  $app
+     * @param \Illuminate\Foundation\Application $app
+     *
      * @return void
      */
     protected function getEnvironmentSetUp($app): void
@@ -66,9 +68,9 @@ class TestCase extends BaseTestCase
         // Setup default database to use sqlite :memory:
         $app['config']->set('database.default', 'square_test');
         $app['config']->set('database.connections.square_test', [
-            'driver' => 'sqlite',
+            'driver'   => 'sqlite',
             'database' => ':memory:',
-            'prefix' => '',
+            'prefix'   => '',
         ]);
 //        $app['config']->set('database.default', 'square_test');
 //        $app['config']->set('database.connections.square_test', [

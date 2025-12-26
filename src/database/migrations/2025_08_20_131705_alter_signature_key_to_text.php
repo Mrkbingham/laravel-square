@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class() extends Migration {
     /**
      * Run the migrations.
      */
@@ -29,7 +28,7 @@ return new class extends Migration
             if ($record->signature_key) {
                 // Only encrypt if it's not already encrypted
                 // Laravel's encrypted cast produces base64 strings that start with specific patterns
-                if (! $this->isAlreadyEncrypted($record->signature_key)) {
+                if (!$this->isAlreadyEncrypted($record->signature_key)) {
                     $encryptedKey = Crypt::encryptString($record->signature_key);
 
                     DB::table('nikolag_webhook_subscriptions')
@@ -81,7 +80,8 @@ return new class extends Migration
     /**
      * Check if a value appears to be already encrypted by Laravel's Crypt class.
      *
-     * @param  string  $value
+     * @param string $value
+     *
      * @return bool
      */
     private function isAlreadyEncrypted(string $value): bool

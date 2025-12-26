@@ -29,11 +29,11 @@ class SquareServiceWebhookEventTest extends TestCase
     {
         // Create a webhook event
         $event = WebhookEvent::create([
-            'square_event_id' => 'event_123',
-            'event_type' => 'order.created',
-            'event_time' => now(),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => 'event_123',
+            'event_type'              => 'order.created',
+            'event_time'              => now(),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => 1,
         ]);
 
@@ -55,11 +55,11 @@ class SquareServiceWebhookEventTest extends TestCase
     {
         // Create a webhook event
         $event = WebhookEvent::create([
-            'square_event_id' => 'event_123',
-            'event_type' => 'order.created',
-            'event_time' => now(),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => 'event_123',
+            'event_type'              => 'order.created',
+            'event_time'              => now(),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => 1,
         ]);
 
@@ -96,44 +96,44 @@ class SquareServiceWebhookEventTest extends TestCase
     {
         // Create test webhook events with different ages
         $oldEvent1 = new WebhookEvent([
-            'square_event_id' => 'old_event_1',
-            'event_type' => 'order.created',
-            'event_time' => now()->subDays(45),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_PROCESSED,
+            'square_event_id'         => 'old_event_1',
+            'event_type'              => 'order.created',
+            'event_time'              => now()->subDays(45),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_PROCESSED,
             'webhook_subscription_id' => 1,
         ]);
         $oldEvent1->created_at = now()->subDays(45);
         $oldEvent1->save();
 
         $oldEvent2 = new WebhookEvent([
-            'square_event_id' => 'old_event_2',
-            'event_type' => 'order.updated',
-            'event_time' => now()->subDays(35),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_FAILED,
+            'square_event_id'         => 'old_event_2',
+            'event_type'              => 'order.updated',
+            'event_time'              => now()->subDays(35),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_FAILED,
             'webhook_subscription_id' => 1,
         ]);
         $oldEvent2->created_at = now()->subDays(35);
         $oldEvent2->save();
 
         $oldPendingEvent = new WebhookEvent([
-            'square_event_id' => 'old_pending_event',
-            'event_type' => 'order.created',
-            'event_time' => now()->subDays(40),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => 'old_pending_event',
+            'event_type'              => 'order.created',
+            'event_time'              => now()->subDays(40),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => 1,
         ]);
         $oldPendingEvent->created_at = now()->subDays(40);
         $oldPendingEvent->save();
 
         $recentEvent = new WebhookEvent([
-            'square_event_id' => 'recent_event',
-            'event_type' => 'order.created',
-            'event_time' => now()->subDays(10),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_PROCESSED,
+            'square_event_id'         => 'recent_event',
+            'event_type'              => 'order.created',
+            'event_time'              => now()->subDays(10),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_PROCESSED,
             'webhook_subscription_id' => 1,
         ]);
         $recentEvent->created_at = now()->subDays(10);
