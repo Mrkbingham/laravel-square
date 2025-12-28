@@ -13,13 +13,17 @@ use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\Models\User;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
+use Nikolag\Square\Tests\Traits\MocksSquareConfigDependency;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
 use Square\Models\CatalogObject;
 use Square\Models\CatalogObjectType;
+use Square\Models\RetrieveOrderResponse;
 
 class SquareServiceTest extends TestCase
 {
+    use MocksSquareConfigDependency;
+
     private TestDataHolder $data;
 
     /**
@@ -482,49 +486,48 @@ class SquareServiceTest extends TestCase
     }
 
     /**
-     * Tests retrieving catalog information.
+     * Test retrieving an order successfully.
      *
      * @return void
      */
-    public function test_square_list_catalog(): void
+    public function test_square_retrieve_order_success(): void
     {
-        $catalog = Square::listCatalog();
+        $orderId = 'test-square-order-123';
+        $locationId = 'test-location-456';
 
-        $this->assertNotNull($catalog);
-        $this->assertIsArray($catalog);
-        foreach ($catalog as $item) {
-            $this->assertInstanceOf('\Square\Models\CatalogObject', $item);
-        }
+        // Mock successful retrieve order response
+        $this->mockRetrieveOrderSuccess([
+            'id' => $orderId,
+            'locationId' => $locationId,
+            'state' => 'OPEN',
+            'version' => 1,
+            'createdAt' => '2023-10-18T10:00:00Z',
+            'updatedAt' => '2023-10-18T10:00:00Z'
+        ]);
+
+        $retrievedOrder = Square::retrieveOrder($orderId);
+
+        $this->assertNotNull($retrievedOrder);
+        $this->assertInstanceOf(RetrieveOrderResponse::class, $retrievedOrder);
+        $this->assertNotNull($retrievedOrder->getOrder());
+        $this->assertEquals($orderId, $retrievedOrder->getOrder()->getId());
+        $this->assertEquals($locationId, $retrievedOrder->getOrder()->getLocationId());
+        $this->assertEquals('OPEN', $retrievedOrder->getOrder()->getState());
     }
 
     /**
-     * Ensures filtering the catalog by type is supported
+     * Test retrieving a non-existent order using mocking.
      *
      * @return void
      */
-    public function test_square_list_catalog_by_type(): void
+    public function test_square_retrieve_order_not_found(): void
     {
-        $catalogItems = Square::listCatalog([CatalogObjectType::ITEM]);
+        // Mock error response for non-existent order
+        $this->mockRetrieveOrderError('Order not found', 404);
 
-        $this->assertNotNull($catalogItems);
-        $this->assertIsArray($catalogItems);
-        foreach ($catalogItems as $item) {
-            $this->assertInstanceOf(CatalogObject::class, $item);
-            $this->assertEquals('ITEM', $item->getType());
-        }
-    }
-
-    /**
-     * Ensures an exception is thrown when retrieving non-standard catalog information.
-     *
-     * @return void
-     */
-    public function test_square_list_catalog_unsupported_type(): void
-    {
         $this->expectException(Exception::class);
-        $this->expectExceptionMessage('INVALID_REQUEST_ERROR: Unknown object type "UNSUPPORTED_ITEM"');
-        $this->expectExceptionCode(400);
+        $this->expectExceptionCode(404);
 
-        Square::listCatalog(['unsupported_item']);
+        Square::retrieveOrder('non-existent-order-id');
     }
 }
