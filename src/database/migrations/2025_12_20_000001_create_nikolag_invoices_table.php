@@ -63,6 +63,7 @@ class CreateNikolagInvoicesTable extends Migration
             $table->date('sale_or_service_date')->nullable();
             $table->text('payment_conditions')->nullable();
             $table->boolean('store_payment_method_enabled')->default(false);
+            $table->string('creator_team_member_id')->nullable();
             $table->timestamps();
         });
     }
