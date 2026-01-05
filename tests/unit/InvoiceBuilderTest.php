@@ -3,6 +3,7 @@
 namespace Nikolag\Square\Tests\Unit;
 
 use Nikolag\Square\Builders\InvoiceBuilder;
+use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Models\Invoice;
 use Nikolag\Square\Models\Location;
 use Nikolag\Square\Tests\Models\Order;
@@ -49,8 +50,8 @@ class InvoiceBuilderTest extends TestCase
 
         $this->assertInstanceOf(CreateInvoiceRequest::class, $request);
         $this->assertNotNull($request->getInvoice());
-        $this->assertEquals($location->id, $request->getInvoice()->getLocationId());
-        $this->assertEquals($order->id, $request->getInvoice()->getOrderId());
+        $this->assertEquals($location->square_id, $request->getInvoice()->getLocationId());
+        $this->assertEquals($order->payment_service_id, $request->getInvoice()->getOrderId());
         $this->assertNotNull($request->getIdempotencyKey());
     }
 
@@ -526,5 +527,103 @@ class InvoiceBuilderTest extends TestCase
         // Verify optional fields are null
         $this->assertNull($invoice->public_url);
         $this->assertNull($invoice->invoice_number);
+    }
+
+    /**
+     * Test buildCreateInvoiceRequest throws exception when order is missing.
+     *
+     * @return void
+     */
+    public function test_build_create_invoice_request_throws_exception_when_order_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Cannot create invoice without an associated order');
+
+        $location = factory(Location::class)->create();
+
+        // Create an invoice without an order relationship
+        $invoice = new Invoice([
+            'location_id' => $location->id,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        $this->builder->buildCreateInvoiceRequest($invoice);
+    }
+
+    /**
+     * Test buildCreateInvoiceRequest throws exception when order ID is missing.
+     *
+     * @return void
+     */
+    public function test_build_create_invoice_request_throws_exception_when_order_id_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Cannot create invoice without a Square order ID');
+
+        $location = factory(Location::class)->create();
+
+        // Create an order without a payment_service_id
+        $order = factory(Order::class)->create();
+        $order->payment_service_id = null;
+        $order->save();
+
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => $location->id,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        $this->builder->buildCreateInvoiceRequest($invoice);
+    }
+
+    /**
+     * Test buildUpdateInvoiceRequest throws exception when order is missing.
+     *
+     * @return void
+     */
+    public function test_build_update_invoice_request_throws_exception_when_order_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Cannot create invoice without an associated order');
+
+        $location = factory(Location::class)->create();
+
+        // Create an invoice without an order relationship
+        $invoice = new Invoice([
+            'location_id' => $location->id,
+            'payment_service_id' => 'inv_' . uniqid(),
+            'payment_service_version' => 1,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        $this->builder->buildUpdateInvoiceRequest($invoice, 1);
+    }
+
+    /**
+     * Test buildUpdateInvoiceRequest throws exception when order ID is missing.
+     *
+     * @return void
+     */
+    public function test_build_update_invoice_request_throws_exception_when_order_id_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Cannot create invoice without a Square order ID');
+
+        $location = factory(Location::class)->create();
+
+        // Create an order without a payment_service_id
+        $order = factory(Order::class)->create();
+        $order->payment_service_id = null;
+        $order->save();
+
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => $location->id,
+            'payment_service_id' => 'inv_' . uniqid(),
+            'payment_service_version' => 1,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        $this->builder->buildUpdateInvoiceRequest($invoice, 1);
     }
 }

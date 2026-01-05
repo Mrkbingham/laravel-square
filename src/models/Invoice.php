@@ -71,6 +71,16 @@ class Invoice extends Model
     }
 
     /**
+     * Get the location that owns the invoice.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    /**
      * Get the invoice recipient.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasOne

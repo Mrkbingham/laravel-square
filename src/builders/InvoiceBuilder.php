@@ -3,6 +3,7 @@
 namespace Nikolag\Square\Builders;
 
 use Illuminate\Support\Collection;
+use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Models\Invoice;
 use Nikolag\Square\Models\InvoiceAcceptedPaymentMethods;
 use Nikolag\Square\Models\InvoiceCustomField;
@@ -35,12 +36,17 @@ class InvoiceBuilder
      *
      * @param  Invoice  $invoice
      * @return CreateInvoiceRequest
+     * @throws MissingPropertyException
      */
     public function buildCreateInvoiceRequest(Invoice $invoice): CreateInvoiceRequest
     {
+        $this->validateOrderId($invoice);
+
+        $property = config('nikolag.connections.square.order.service_identifier');
+
         $invoiceBuilder = SquareInvoiceBuilder::init()
-            ->locationId($invoice->location_id)
-            ->orderId($invoice->order_id);
+            ->locationId($invoice->location->square_id)
+            ->orderId($invoice->order->{$property});
 
         // Add invoice number if provided
         if ($invoice->invoice_number) {
@@ -113,13 +119,18 @@ class InvoiceBuilder
      * @param  Invoice  $invoice
      * @param  int  $version
      * @return UpdateInvoiceRequest
+     * @throws MissingPropertyException
      */
     public function buildUpdateInvoiceRequest(Invoice $invoice, int $version): UpdateInvoiceRequest
     {
+        $this->validateOrderId($invoice);
+
+        $property = config('nikolag.connections.square.order.service_identifier');
+
         $invoiceBuilder = SquareInvoiceBuilder::init()
             ->version($version)
-            ->locationId($invoice->location_id)
-            ->orderId($invoice->order_id);
+            ->locationId($invoice->location->square_id)
+            ->orderId($invoice->order->{$property});
 
         // Add invoice number if provided
         if ($invoice->invoice_number) {
@@ -394,5 +405,29 @@ class InvoiceBuilder
         }
 
         $invoice->save();
+    }
+
+    /**
+     * Validate that the invoice has an associated order with a Square order ID.
+     *
+     * @param  Invoice  $invoice
+     * @return void
+     * @throws MissingPropertyException
+     */
+    private function validateOrderId(Invoice $invoice): void
+    {
+        $property = config('nikolag.connections.square.order.service_identifier');
+
+        if (!$invoice->order) {
+            throw new MissingPropertyException(
+                'Cannot create invoice without an associated order. The invoice must have an order relationship defined.'
+            );
+        }
+
+        if (empty($invoice->order->{$property})) {
+            throw new MissingPropertyException(
+                "Cannot create invoice without a Square order ID. The order must be saved to Square first (order.{$property} is required)."
+            );
+        }
     }
 }
