@@ -41,6 +41,8 @@ class InvoiceBuilder
     public function buildCreateInvoiceRequest(Invoice $invoice): CreateInvoiceRequest
     {
         $this->validateOrderId($invoice);
+        $this->validatePaymentRequests($invoice);
+        $this->validateAcceptedPaymentMethods($invoice);
 
         $property = config('nikolag.connections.square.order.service_identifier');
 
@@ -124,6 +126,8 @@ class InvoiceBuilder
     public function buildUpdateInvoiceRequest(Invoice $invoice, int $version): UpdateInvoiceRequest
     {
         $this->validateOrderId($invoice);
+        $this->validatePaymentRequests($invoice);
+        $this->validateAcceptedPaymentMethods($invoice);
 
         $property = config('nikolag.connections.square.order.service_identifier');
 
@@ -427,6 +431,72 @@ class InvoiceBuilder
         if (empty($invoice->order->{$property})) {
             throw new MissingPropertyException(
                 "Cannot create invoice without a Square order ID. The order must be saved to Square first (order.{$property} is required)."
+            );
+        }
+    }
+
+    /**
+     * Validate that the invoice has at least one payment request.
+     *
+     * Square API requires every invoice to have at least one payment request
+     * with a due_date and request_type specified.
+     *
+     * @param  Invoice  $invoice
+     * @return void
+     * @throws MissingPropertyException
+     */
+    private function validatePaymentRequests(Invoice $invoice): void
+    {
+        // Check if payment requests relationship is loaded
+        if (!$invoice->relationLoaded('paymentRequests')) {
+            $invoice->load('paymentRequests');
+        }
+
+        // Check if invoice has at least one payment request
+        if (!$invoice->paymentRequests || $invoice->paymentRequests->isEmpty()) {
+            throw new MissingPropertyException(
+                'Cannot create invoice without at least one payment request. Square requires all invoices to have payment request(s) with a due_date and request_type. ' .
+                'Add a payment request using $invoice->paymentRequests()->create([...]).'
+            );
+        }
+
+        // Validate each payment request has required fields
+        foreach ($invoice->paymentRequests as $paymentRequest) {
+            if (empty($paymentRequest->request_type)) {
+                throw new MissingPropertyException(
+                    'Payment request is missing required field: request_type. Valid values are BALANCE, DEPOSIT, or INSTALLMENT.'
+                );
+            }
+
+            if (empty($paymentRequest->due_date)) {
+                throw new MissingPropertyException(
+                    'Payment request is missing required field: due_date. Each payment request must have a due date.'
+                );
+            }
+        }
+    }
+
+    /**
+     * Validate that the invoice has accepted payment methods defined.
+     *
+     * Square API requires every invoice to specify which payment methods are accepted.
+     *
+     * @param  Invoice  $invoice
+     * @return void
+     * @throws MissingPropertyException
+     */
+    private function validateAcceptedPaymentMethods(Invoice $invoice): void
+    {
+        // Check if accepted payment methods relationship is loaded
+        if (!$invoice->relationLoaded('acceptedPaymentMethods')) {
+            $invoice->load('acceptedPaymentMethods');
+        }
+
+        // Check if invoice has accepted payment methods defined
+        if (!$invoice->acceptedPaymentMethods) {
+            throw new MissingPropertyException(
+                'Cannot create invoice without accepted payment methods. Square requires all invoices to specify which payment methods are accepted. ' .
+                'Add accepted payment methods using $invoice->acceptedPaymentMethods()->create([\'card\' => true, ...]).'
             );
         }
     }

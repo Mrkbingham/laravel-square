@@ -46,6 +46,17 @@ class InvoiceBuilderTest extends TestCase
             'status' => InvoiceStatus::DRAFT,
         ]);
 
+        // Add required payment request
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
+        ]);
+
+        // Add required accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
+        ]);
+
         $request = $this->builder->buildCreateInvoiceRequest($invoice);
 
         $this->assertInstanceOf(CreateInvoiceRequest::class, $request);
@@ -75,6 +86,17 @@ class InvoiceBuilderTest extends TestCase
             'sale_or_service_date' => now()->subDays(5),
             'store_payment_method_enabled' => true,
             'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        // Add required payment request
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
+        ]);
+
+        // Add required accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
         ]);
 
         $request = $this->builder->buildCreateInvoiceRequest($invoice);
@@ -115,6 +137,17 @@ class InvoiceBuilderTest extends TestCase
             'family_name' => 'Doe',
             'company_name' => 'Test Company',
             'phone_number' => '+1234567890',
+        ]);
+
+        // Add required payment request
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
+        ]);
+
+        // Add required accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
         ]);
 
         $request = $this->builder->buildCreateInvoiceRequest($invoice);
@@ -163,6 +196,17 @@ class InvoiceBuilderTest extends TestCase
             'country' => 'US',
         ]);
 
+        // Add required payment request
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
+        ]);
+
+        // Add required accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
+        ]);
+
         $request = $this->builder->buildCreateInvoiceRequest($invoice);
 
         $recipient = $request->getInvoice()->getPrimaryRecipient();
@@ -206,6 +250,11 @@ class InvoiceBuilderTest extends TestCase
             'tipping_enabled' => true,
         ]);
 
+        // Add required accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
+        ]);
+
         $request = $this->builder->buildCreateInvoiceRequest($invoice);
 
         $paymentRequests = $request->getInvoice()->getPaymentRequests();
@@ -243,6 +292,11 @@ class InvoiceBuilderTest extends TestCase
             'tipping_enabled' => false,
         ]);
 
+        // Add required accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
+        ]);
+
         $request = $this->builder->buildCreateInvoiceRequest($invoice);
 
         $paymentRequests = $request->getInvoice()->getPaymentRequests();
@@ -275,6 +329,12 @@ class InvoiceBuilderTest extends TestCase
             'bank_account' => false,
             'buy_now_pay_later' => false,
             'cash_app_pay' => true,
+        ]);
+
+        // Add required payment request
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
         ]);
 
         $request = $this->builder->buildCreateInvoiceRequest($invoice);
@@ -317,6 +377,17 @@ class InvoiceBuilderTest extends TestCase
             'placement' => 'BELOW_LINE_ITEMS',
         ]);
 
+        // Add required payment request
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
+        ]);
+
+        // Add required accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
+        ]);
+
         $request = $this->builder->buildCreateInvoiceRequest($invoice);
 
         $customFields = $request->getInvoice()->getCustomFields();
@@ -351,6 +422,17 @@ class InvoiceBuilderTest extends TestCase
         ]);
 
         $invoice->title = 'Updated Title';
+
+        // Add required payment request
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
+        ]);
+
+        // Add required accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
+        ]);
 
         $request = $this->builder->buildUpdateInvoiceRequest($invoice, 1);
 
@@ -405,6 +487,8 @@ class InvoiceBuilderTest extends TestCase
             'card' => true,
             'bank_account' => true,
         ]);
+
+        // Note: Payment requests already added above
 
         $request = $this->builder->buildUpdateInvoiceRequest($invoice, 1);
 
@@ -622,6 +706,228 @@ class InvoiceBuilderTest extends TestCase
             'payment_service_id' => 'inv_' . uniqid(),
             'payment_service_version' => 1,
             'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        $this->builder->buildUpdateInvoiceRequest($invoice, 1);
+    }
+
+    /**
+     * Test buildCreateInvoiceRequest throws exception when payment requests are missing.
+     *
+     * @return void
+     */
+    public function test_build_create_invoice_request_throws_exception_when_payment_requests_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Cannot create invoice without at least one payment request');
+
+        $order = factory(Order::class)->create();
+        $location = factory(Location::class)->create();
+
+        // Create an invoice without payment requests
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => $location->id,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        $this->builder->buildCreateInvoiceRequest($invoice);
+    }
+
+    /**
+     * Test buildCreateInvoiceRequest throws exception when payment request is missing request_type.
+     *
+     * @return void
+     */
+    public function test_build_create_invoice_request_throws_exception_when_request_type_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Payment request is missing required field: request_type');
+
+        $order = factory(Order::class)->create();
+        $location = factory(Location::class)->create();
+
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => $location->id,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        // Create a payment request without request_type
+        $invoice->paymentRequests()->create([
+            'due_date' => now()->addDays(30),
+            'tipping_enabled' => false,
+        ]);
+
+        $this->builder->buildCreateInvoiceRequest($invoice);
+    }
+
+    /**
+     * Test buildCreateInvoiceRequest throws exception when payment request is missing due_date.
+     *
+     * @return void
+     */
+    public function test_build_create_invoice_request_throws_exception_when_due_date_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Payment request is missing required field: due_date');
+
+        $order = factory(Order::class)->create();
+        $location = factory(Location::class)->create();
+
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => $location->id,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        // Create a payment request without due_date
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'tipping_enabled' => false,
+        ]);
+
+        $this->builder->buildCreateInvoiceRequest($invoice);
+    }
+
+    /**
+     * Test buildUpdateInvoiceRequest throws exception when payment requests are missing.
+     *
+     * @return void
+     */
+    public function test_build_update_invoice_request_throws_exception_when_payment_requests_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Cannot create invoice without at least one payment request');
+
+        $order = factory(Order::class)->create();
+        $location = factory(Location::class)->create();
+
+        // Create an invoice without payment requests
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => $location->id,
+            'payment_service_id' => 'inv_' . uniqid(),
+            'payment_service_version' => 1,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        $this->builder->buildUpdateInvoiceRequest($invoice, 1);
+    }
+
+    /**
+     * Test buildUpdateInvoiceRequest throws exception when payment request is missing request_type.
+     *
+     * @return void
+     */
+    public function test_build_update_invoice_request_throws_exception_when_request_type_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Payment request is missing required field: request_type');
+
+        $order = factory(Order::class)->create();
+        $location = factory(Location::class)->create();
+
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => $location->id,
+            'payment_service_id' => 'inv_' . uniqid(),
+            'payment_service_version' => 1,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        // Create a payment request without request_type
+        $invoice->paymentRequests()->create([
+            'due_date' => now()->addDays(30),
+            'tipping_enabled' => false,
+        ]);
+
+        $this->builder->buildUpdateInvoiceRequest($invoice, 1);
+    }
+
+    /**
+     * Test buildUpdateInvoiceRequest throws exception when payment request is missing due_date.
+     *
+     * @return void
+     */
+    public function test_build_update_invoice_request_throws_exception_when_due_date_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Payment request is missing required field: due_date');
+
+        $order = factory(Order::class)->create();
+        $location = factory(Location::class)->create();
+
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => $location->id,
+            'payment_service_id' => 'inv_' . uniqid(),
+            'payment_service_version' => 1,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        // Create a payment request without due_date
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'tipping_enabled' => false,
+        ]);
+
+        $this->builder->buildUpdateInvoiceRequest($invoice, 1);
+    }
+
+    /**
+     * Test buildCreateInvoiceRequest throws exception when accepted payment methods are missing.
+     *
+     * @return void
+     */
+    public function test_build_create_invoice_request_throws_exception_when_accepted_payment_methods_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Cannot create invoice without accepted payment methods');
+
+        $order = factory(Order::class)->create();
+        $location = factory(Location::class)->create();
+
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => $location->id,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        // Add payment request but no accepted payment methods
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
+        ]);
+
+        $this->builder->buildCreateInvoiceRequest($invoice);
+    }
+
+    /**
+     * Test buildUpdateInvoiceRequest throws exception when accepted payment methods are missing.
+     *
+     * @return void
+     */
+    public function test_build_update_invoice_request_throws_exception_when_accepted_payment_methods_missing(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Cannot create invoice without accepted payment methods');
+
+        $order = factory(Order::class)->create();
+        $location = factory(Location::class)->create();
+
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'location_id' => $location->id,
+            'payment_service_id' => 'inv_' . uniqid(),
+            'payment_service_version' => 1,
+            'status' => InvoiceStatus::DRAFT,
+        ]);
+
+        // Add payment request but no accepted payment methods
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
         ]);
 
         $this->builder->buildUpdateInvoiceRequest($invoice, 1);
