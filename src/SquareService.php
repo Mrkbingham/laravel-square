@@ -611,7 +611,6 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @return void
      *
      * @throws InvalidSquareOrderException
-     * @throws InvalidSquareVersionException
      * @throws MissingPropertyException
      * @throws Exception
      * @throws ApiException
@@ -718,18 +717,6 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         $response = $this->config->ordersAPI()->updateOrder($orderId, $this->getUpdateOrderRequest());
 
         if ($response->isError()) {
-            // Check for version conflict
-            $errors = $response->getErrors();
-            if (!empty($errors)) {
-                $firstError = $errors[0];
-                if ($firstError->getCode() === 'CONFLICT' || $firstError->getCategory() === 'INVALID_REQUEST_ERROR') {
-                    throw new InvalidSquareVersionException(
-                        'Version conflict: ' . $firstError->getDetail() .
-                        '. The order may have been modified. Please refresh and try again.',
-                        409
-                    );
-                }
-            }
             throw $this->_handleApiResponseErrors($response);
         }
 
@@ -1554,7 +1541,6 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @param Invoice $invoice
      * @return void
      * @throws InvalidInvoiceStateException
-     * @throws InvalidSquareVersionException
      * @throws ApiException
      */
     public function saveInvoice(Invoice $invoice): void
@@ -1629,18 +1615,6 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         );
 
         if ($response->isError()) {
-            // Check for version conflict
-            $errors = $response->getErrors();
-            if (!empty($errors)) {
-                $firstError = $errors[0];
-                if ($firstError->getCode() === 'CONFLICT' || $firstError->getCategory() === 'INVALID_REQUEST_ERROR') {
-                    throw new InvalidSquareVersionException(
-                        'Version conflict: ' . $firstError->getDetail() .
-                        '. The invoice may have been modified. Please refresh and try again.',
-                        409
-                    );
-                }
-            }
             throw $this->_handleApiResponseErrors($response);
         }
 
