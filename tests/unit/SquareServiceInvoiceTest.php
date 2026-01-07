@@ -15,6 +15,7 @@ use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\Traits\MocksSquareConfigDependency;
 use Nikolag\Square\Utils\Constants;
+use Square\Models\InvoiceDeliveryMethod;
 use Square\Models\InvoiceStatus;
 
 class SquareServiceInvoiceTest extends TestCase
@@ -39,7 +40,7 @@ class SquareServiceInvoiceTest extends TestCase
             'location_id' => $location->id,
             'title' => 'Test Invoice',
             'description' => 'Test invoice for saveInvoice create path',
-            'delivery_method' => 'EMAIL',
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
             'status' => InvoiceStatus::DRAFT,
         ]);
 
@@ -73,6 +74,7 @@ class SquareServiceInvoiceTest extends TestCase
             'invoice_id' => 'inv_created_123',
             'version' => 1,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
             'location_id' => $location->id,
             'order_id' => $order->id,
             'invoice_number' => 'INV-001',
@@ -108,6 +110,18 @@ class SquareServiceInvoiceTest extends TestCase
             'payment_service_version' => 1,
             'title' => 'Original Title',
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
+        ]);
+
+        // Add required payment request
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
+        ]);
+
+        // Add required accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
         ]);
 
         // Update the title
@@ -118,6 +132,7 @@ class SquareServiceInvoiceTest extends TestCase
             'invoice_id' => 'inv_existing_456',
             'version' => 2,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
             'location_id' => $location->id,
             'order_id' => $order->id,
             'title' => 'Updated Title',
@@ -202,6 +217,7 @@ class SquareServiceInvoiceTest extends TestCase
             'payment_service_id' => 'inv_no_version_' . uniqid(),
             'payment_service_version' => null, // Missing version
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         // This should throw an exception
@@ -309,6 +325,7 @@ class SquareServiceInvoiceTest extends TestCase
             'invoice_id' => $squareInvoiceId,
             'version' => 1,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
             'location_id' => 'main',
             'order_id' => 'order_123',
             'title' => 'Test Invoice for Retrieval',
@@ -359,7 +376,7 @@ class SquareServiceInvoiceTest extends TestCase
             'location_id' => $location->id,
             'title' => 'Complete Invoice Test',
             'description' => 'Invoice with all relationships',
-            'delivery_method' => 'EMAIL',
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
             'status' => InvoiceStatus::DRAFT,
             'sale_or_service_date' => now()->subDays(5),
             'timezone' => 'America/New_York',
@@ -421,6 +438,7 @@ class SquareServiceInvoiceTest extends TestCase
             'invoice_id' => 'inv_complete_' . uniqid(),
             'version' => 1,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
             'location_id' => $location->id,
             'order_id' => $order->id,
             'invoice_number' => 'INV-COMPLETE-001',
@@ -460,6 +478,18 @@ class SquareServiceInvoiceTest extends TestCase
             'payment_service_version' => 1,
             'title' => 'Original Title',
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
+        ]);
+
+        // Add required payment request
+        $invoice->paymentRequests()->create([
+            'request_type' => 'BALANCE',
+            'due_date' => now()->addDays(30),
+        ]);
+
+        // Add required accepted payment methods
+        $invoice->acceptedPaymentMethods()->create([
+            'card' => true,
         ]);
 
         // Update the title
@@ -492,7 +522,7 @@ class SquareServiceInvoiceTest extends TestCase
             'location_id' => $location->id,
             'title' => 'Test Invoice',
             'description' => 'Test invoice for API error',
-            'delivery_method' => 'EMAIL',
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
             'status' => InvoiceStatus::DRAFT,
         ]);
 

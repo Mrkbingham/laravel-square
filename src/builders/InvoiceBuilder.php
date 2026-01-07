@@ -13,6 +13,7 @@ use Square\Models\InvoiceAcceptedPaymentMethods as SquareInvoiceAcceptedPaymentM
 use Square\Models\Address;
 use Square\Models\CreateInvoiceRequest;
 use Square\Models\InvoiceCustomField as SquareInvoiceCustomField;
+use Square\Models\InvoiceDeliveryMethod;
 use Square\Models\InvoicePaymentRequest as SquareInvoicePaymentRequest;
 use Square\Models\InvoiceRecipient as SquareInvoiceRecipient;
 use Square\Models\Money;
@@ -43,6 +44,7 @@ class InvoiceBuilder
         $this->validateOrderId($invoice);
         $this->validatePaymentRequests($invoice);
         $this->validateAcceptedPaymentMethods($invoice);
+        $this->validateDeliveryMethod($invoice);
 
         $property = config('nikolag.connections.square.order.service_identifier');
 
@@ -68,10 +70,8 @@ class InvoiceBuilder
             $invoiceBuilder->scheduledAt($invoice->scheduled_at->toRfc3339String());
         }
 
-        // Add delivery method
-        if ($invoice->delivery_method) {
-            $invoiceBuilder->deliveryMethod($invoice->delivery_method);
-        }
+        // Add delivery method (required by Square API)
+        $invoiceBuilder->deliveryMethod($invoice->delivery_method);
 
         // Add sale or service date
         if ($invoice->sale_or_service_date) {
@@ -128,6 +128,7 @@ class InvoiceBuilder
         $this->validateOrderId($invoice);
         $this->validatePaymentRequests($invoice);
         $this->validateAcceptedPaymentMethods($invoice);
+        $this->validateDeliveryMethod($invoice);
 
         $property = config('nikolag.connections.square.order.service_identifier');
 
@@ -154,10 +155,8 @@ class InvoiceBuilder
             $invoiceBuilder->scheduledAt($invoice->scheduled_at->toRfc3339String());
         }
 
-        // Add delivery method
-        if ($invoice->delivery_method) {
-            $invoiceBuilder->deliveryMethod($invoice->delivery_method);
-        }
+        // Add delivery method (required by Square API)
+        $invoiceBuilder->deliveryMethod($invoice->delivery_method);
 
         // Add sale or service date
         if ($invoice->sale_or_service_date) {
@@ -497,6 +496,37 @@ class InvoiceBuilder
             throw new MissingPropertyException(
                 'Cannot create invoice without accepted payment methods. Square requires all invoices to specify which payment methods are accepted. ' .
                 'Add accepted payment methods using $invoice->acceptedPaymentMethods()->create([\'card\' => true, ...]).'
+            );
+        }
+    }
+
+    /**
+     * Validate that the invoice has a delivery method specified.
+     *
+     * Square API requires every invoice to specify how it will be delivered.
+     *
+     * @param  Invoice  $invoice
+     * @return void
+     * @throws MissingPropertyException
+     */
+    private function validateDeliveryMethod(Invoice $invoice): void
+    {
+        // Check if delivery method is set
+        if (empty($invoice->delivery_method)) {
+            throw new MissingPropertyException('Cannot create invoice without a delivery_method');
+        }
+
+        // Validate delivery method is one of the allowed values
+        $validMethods = [
+            InvoiceDeliveryMethod::EMAIL,
+            InvoiceDeliveryMethod::SMS,
+            InvoiceDeliveryMethod::SHARE_MANUALLY,
+        ];
+
+        if (!in_array($invoice->delivery_method, $validMethods)) {
+            throw new MissingPropertyException(
+                "Invalid delivery_method '{$invoice->delivery_method}'. " .
+                'Valid values are: InvoiceDeliveryMethod::EMAIL, InvoiceDeliveryMethod::SMS, or InvoiceDeliveryMethod::SHARE_MANUALLY.'
             );
         }
     }

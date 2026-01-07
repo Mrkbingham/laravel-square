@@ -11,6 +11,7 @@ use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Utils\Constants;
 use Square\Models\CreateInvoiceRequest;
 use Square\Models\Invoice as SquareInvoice;
+use Square\Models\InvoiceDeliveryMethod;
 use Square\Models\InvoiceStatus;
 use Square\Models\PublishInvoiceRequest;
 use Square\Models\UpdateInvoiceRequest;
@@ -44,6 +45,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         // Add required payment request
@@ -82,7 +84,7 @@ class InvoiceBuilderTest extends TestCase
             'title' => 'Test Invoice',
             'description' => 'Test invoice description',
             'invoice_number' => 'INV-001',
-            'delivery_method' => 'EMAIL',
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
             'sale_or_service_date' => now()->subDays(5),
             'store_payment_method_enabled' => true,
             'status' => InvoiceStatus::DRAFT,
@@ -128,6 +130,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $invoice->recipient()->create([
@@ -181,6 +184,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $invoice->recipient()->create([
@@ -235,6 +239,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $invoice->paymentRequests()->create([
@@ -282,6 +287,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $invoice->paymentRequests()->create([
@@ -321,6 +327,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $invoice->acceptedPaymentMethods()->create([
@@ -363,6 +370,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $invoice->customFields()->create([
@@ -419,6 +427,7 @@ class InvoiceBuilderTest extends TestCase
             'payment_service_version' => 1,
             'title' => 'Original Title',
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $invoice->title = 'Updated Title';
@@ -464,7 +473,7 @@ class InvoiceBuilderTest extends TestCase
             'title' => 'Updated Invoice',
             'description' => 'Updated description',
             'invoice_number' => 'INV-002',
-            'delivery_method' => 'EMAIL',
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
             'sale_or_service_date' => now()->subDays(3),
             'store_payment_method_enabled' => true,
             'status' => InvoiceStatus::DRAFT,
@@ -536,6 +545,7 @@ class InvoiceBuilderTest extends TestCase
             'location_id' => $location->id,
             'title' => 'Test Invoice',
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         // Create a mock Square Invoice response
@@ -586,6 +596,7 @@ class InvoiceBuilderTest extends TestCase
             'location_id' => $location->id,
             'title' => 'Test Invoice',
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         // Create a Square Invoice with minimal fields
@@ -629,6 +640,7 @@ class InvoiceBuilderTest extends TestCase
         $invoice = new Invoice([
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $this->builder->buildCreateInvoiceRequest($invoice);
@@ -655,6 +667,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $this->builder->buildCreateInvoiceRequest($invoice);
@@ -678,6 +691,7 @@ class InvoiceBuilderTest extends TestCase
             'payment_service_id' => 'inv_' . uniqid(),
             'payment_service_version' => 1,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $this->builder->buildUpdateInvoiceRequest($invoice, 1);
@@ -706,6 +720,7 @@ class InvoiceBuilderTest extends TestCase
             'payment_service_id' => 'inv_' . uniqid(),
             'payment_service_version' => 1,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $this->builder->buildUpdateInvoiceRequest($invoice, 1);
@@ -729,6 +744,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $this->builder->buildCreateInvoiceRequest($invoice);
@@ -751,6 +767,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         // Create a payment request without request_type
@@ -779,6 +796,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         // Create a payment request without due_date
@@ -810,6 +828,7 @@ class InvoiceBuilderTest extends TestCase
             'payment_service_id' => 'inv_' . uniqid(),
             'payment_service_version' => 1,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         $this->builder->buildUpdateInvoiceRequest($invoice, 1);
@@ -834,6 +853,7 @@ class InvoiceBuilderTest extends TestCase
             'payment_service_id' => 'inv_' . uniqid(),
             'payment_service_version' => 1,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         // Create a payment request without request_type
@@ -864,6 +884,7 @@ class InvoiceBuilderTest extends TestCase
             'payment_service_id' => 'inv_' . uniqid(),
             'payment_service_version' => 1,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         // Create a payment request without due_date
@@ -892,6 +913,7 @@ class InvoiceBuilderTest extends TestCase
             'order_id' => $order->id,
             'location_id' => $location->id,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         // Add payment request but no accepted payment methods
@@ -922,6 +944,7 @@ class InvoiceBuilderTest extends TestCase
             'payment_service_id' => 'inv_' . uniqid(),
             'payment_service_version' => 1,
             'status' => InvoiceStatus::DRAFT,
+            'delivery_method' => InvoiceDeliveryMethod::EMAIL,
         ]);
 
         // Add payment request but no accepted payment methods
