@@ -75,7 +75,7 @@ jobs:
       # Generate application key and write to .env file
       - name: Generate APP_KEY
         run: |
-          APP_KEY=$(php artisan key:generate --show)
+          APP_KEY="base64:$(openssl rand -base64 32)"
           echo "APP_KEY=$APP_KEY" >> $GITHUB_ENV
           sed -i "s|APP_KEY=.*|APP_KEY=$APP_KEY|" .env
 
