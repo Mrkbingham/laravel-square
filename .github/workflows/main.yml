@@ -72,10 +72,12 @@ jobs:
           composer install --no-interaction --no-cache
           composer dump-autoload
 
-      # Generate application key
+      # Generate application key and write to .env file
       - name: Generate APP_KEY
         run: |
-          echo "APP_KEY=$(php artisan key:generate --show)" >> $GITHUB_ENV
+          APP_KEY=$(php artisan key:generate --show)
+          echo "APP_KEY=$APP_KEY" >> $GITHUB_ENV
+          sed -i "s|APP_KEY=.*|APP_KEY=$APP_KEY|" .env
 
       # Run phpunit tests
       - name: Run tests
