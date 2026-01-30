@@ -276,6 +276,7 @@ class AddressTest extends TestCase
         $address = factory(Address::class)->create();
 
         $this->recipient->address()->save($address);
+        $this->recipient->load('address'); // Reload the address relationship to get the freshly saved address
 
         $this->assertInstanceOf(Address::class, $this->recipient->address);
         $this->assertEquals($address->id, $this->recipient->address->id);

@@ -48,7 +48,7 @@ class TestDataHolder
             factory(Fulfillment::class)->states(FulfillmentType::DELIVERY)->make(),
             factory(Fulfillment::class)->states(FulfillmentType::PICKUP)->make(),
             factory(Fulfillment::class)->states(FulfillmentType::SHIPMENT)->make(),
-            factory(Recipient::class)->make(),
+            self::makeRecipientWithAddress(),
             self::buildMockOrderReturn(),
         );
     }
@@ -67,9 +67,23 @@ class TestDataHolder
             factory(Fulfillment::class)->states(FulfillmentType::DELIVERY)->make(),
             factory(Fulfillment::class)->states(FulfillmentType::PICKUP)->make(),
             factory(Fulfillment::class)->states(FulfillmentType::SHIPMENT)->make(),
-            factory(Recipient::class)->make(),
+            self::makeRecipientWithAddress(),
             self::buildMockOrderReturn()
         );
+    }
+
+    /**
+     * Creates a Recipient with an Address relationship set.
+     *
+     * @return Recipient
+     */
+    private static function makeRecipientWithAddress(): Recipient
+    {
+        $recipient = factory(Recipient::class)->make();
+        $address = factory(Address::class)->make();
+        $recipient->setRelation('address', $address);
+
+        return $recipient;
     }
 
     public function modify(string $prodFac = 'create',

@@ -1083,7 +1083,12 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         $recipientClass = Constants::RECIPIENT_NAMESPACE;
 
         if (is_a($recipient, $recipientClass)) {
-            $this->fulfillmentRecipient = $this->recipientBuilder->load($recipient->toArray());
+            $recipientData = $recipient->toArray();
+            // Include the address relationship if it exists (polymorphic relations aren't included in toArray by default)
+            if ($recipient->relationLoaded('address') && $recipient->address) {
+                $recipientData['address'] = $recipient->address->toArray();
+            }
+            $this->fulfillmentRecipient = $this->recipientBuilder->load($recipientData);
         } elseif (is_array($recipient)) {
             $this->fulfillmentRecipient = $this->recipientBuilder->load($recipient);
         }
