@@ -10,7 +10,6 @@ use Nikolag\Square\Utils\Constants;
 class Customer extends CoreCustomer
 {
     use HasAddress;
-
     /**
      * The model's attributes.
      *

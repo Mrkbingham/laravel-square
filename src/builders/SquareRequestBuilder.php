@@ -380,7 +380,7 @@ class SquareRequestBuilder
         }
 
         // Add address if customer has an address relationship
-        if ($customer->address) {
+        if ($customer->hasAddress()) {
             $request->setAddress($customer->address->toSquareAddress());
         }
 

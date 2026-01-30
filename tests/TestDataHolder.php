@@ -49,7 +49,7 @@ class TestDataHolder
             factory(Fulfillment::class)->states(FulfillmentType::PICKUP)->make(),
             factory(Fulfillment::class)->states(FulfillmentType::SHIPMENT)->make(),
             factory(Recipient::class)->make(),
-            self::buildMockOrderReturn()
+            self::buildMockOrderReturn(),
         );
     }
 
@@ -77,7 +77,8 @@ class TestDataHolder
                            string $orderDisFac = 'create',
                            string $orderDiscFixFac = 'create',
                            string $taxAddFac = 'create',
-                           string $taxIncFac = 'create')
+                           string $taxIncFac = 'create',
+                            string $addressFac = 'create')
     {
         $product = factory(Product::class)->{$prodFac}([
             'price' => 1000,
@@ -98,7 +99,9 @@ class TestDataHolder
             'percentage' => 15.0,
         ]);
 
-        return compact('product', 'productDiscount', 'orderDiscount', 'orderDiscountFixed', 'taxAdditive', 'taxInclusive');
+        $address = factory(Address::class)->{$addressFac}();
+
+        return compact('product', 'productDiscount', 'orderDiscount', 'orderDiscountFixed', 'taxAdditive', 'taxInclusive', 'address');
     }
 
     /**
