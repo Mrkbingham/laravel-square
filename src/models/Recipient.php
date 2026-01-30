@@ -3,12 +3,16 @@
 namespace Nikolag\Square\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\Fulfillment;
-use Square\Models\Address;
+use Nikolag\Square\Traits\HasAddress;
+use Square\Models\Address as SquareAddress;
 
 class Recipient extends Model
 {
+    use HasAddress;
+
     /**
      * The table associated with the model.
      *
@@ -32,7 +36,6 @@ class Recipient extends Model
         'display_name',
         'email_address',
         'phone_number',
-        'address',
         'customer_id',
         'fulfillment_id',
     ];
@@ -45,7 +48,6 @@ class Recipient extends Model
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'address' => 'array',
     ];
 
     /**
@@ -58,37 +60,11 @@ class Recipient extends Model
     ];
 
     /**
-     * Parses the address and returns it as a Square Address model.
-     *
-     * @return Address
-     */
-    public function getSquareRequestAddress(): Address
-    {
-        $address = new Address();
-        $address->setAddressLine1($this->address['address_line_1'] ?? null);
-        $address->setAddressLine2($this->address['address_line_2'] ?? null);
-        $address->setAddressLine3($this->address['address_line_3'] ?? null);
-        $address->setLocality($this->address['locality'] ?? null);
-        $address->setSublocality($this->address['sublocality'] ?? null);
-        $address->setSublocality2($this->address['sublocality_2'] ?? null);
-        $address->setSublocality3($this->address['sublocality_3'] ?? null);
-        $address->setAdministrativeDistrictLevel1($this->address['administrative_district_level_1'] ?? null);
-        $address->setAdministrativeDistrictLevel2($this->address['administrative_district_level_2'] ?? null);
-        $address->setAdministrativeDistrictLevel3($this->address['administrative_district_level_3'] ?? null);
-        $address->setPostalCode($this->address['postal_code'] ?? null);
-        $address->setCountry($this->address['country'] ?? null);
-        $address->setFirstName($this->address['first_name'] ?? null);
-        $address->setLastName($this->address['last_name'] ?? null);
-
-        return $address;
-    }
-
-    /**
      * Return the fulfillment associated with this recipient.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * @return BelongsTo
      */
-    public function fulfillment()
+    public function fulfillment(): BelongsTo
     {
         return $this->belongsTo(Fulfillment::class, 'fulfillment_id', 'id');
     }
@@ -96,9 +72,9 @@ class Recipient extends Model
     /**
      * Return the customer associated with this recipient.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * @return BelongsTo
      */
-    public function customer()
+    public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'id');
     }

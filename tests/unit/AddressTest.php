@@ -4,10 +4,13 @@ namespace Nikolag\Square\Tests\Unit;
 
 use Nikolag\Square\Models\Address;
 use Nikolag\Square\Models\Customer;
+use Nikolag\Square\Models\DeliveryDetails;
+use Nikolag\Square\Models\Fulfillment;
 use Nikolag\Square\Models\Recipient;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
 use Square\Models\Address as SquareAddress;
+use Square\Models\FulfillmentType;
 
 class AddressTest extends TestCase
 {
@@ -21,6 +24,39 @@ class AddressTest extends TestCase
     {
         parent::setUp();
         $this->data = TestDataHolder::create();
+
+        // Set up a properly configured recipient using TestDataHolder
+        $deliveryDetails = factory(DeliveryDetails::class)->create();
+        $this->data->fulfillmentWithDeliveryDetails->fulfillmentDetails()->associate($deliveryDetails);
+        $this->data->fulfillmentWithDeliveryDetails->order()->associate($this->data->order);
+        $this->data->fulfillmentWithDeliveryDetails->save();
+
+        $this->data->fulfillmentRecipient->fulfillment()->associate($this->data->fulfillmentWithDeliveryDetails);
+        $this->data->fulfillmentRecipient->save();
+
+        $this->recipient = $this->data->fulfillmentRecipient;
+    }
+
+    /**
+     * Helper method to create a valid Recipient with required relationships.
+     *
+     * @param  array  $attributes
+     * @return Recipient
+     */
+    private function createRecipientWithFulfillment(array $attributes = []): Recipient
+    {
+        $deliveryDetails = factory(DeliveryDetails::class)->create();
+        // Create a new fulfillment each time to avoid unique constraint violations
+        $fulfillment = factory(Fulfillment::class)->states(FulfillmentType::DELIVERY)->make();
+        $fulfillment->fulfillmentDetails()->associate($deliveryDetails);
+        $fulfillment->order()->associate($this->data->order);
+        $fulfillment->save();
+
+        $recipient = factory(Recipient::class)->make($attributes);
+        $recipient->fulfillment()->associate($fulfillment);
+        $recipient->save();
+
+        return $recipient;
     }
 
     /**
@@ -196,6 +232,26 @@ class AddressTest extends TestCase
     }
 
     /**
+     * Test Address belongs to Recipient via polymorphic relationship.
+     *
+     * @return void
+     */
+    public function test_address_belongs_to_recipient(): void
+    {
+        $address = factory(Address::class)->create();
+
+        $this->recipient->address()->save($address);
+        $address->refresh();
+
+        $this->assertNotNull($address->addressable_id);
+        $this->assertNotNull($address->addressable_type);
+        $this->assertEquals($this->recipient->id, $address->addressable_id);
+        $this->assertEquals(Recipient::class, $address->addressable_type);
+        $this->assertInstanceOf(Recipient::class, $address->addressable);
+        $this->assertEquals($this->recipient->id, $address->addressable->id);
+    }
+
+    /**
      * Test Customer has one Address.
      *
      * @return void
@@ -208,6 +264,24 @@ class AddressTest extends TestCase
         $this->assertEquals($this->data->address->id, $this->data->customer->address->id);
         $this->assertEquals($this->data->address->address_line_1, $this->data->customer->address->address_line_1);
         $this->assertEquals($this->data->address->locality, $this->data->customer->address->locality);
+    }
+
+    /**
+     * Test Recipient has one Address.
+     *
+     * @return void
+     */
+    public function test_recipient_has_one_address(): void
+    {
+        $address = factory(Address::class)->create();
+
+        $this->recipient->address()->save($address);
+        $this->recipient->load('address'); // Reload the address relationship to get the freshly saved address
+
+        $this->assertInstanceOf(Address::class, $this->recipient->address);
+        $this->assertEquals($address->id, $this->recipient->address->id);
+        $this->assertEquals($address->address_line_1, $this->recipient->address->address_line_1);
+        $this->assertEquals($address->locality, $this->recipient->address->locality);
     }
 
     /**
@@ -230,6 +304,29 @@ class AddressTest extends TestCase
             'addressable_id' => $this->data->customer->id,
             'address_line_1' => '300 N State St',
             'locality' => 'Chicago',
+        ]);
+    }
+
+    /**
+     * Test creating Recipient with Address in one operation.
+     *
+     * @return void
+     */
+    public function test_recipient_create_with_address(): void
+    {
+        $address = factory(Address::class)->make([
+            'address_line_1' => '721 N 14th St',
+            'locality' => 'Omaha',
+            'postal_code' => '68108',
+        ]);
+
+        $this->recipient->address()->save($address);
+
+        $this->assertDatabaseHas('nikolag_addresses', [
+            'addressable_type' => Recipient::class,
+            'addressable_id' => $this->recipient->id,
+            'address_line_1' => '721 N 14th St',
+            'locality' => 'Omaha',
         ]);
     }
 }

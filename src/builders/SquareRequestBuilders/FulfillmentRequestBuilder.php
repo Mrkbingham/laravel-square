@@ -126,7 +126,7 @@ class FulfillmentRequestBuilder
         $recipient->setDisplayName($fulfillment->recipient->display_name);
         $recipient->setEmailAddress($fulfillment->recipient->email_address);
         $recipient->setPhoneNumber($fulfillment->recipient->phone_number);
-        $recipient->setAddress($fulfillment->recipient->getSquareRequestAddress());
+        $recipient->setAddress($fulfillment->recipient->getSquareAddress());
         $fulfillmentDeliveryDetails->setRecipient($recipient);
 
         // Time-based details
@@ -191,8 +191,8 @@ class FulfillmentRequestBuilder
         $recipient->setEmailAddress($fulfillment->recipient->email_address);
         $recipient->setPhoneNumber($fulfillment->recipient->phone_number);
         // Address is optional for pickup orders
-        if ($fulfillment->recipient->address) {
-            $recipient->setAddress($fulfillment->recipient->getSquareRequestAddress());
+        if ($fulfillment->recipient->hasAddress()) {
+            $recipient->setAddress($fulfillment->recipient->getSquareAddress());
         }
         $fulfillmentPickupDetails->setRecipient($recipient);
 
@@ -248,7 +248,7 @@ class FulfillmentRequestBuilder
         $recipient->setDisplayName($fulfillment->recipient->display_name);
         $recipient->setEmailAddress($fulfillment->recipient->email_address);
         $recipient->setPhoneNumber($fulfillment->recipient->phone_number);
-        $recipient->setAddress($fulfillment->recipient->getSquareRequestAddress());
+        $recipient->setAddress($fulfillment->recipient->getSquareAddress());
         $fulfillmentShipmentDetails->setRecipient($recipient);
 
         // Time-based details
