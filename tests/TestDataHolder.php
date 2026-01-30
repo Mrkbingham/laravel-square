@@ -5,6 +5,7 @@ namespace Nikolag\Square\Tests;
 use Nikolag\Square\Models\Address;
 use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\Discount;
+use Nikolag\Square\Models\Fulfillment;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Models\Recipient;
 use Nikolag\Square\Models\Tax;
