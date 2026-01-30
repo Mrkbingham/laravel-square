@@ -11,7 +11,6 @@ use Square\Models\CustomerCreationSource;
  * This migration adds comprehensive Square Customer fields including:
  * - Birthday and reference_id for enhanced customer profiles
  * - Version tracking for optimistic locking during updates
- * - Separate address columns for better queryability
  * - JSON fields for complex objects (preferences, groups, segments, tax IDs)
  *
  * Enables full parity with Square's Customer object and better sync consistency.
