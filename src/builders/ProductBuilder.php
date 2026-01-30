@@ -172,7 +172,7 @@ class ProductBuilder
      *
      * @throws MissingPropertyException
      */
-    public function createProductFromArray(array $product, Model $order = null): Product|stdClass
+    public function createProductFromArray(array $product, ?Model $order = null): Product|stdClass
     {
         $productObj = new stdClass();
         //If product doesn't have quantity in pivot table
@@ -223,7 +223,7 @@ class ProductBuilder
      *
      * @throws MissingPropertyException
      */
-    public function createProductFromModel(Model $product, Model $order = null, int $quantity = null, array $modifiers = []): Product|stdClass
+    public function createProductFromModel(Model $product, ?Model $order = null, ?int $quantity = null, array $modifiers = []): Product|stdClass
     {
         $productObj = new stdClass();
         // Get price - for variable pricing, price can be null in the product model but must be provided in the pivot
