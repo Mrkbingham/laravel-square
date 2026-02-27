@@ -30,8 +30,8 @@ use Nikolag\Square\Models\ModifierOptionLocationPivot;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Models\Transaction;
-use Nikolag\Square\Models\WebhookSubscription;
 use Nikolag\Square\Models\WebhookEvent;
+use Nikolag\Square\Models\WebhookSubscription;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
 use Nikolag\Square\Utils\WebhookProcessor;
@@ -51,6 +51,7 @@ use Square\Models\CreateOrderRequest;
 use Square\Models\UpdateOrderRequest;
 use Square\Models\CreateCatalogImageRequest;
 use Square\Models\CreateCatalogImageResponse;
+use Square\Models\Customer as SquareCustomer;
 use Square\Models\ListCatalogResponse;
 use Square\Models\ListLocationsResponse;
 use Square\Models\RetrieveLocationResponse;
@@ -59,9 +60,9 @@ use Square\Models\ListWebhookEventTypesResponse;
 use Square\Models\ListWebhookSubscriptionsResponse;
 use Square\Models\RetrieveOrderResponse;
 use Square\Models\TestWebhookSubscriptionResponse;
-use Square\Models\WebhookSubscription as SquareWebhookSubscription;
 use Square\Models\UpdateCustomerRequest;
 use Square\Models\UpdateWebhookSubscriptionSignatureKeyResponse;
+use Square\Models\WebhookSubscription as SquareWebhookSubscription;
 use Square\Utils\FileWrapper;
 use stdClass;
 
@@ -131,6 +132,10 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @var CreateCustomerRequest
      */
     private CreateCustomerRequest $createCustomerRequest;
+    /**
+     * @var UpdateCustomerRequest
+     */
+    private UpdateCustomerRequest $updateCustomerRequest;
 
     public function __construct(SquareConfig $squareConfig)
     {
@@ -277,26 +282,25 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Lists the entire catalog.
      *
-     * @param array<\Square\Models\CatalogObjectType> $types The types of objects to list.
-     *
+     * @param  array<\Square\Models\CatalogObjectType>  $types  The types of objects to list.
      * @return array<\Square\Models\CatalogObject> The catalog items.
      *
      * @throws ApiException
      */
     public function listCatalog(array $typesFilter = []): array
     {
-        $types = !empty($typesFilter) ? Arr::join($typesFilter, ',') : null;
+        $types = ! empty($typesFilter) ? Arr::join($typesFilter, ',') : null;
 
         $catalogItems = [];
-        $cursor       = null;
+        $cursor = null;
         do {
             $apiResponse = $this->config->catalogApi()->listCatalog($cursor, $types);
 
             if ($apiResponse->isSuccess()) {
                 /** @var ListCatalogResponse $results */
-                $results      = $apiResponse->getResult();
+                $results = $apiResponse->getResult();
                 $catalogItems = array_merge($catalogItems, $results->getObjects() ?? []);
-                $cursor       = $results->getCursor();
+                $cursor = $results->getCursor();
             } else {
                 throw $this->_handleApiResponseErrors($apiResponse);
             }
@@ -580,26 +584,102 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     private function _saveCustomer(): void
     {
         if (! $this->getCustomer()->payment_service_id) {
-            $response = $this->config->customersAPI()->createCustomer($this->getCreateCustomerRequest());
-
-            if ($response->isSuccess()) {
-                $this->getCustomer()->payment_service_id = $response->getResult()->getCustomer()->getId();
-            } else {
-                throw $this->_handleApiResponseErrors($response);
-            }
+            $this->_createCustomer();
         } else {
-            $response = $this->config->customersAPI()->updateCustomer($this->getCustomer()->payment_service_id, $this->getCreateCustomerRequest());
-
-            if ($response->isError()) {
-                throw $this->_handleApiResponseErrors($response);
-            }
+            $this->_updateCustomer();
         }
 
         $this->getCustomer()->save();
+
         // If merchant exists and if merchant doesn't have customer
         if ($this->getMerchant() && ! $this->getMerchant()->hasCustomer($this->getCustomer()->email)) {
             // Attach seller to the buyer
             $this->getCustomer()->merchants()->attach($this->getMerchant()->id);
+        }
+    }
+
+    /**
+     * Create a new customer in Square.
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    private function _createCustomer(): void
+    {
+        $response = $this->config->customersAPI()->createCustomer($this->getCreateCustomerRequest());
+
+        if ($response->isSuccess()) {
+            $squareCustomer = $response->getResult()->getCustomer();
+            $this->getCustomer()->payment_service_id = $squareCustomer->getId();
+
+            // Store creation source (only set on create)
+            if ($squareCustomer->getCreationSource()) {
+                $this->getCustomer()->creation_source = $squareCustomer->getCreationSource();
+            }
+
+            // Sync common fields from Square response
+            $this->_syncCustomerFromSquareResponse($squareCustomer);
+        } else {
+            throw $this->_handleApiResponseErrors($response);
+        }
+    }
+
+    /**
+     * Update an existing customer in Square.
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    private function _updateCustomer(): void
+    {
+        $response = $this->config->customersAPI()->updateCustomer(
+            $this->getCustomer()->payment_service_id,
+            $this->getUpdateCustomerRequest()
+        );
+
+        if ($response->isSuccess()) {
+            $squareCustomer = $response->getResult()->getCustomer();
+
+            // Sync common fields from Square response
+            $this->_syncCustomerFromSquareResponse($squareCustomer);
+        } else {
+            throw $this->_handleApiResponseErrors($response);
+        }
+    }
+
+    /**
+     * Sync customer data from Square API response.
+     *
+     * @param  SquareCustomer  $squareCustomer
+     * @return void
+     */
+    private function _syncCustomerFromSquareResponse(SquareCustomer $squareCustomer): void
+    {
+        // Update version
+        if ($squareCustomer->getVersion()) {
+            $this->getCustomer()->payment_service_version = $squareCustomer->getVersion();
+        }
+
+        // Sync address from response
+        if ($squareCustomer->getAddress()) {
+            $address = $this->getCustomer()->address()->firstOrNew([]);
+            $address->updateFromSquareAddress($squareCustomer->getAddress());
+            $this->getCustomer()->address()->save($address);
+        }
+
+        // Store read-only fields from response
+        if ($squareCustomer->getPreferences()) {
+            $this->getCustomer()->preferences = [
+                'email_unsubscribed' => $squareCustomer->getPreferences()->getEmailUnsubscribed(),
+            ];
+        }
+        if ($squareCustomer->getGroupIds()) {
+            $this->getCustomer()->group_ids = $squareCustomer->getGroupIds();
+        }
+        if ($squareCustomer->getSegmentIds()) {
+            $this->getCustomer()->segment_ids = $squareCustomer->getSegmentIds();
         }
     }
 
@@ -998,7 +1078,12 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         $recipientClass = Constants::RECIPIENT_NAMESPACE;
 
         if (is_a($recipient, $recipientClass)) {
-            $this->fulfillmentRecipient = $this->recipientBuilder->load($recipient->toArray());
+            $recipientData = $recipient->toArray();
+            // Include the address relationship if it exists (polymorphic relations aren't included in toArray by default)
+            if ($recipient->relationLoaded('address') && $recipient->address) {
+                $recipientData['address'] = $recipient->address->toArray();
+            }
+            $this->fulfillmentRecipient = $this->recipientBuilder->load($recipientData);
         } elseif (is_array($recipient)) {
             $this->fulfillmentRecipient = $this->recipientBuilder->load($recipient);
         }
@@ -1053,11 +1138,19 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     }
 
     /**
-     * @return CreateCustomerRequest|UpdateCustomerRequest
+     * @return CreateCustomerRequest
      */
-    public function getCreateCustomerRequest(): UpdateCustomerRequest|CreateCustomerRequest
+    public function getCreateCustomerRequest(): CreateCustomerRequest
     {
         return $this->createCustomerRequest;
+    }
+
+    /**
+     * @return UpdateCustomerRequest
+     */
+    public function getUpdateCustomerRequest(): UpdateCustomerRequest
+    {
+        return $this->updateCustomerRequest;
     }
 
     /**
@@ -1085,12 +1178,16 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     }
 
     /**
-     * @param  CreateCustomerRequest|UpdateCustomerRequest  $createCustomerRequest
+     * @param  CreateCustomerRequest|UpdateCustomerRequest  $customerRequest
      * @return self
      */
-    public function setCreateCustomerRequest($createCustomerRequest): static
+    public function setCreateOrUpdateCustomerRequest($customerRequest): static
     {
-        $this->createCustomerRequest = $createCustomerRequest;
+        if ($customerRequest instanceof UpdateCustomerRequest) {
+            $this->updateCustomerRequest = $customerRequest;
+        } else {
+            $this->createCustomerRequest = $customerRequest;
+        }
 
         return $this;
     }
@@ -1151,7 +1248,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
 
         if ($customer) {
             $customerRequest = $this->squareBuilder->buildCustomerRequest($this->customer);
-            $this->setCreateCustomerRequest($customerRequest);
+            $this->setCreateOrUpdateCustomerRequest($customerRequest);
         }
 
         return $this;
@@ -1213,12 +1310,11 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Create a new webhook subscription.
      *
-     * @param WebhookBuilder $builder The webhook builder instance.
+     * @param  WebhookBuilder  $builder  The webhook builder instance.
+     * @return WebhookSubscription
      *
      * @throws ApiException
      * @throws MissingPropertyException
-     *
-     * @return WebhookSubscription
      */
     public function createWebhookSubscription(WebhookBuilder $builder): WebhookSubscription
     {
@@ -1248,12 +1344,11 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Create a new webhook subscription.
      *
-     * @param WebhookBuilder $builder The webhook builder instance.
+     * @param  WebhookBuilder  $builder  The webhook builder instance.
+     * @return SquareWebhookSubscription
      *
      * @throws ApiException
      * @throws MissingPropertyException
-     *
-     * @return SquareWebhookSubscription
      */
     public function retrieveWebhookSubscription(string $subscriptionId): SquareWebhookSubscription
     {
@@ -1270,12 +1365,11 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Update an existing webhook subscription.
      *
-     * @param string         $subscriptionId The ID of the webhook subscription to update.
-     * @param WebhookBuilder $builder        The webhook builder instance with updated data.
+     * @param  string  $subscriptionId  The ID of the webhook subscription to update.
+     * @param  WebhookBuilder  $builder  The webhook builder instance with updated data.
+     * @return WebhookSubscription
      *
      * @throws ApiException
-     *
-     * @return WebhookSubscription
      */
     public function updateWebhookSubscription(string $subscriptionId, WebhookBuilder $builder): WebhookSubscription
     {
@@ -1324,8 +1418,9 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Delete a webhook subscription.
      *
-     * @param string $subscriptionId
+     * @param  string  $subscriptionId
      * @return bool
+     *
      * @throws ApiException
      */
     public function deleteWebhookSubscription(string $subscriptionId): bool
@@ -1345,11 +1440,12 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * List all webhook subscriptions.
      *
-     * @param string|null $cursor
-     * @param bool $includeDisabled
-     * @param string|null $sortOrder
-     * @param int|null $limit
+     * @param  string|null  $cursor
+     * @param  bool  $includeDisabled
+     * @param  string|null  $sortOrder
+     * @param  int|null  $limit
      * @return ListWebhookSubscriptionsResponse
+     *
      * @throws ApiException
      */
     public function listWebhookSubscriptions(
@@ -1375,8 +1471,9 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * List all available webhook event types.
      *
-     * @param string|null $apiVersion
+     * @param  string|null  $apiVersion
      * @return ListWebhookEventTypesResponse
+     *
      * @throws ApiException
      */
     public function listWebhookEventTypes(?string $apiVersion = null): ListWebhookEventTypesResponse
@@ -1393,9 +1490,10 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Test a webhook subscription.
      *
-     * @param string $subscriptionId
-     * @param string $eventType
+     * @param  string  $subscriptionId
+     * @param  string  $eventType
      * @return TestWebhookSubscriptionResponse
+     *
      * @throws ApiException
      */
     public function testWebhookSubscription(string $subscriptionId, string $eventType): TestWebhookSubscriptionResponse
@@ -1416,8 +1514,9 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Update the signature key for a webhook subscription.
      *
-     * @param string $subscriptionId
+     * @param  string  $subscriptionId
      * @return UpdateWebhookSubscriptionSignatureKeyResponse
+     *
      * @throws ApiException
      */
     public function updateWebhookSignatureKey(string $subscriptionId): UpdateWebhookSubscriptionSignatureKeyResponse
@@ -1453,11 +1552,10 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Process a webhook event payload.
      *
-     * @param Request $request The incoming request containing the webhook payload.
+     * @param  Request  $request  The incoming request containing the webhook payload.
+     * @return WebhookEvent
      *
      * @throws InvalidSquareSignatureException
-     *
-     * @return WebhookEvent
      */
     public function processWebhook(Request $request): WebhookEvent
     {
@@ -1466,13 +1564,13 @@ class SquareService extends CorePaymentService implements SquareServiceContract
 
         $subscriptionId = $headers['square-subscription-id'] ?? $headers['Square-Subscription-Id'] ?? null;
 
-        if (!$subscriptionId) {
+        if (! $subscriptionId) {
             throw new InvalidSquareSignatureException('Missing Square webhook subscription ID in headers');
         }
 
         $subscription = WebhookSubscription::where('square_id', $subscriptionId)->first();
 
-        if (!$subscription) {
+        if (! $subscription) {
             throw new InvalidSquareSignatureException('No webhook subscription found for verification');
         }
 
@@ -1486,14 +1584,14 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Mark a webhook event as processed.
      *
-     * @param string $eventId The Square event ID
+     * @param  string  $eventId  The Square event ID
      * @return bool
      */
     public function markWebhookEventProcessed(string $eventId): bool
     {
         $event = WebhookEvent::where('square_event_id', $eventId)->first();
 
-        if (!$event) {
+        if (! $event) {
             return false;
         }
 
@@ -1503,15 +1601,15 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Mark a webhook event as failed with an error message.
      *
-     * @param string $eventId The Square event ID
-     * @param string $errorMessage The error message
+     * @param  string  $eventId  The Square event ID
+     * @param  string  $errorMessage  The error message
      * @return bool
      */
     public function markWebhookEventFailed(string $eventId, string $errorMessage): bool
     {
         $event = WebhookEvent::where('square_event_id', $eventId)->first();
 
-        if (!$event) {
+        if (! $event) {
             return false;
         }
 
@@ -1521,7 +1619,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * Clean up old webhook events.
      *
-     * @param int $daysOld Number of days old events to keep
+     * @param  int  $daysOld  Number of days old events to keep
      * @return int Number of events deleted
      */
     public function cleanupOldWebhookEvents(int $daysOld = 30): int

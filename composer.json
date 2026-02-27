@@ -30,7 +30,7 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.13",
-        "orchestra/testbench": "9.x",
+        "orchestra/testbench": "10.x",
         "phpunit/phpunit": "11.x",
         "laravel/legacy-factories": "^1.3"
     },
@@ -65,7 +65,7 @@
     "scripts": {
         "test:coverage": [
             "@putenv XDEBUG_MODE=coverage",
-            "phpunit --color=always --coverage-clover=\"build/clover.xml\""
+            "phpunit --color=always --coverage-clover=\"build/logs/clover.xml\""
         ],
         "test:coverage-html": [
             "@putenv XDEBUG_MODE=coverage",
@@ -74,7 +74,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "3.3.x-dev"
+            "dev-master": "3.5.x-dev"
         },
         "laravel": {
             "providers": [

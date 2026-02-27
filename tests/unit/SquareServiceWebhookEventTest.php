@@ -39,7 +39,7 @@ class SquareServiceWebhookEventTest extends TestCase
             'event_time' => now(),
             'event_data' => ['test' => 'data'],
             'status' => WebhookEvent::STATUS_PENDING,
-            'webhook_subscription_id' => $subscription->id
+            'webhook_subscription_id' => $subscription->id,
         ]);
 
         // Execute the test
@@ -68,7 +68,7 @@ class SquareServiceWebhookEventTest extends TestCase
             'event_time' => now(),
             'event_data' => ['test' => 'data'],
             'status' => WebhookEvent::STATUS_PENDING,
-            'webhook_subscription_id' => $subscription->id
+            'webhook_subscription_id' => $subscription->id,
         ]);
 
         // Execute the test

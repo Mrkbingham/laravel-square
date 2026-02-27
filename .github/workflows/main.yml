@@ -12,6 +12,7 @@ on:
       - '3.2.**'
       - '3.3.**'
       - '3.4.**'
+      - '3.5.**'
   push:
     branches:
       - 'master'
@@ -19,6 +20,7 @@ on:
       - '3.2.**'
       - '3.3.**'
       - '3.4.**'
+      - '3.5.**'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -34,8 +36,8 @@ jobs:
       matrix:
         include:
           - php-version: "8.2"
-            illuminate: "11.*"
-            orchestra: "9.*"
+            illuminate: "12.*"
+            orchestra: "10.*"
             phpunit: "11.*"
     # Steps represent a sequence of tasks that will be executed as part of the job
     environment: sandbox
@@ -70,10 +72,12 @@ jobs:
           composer install --no-interaction --no-cache
           composer dump-autoload
 
-      # Generate application key
+      # Generate application key and write to .env file
       - name: Generate APP_KEY
         run: |
-          echo "APP_KEY=$(php artisan key:generate --show)" >> $GITHUB_ENV
+          APP_KEY="base64:$(openssl rand -base64 32)"
+          echo "APP_KEY=$APP_KEY" >> $GITHUB_ENV
+          sed -i "s|APP_KEY=.*|APP_KEY=$APP_KEY|" .env
 
       # Run phpunit tests
       - name: Run tests
@@ -89,6 +93,7 @@ jobs:
 
       # Upload test coverage to code climate
       - name: Publish code coverage
-        uses: paambaati/codeclimate-action@v3.2.0
+        uses: paambaati/codeclimate-action@v8.0.0
+        continue-on-error: true
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CODE_CLIMATE_TOKEN }}

@@ -2,13 +2,14 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
+use Nikolag\Square\Models\Address;
 use Nikolag\Square\Models\DeliveryDetails;
 use Nikolag\Square\Models\Fulfillment;
 use Nikolag\Square\Models\Recipient;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
-use Square\Models\Address;
+use Square\Models\Address as SquareAddress;
 use Square\Models\FulfillmentType;
 
 class RecipientTest extends TestCase
@@ -31,29 +32,43 @@ class RecipientTest extends TestCase
      */
     public function test_get_square_request_address(): void
     {
-        $squareAddress = $this->data->fulfillmentRecipient->getSquareRequestAddress();
+        // Set up recipient with required relationships
+        $deliveryDetails = factory(DeliveryDetails::class)->create();
+        $fulfillment = factory(Fulfillment::class)->states(FulfillmentType::DELIVERY)->make();
+        $fulfillment->fulfillmentDetails()->associate($deliveryDetails);
+        $fulfillment->order()->associate($this->data->order);
+        $fulfillment->save();
+
+        /** @var Recipient $recipient */
+        $recipient = factory(Recipient::class)->make();
+        $recipient->fulfillment()->associate($fulfillment);
+        $recipient->save();
+
+        // Create an address for the recipient using the polymorphic relationship
+        $address = factory(Address::class)->create([
+            'address_line_1' => '123 Main St',
+            'address_line_2' => 'Suite 100',
+            'locality' => 'Chicago',
+            'administrative_district_level_1' => 'IL',
+            'postal_code' => '60601',
+            'country' => 'US',
+        ]);
+        $recipient->address()->save($address);
+
+        $squareAddress = $recipient->getSquareAddress();
 
         $this->assertNotNull($squareAddress, 'Square Address is null.');
 
         // Make sure it's the correct type
-        $this->assertInstanceOf(Address::class, $squareAddress);
+        $this->assertInstanceOf(SquareAddress::class, $squareAddress);
 
         // Make sure the values are correct
-        $originalAddress = $this->data->fulfillmentRecipient->address;
-        $this->assertEquals($squareAddress->getAddressLine1(), $originalAddress['address_line_1'] ?? null);
-        $this->assertEquals($squareAddress->getAddressLine2(), $originalAddress['address_line_2'] ?? null);
-        $this->assertEquals($squareAddress->getAddressLine3(), $originalAddress['address_line_3'] ?? null);
-        $this->assertEquals($squareAddress->getLocality(), $originalAddress['locality'] ?? null);
-        $this->assertEquals($squareAddress->getSublocality(), $originalAddress['sublocality'] ?? null);
-        $this->assertEquals($squareAddress->getSublocality2(), $originalAddress['sublocality_2'] ?? null);
-        $this->assertEquals($squareAddress->getSublocality3(), $originalAddress['sublocality_3'] ?? null);
-        $this->assertEquals($squareAddress->getAdministrativeDistrictLevel1(), $originalAddress['administrative_district_level_1'] ?? null);
-        $this->assertEquals($squareAddress->getAdministrativeDistrictLevel2(), $originalAddress['administrative_district_level_2'] ?? null);
-        $this->assertEquals($squareAddress->getAdministrativeDistrictLevel3(), $originalAddress['administrative_district_level_3'] ?? null);
-        $this->assertEquals($squareAddress->getPostalCode(), $originalAddress['postal_code'] ?? null);
-        $this->assertEquals($squareAddress->getCountry(), $originalAddress['country'] ?? null);
-        $this->assertEquals($squareAddress->getFirstName(), $originalAddress['first_name'] ?? null);
-        $this->assertEquals($squareAddress->getLastName(), $originalAddress['last_name'] ?? null);
+        $this->assertEquals('123 Main St', $squareAddress->getAddressLine1());
+        $this->assertEquals('Suite 100', $squareAddress->getAddressLine2());
+        $this->assertEquals('Chicago', $squareAddress->getLocality());
+        $this->assertEquals('IL', $squareAddress->getAdministrativeDistrictLevel1());
+        $this->assertEquals('60601', $squareAddress->getPostalCode());
+        $this->assertEquals('US', $squareAddress->getCountry());
     }
 
     /**

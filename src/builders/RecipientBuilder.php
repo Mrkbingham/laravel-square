@@ -7,15 +7,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Models\Recipient;
-use Nikolag\Square\Utils\Constants;
 
 class RecipientBuilder
 {
-    /**
-     * @var string
-     */
-    protected string $recipientClass = Constants::RECIPIENT_NAMESPACE;
-
     /**
      * Find or create a recipient.
      *
@@ -26,7 +20,7 @@ class RecipientBuilder
      */
     public function load(array $recipientData): Recipient
     {
-        $temp = new $this->recipientClass();
+        $temp = new Recipient();
 
         $query = $temp->newQuery();
 
@@ -58,9 +52,6 @@ class RecipientBuilder
      */
     public function validate(array $recipientData): bool
     {
-        $recipient = new $this->recipientClass();
-        $recipient->fill($recipientData);
-
         $individualFieldsRules = [
             'display_name' => 'required',
             'email_address' => 'required',
@@ -68,14 +59,10 @@ class RecipientBuilder
             'address' => 'required',
         ];
 
-        // If the recipient has a customer_id, we don't need the individual fields
         $hasCustomerID = Arr::has($recipientData, 'customer_id') && $recipientData['customer_id'] != null;
 
         if (! $hasCustomerID) {
-            Validator::make($recipient->toArray(), $individualFieldsRules)->validate();
-        } else {
-            // As long as the customer_id is present, we're good - Square requires either customer_id or the details
-            // cf. https://github.com/square/square-php-sdk/blob/master/doc/models/fulfillment-recipient.md
+            Validator::make($recipientData, $individualFieldsRules)->validate();
         }
 
         return true;

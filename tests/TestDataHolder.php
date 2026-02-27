@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square\Tests;
 
+use Nikolag\Square\Models\Address;
 use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\Fulfillment;
@@ -25,6 +26,7 @@ class TestDataHolder
         public ?User $merchant,
         public ?Tax $tax,
         public ?Discount $discount,
+        public ?Address $address,
         public ?Fulfillment $fulfillmentWithDeliveryDetails,
         public ?Fulfillment $fulfillmentWithPickupDetails,
         public ?Fulfillment $fulfillmentWithShipmentDetails,
@@ -42,11 +44,12 @@ class TestDataHolder
             factory(User::class)->make(),
             factory(Tax::class)->make(),
             factory(Discount::class)->states('AMOUNT_ONLY')->make(),
+            factory(Address::class)->make(),
             factory(Fulfillment::class)->states(FulfillmentType::DELIVERY)->make(),
             factory(Fulfillment::class)->states(FulfillmentType::PICKUP)->make(),
             factory(Fulfillment::class)->states(FulfillmentType::SHIPMENT)->make(),
-            factory(Recipient::class)->make(),
-            self::buildMockOrderReturn()
+            self::makeRecipientWithAddress(),
+            self::buildMockOrderReturn(),
         );
     }
 
@@ -59,13 +62,28 @@ class TestDataHolder
             factory(User::class)->create(),
             factory(Tax::class)->create(),
             factory(Discount::class)->states('AMOUNT_ONLY')->create(),
+            factory(Address::class)->create(),
             // NOTE: The following factories are not created because they are not associated with the order
             factory(Fulfillment::class)->states(FulfillmentType::DELIVERY)->make(),
             factory(Fulfillment::class)->states(FulfillmentType::PICKUP)->make(),
             factory(Fulfillment::class)->states(FulfillmentType::SHIPMENT)->make(),
-            factory(Recipient::class)->make(),
+            self::makeRecipientWithAddress(),
             self::buildMockOrderReturn()
         );
+    }
+
+    /**
+     * Creates a Recipient with an Address relationship set.
+     *
+     * @return Recipient
+     */
+    private static function makeRecipientWithAddress(): Recipient
+    {
+        $recipient = factory(Recipient::class)->make();
+        $address = factory(Address::class)->make();
+        $recipient->setRelation('address', $address);
+
+        return $recipient;
     }
 
     public function modify(string $prodFac = 'create',
@@ -73,7 +91,8 @@ class TestDataHolder
                            string $orderDisFac = 'create',
                            string $orderDiscFixFac = 'create',
                            string $taxAddFac = 'create',
-                           string $taxIncFac = 'create')
+                           string $taxIncFac = 'create',
+                            string $addressFac = 'create')
     {
         $product = factory(Product::class)->{$prodFac}([
             'price' => 1000,
@@ -94,7 +113,9 @@ class TestDataHolder
             'percentage' => 15.0,
         ]);
 
-        return compact('product', 'productDiscount', 'orderDiscount', 'orderDiscountFixed', 'taxAdditive', 'taxInclusive');
+        $address = factory(Address::class)->{$addressFac}();
+
+        return compact('product', 'productDiscount', 'orderDiscount', 'orderDiscountFixed', 'taxAdditive', 'taxInclusive', 'address');
     }
 
     /**

@@ -7,49 +7,54 @@ use Nikolag\Square\Models\WebhookEvent;
 use Nikolag\Square\Models\WebhookSubscription;
 use Nikolag\Square\SquareConfig;
 use Nikolag\Square\Utils\WebhookProcessor;
+use Square\Apis\CustomersApi;
 use Square\Apis\InvoicesApi;
 use Square\Apis\OrdersApi;
 use Square\Apis\WebhookSubscriptionsApi;
 use Square\Http\ApiResponse;
+use Square\Models\Builders\CreateCustomerResponseBuilder;
 use Square\Models\Builders\CreateInvoiceResponseBuilder;
 use Square\Models\Builders\CreateWebhookSubscriptionResponseBuilder;
 use Square\Models\Builders\CreateOrderResponseBuilder;
+use Square\Models\Builders\CustomerBuilder;
 use Square\Models\Builders\GetInvoiceResponseBuilder;
 use Square\Models\Builders\InvoiceBuilder;
 use Square\Models\Builders\MoneyBuilder;
+use Square\Models\Builders\UpdateCustomerResponseBuilder;
 use Square\Models\Builders\UpdateOrderResponseBuilder;
 use Square\Models\Builders\UpdateInvoiceResponseBuilder;
 use Square\Models\Builders\PublishInvoiceResponseBuilder;
 use Square\Models\Builders\RetrieveOrderResponseBuilder;
 use Square\Models\Builders\OrderBuilder;
 use Square\Models\Builders\DeleteWebhookSubscriptionResponseBuilder;
-use Square\Models\Builders\UpdateWebhookSubscriptionResponseBuilder;
-use Square\Models\Builders\UpdateWebhookSubscriptionSignatureKeyResponseBuilder;
-use Square\Models\Builders\WebhookSubscriptionBuilder;
 use Square\Models\Builders\ErrorBuilder;
 use Square\Models\Builders\EventDataBuilder;
 use Square\Models\Builders\ListWebhookSubscriptionsResponseBuilder;
 use Square\Models\Builders\TestWebhookSubscriptionResponseBuilder;
+use Square\Models\Builders\UpdateWebhookSubscriptionResponseBuilder;
+use Square\Models\Builders\UpdateWebhookSubscriptionSignatureKeyResponseBuilder;
+use Square\Models\Builders\WebhookSubscriptionBuilder;
+use Square\Models\CreateCustomerResponse;
 use Square\Models\CreateInvoiceResponse;
 use Square\Models\CreateWebhookSubscriptionResponse;
 use Square\Models\CreateOrderResponse;
 use Square\Models\GetInvoiceResponse;
 use Square\Models\Invoice as SquareInvoice;
 use Square\Models\PublishInvoiceResponse;
+use Square\Models\UpdateCustomerResponse;
 use Square\Models\UpdateInvoiceResponse;
 use Square\Models\UpdateOrderResponse;
 use Square\Models\DeleteWebhookSubscriptionResponse;
 use Square\Models\ListWebhookSubscriptionsResponse;
 use Square\Models\RetrieveOrderResponse;
+use Square\Models\TestWebhookSubscriptionResponse;
 use Square\Models\UpdateWebhookSubscriptionResponse;
 use Square\Models\UpdateWebhookSubscriptionSignatureKeyResponse;
-use Square\Models\TestWebhookSubscriptionResponse;
 use Square\Models\WebhookSubscription as SquareWebhookSubscription;
 use Symfony\Component\HttpFoundation\InputBag;
 
 /**
  * Square API mocking trait based on dependency injection pattern.
- *
  */
 trait MocksSquareConfigDependency
 {
@@ -58,17 +63,18 @@ trait MocksSquareConfigDependency
      */
     private $mockWebhooksApi;
     private $mockOrdersApi;
+    private $mockCustomersApi;
     private $mockInvoicesApi;
     private $mockSquareConfig;
 
     /**
      * Mock the SquareConfig dependency for webhook operations.
      *
-     * @param string  $endpoint     The webhook endpoint to mock.
-     * @param array|null   $responseData The data to include in successful responses.
-     * @param boolean $shouldFail   Whether to simulate an API error.
-     * @param string  $errorMessage Error message if shouldFail is true.
-     * @param int     $errorCode    HTTP error code if shouldFail is true.
+     * @param  string  $endpoint  The webhook endpoint to mock.
+     * @param  array|null  $responseData  The data to include in successful responses.
+     * @param  bool  $shouldFail  Whether to simulate an API error.
+     * @param  string  $errorMessage  Error message if shouldFail is true.
+     * @param  int  $errorCode  HTTP error code if shouldFail is true.
      */
     protected function mockSquareWebhookEndpoint(
         string $endpoint,
@@ -87,9 +93,8 @@ trait MocksSquareConfigDependency
     /**
      * Mock a successful webhook API response.
      *
-     * @param string $endpoint The webhook endpoint to mock.
-     * @param array|null  $responseData The data to include in the response.
-     *
+     * @param  string  $endpoint  The webhook endpoint to mock.
+     * @param  array|null  $responseData  The data to include in the response.
      * @return void
      */
     private function mockSquareWebhookSuccess(string $endpoint, ?array $responseData = null): void
@@ -110,10 +115,9 @@ trait MocksSquareConfigDependency
     /**
      * Mock an error webhook API response.
      *
-     * @param string $endpoint The webhook endpoint to mock.
-     * @param string $errorMessage The error message to return.
-     * @param int    $errorCode The HTTP status code to return.
-     *
+     * @param  string  $endpoint  The webhook endpoint to mock.
+     * @param  string  $errorMessage  The error message to return.
+     * @param  int  $errorCode  The HTTP status code to return.
      * @return void
      */
     private function mockSquareWebhookError(string $endpoint, string $errorMessage, int $errorCode): void
@@ -171,8 +175,7 @@ trait MocksSquareConfigDependency
     /**
      * Build a create webhook subscription response.
      *
-     * @param array $data The data to include in the response.
-     *
+     * @param  array  $data  The data to include in the response.
      * @return CreateWebhookSubscriptionResponse
      */
     private function buildCreateWebhookResponse(array $data): CreateWebhookSubscriptionResponse
@@ -187,8 +190,7 @@ trait MocksSquareConfigDependency
     /**
      * Build a list webhook subscriptions response.
      *
-     * @param null|array $data The data to include in the response.
-     *
+     * @param  null|array  $data  The data to include in the response.
      * @return ListWebhookSubscriptionsResponse
      */
     private function buildListWebhookResponse(?array $data = null): ListWebhookSubscriptionsResponse
@@ -209,8 +211,7 @@ trait MocksSquareConfigDependency
     /**
      * Build a retrieve webhook subscription response.
      *
-     * @param array $data The data to include in the response.
-     *
+     * @param  array  $data  The data to include in the response.
      * @return CreateWebhookSubscriptionResponse
      */
     private function buildRetrieveWebhookResponse(array $data): CreateWebhookSubscriptionResponse
@@ -225,8 +226,7 @@ trait MocksSquareConfigDependency
     /**
      * Build an update webhook subscription response.
      *
-     * @param array $data The data to include in the response.
-     *
+     * @param  array  $data  The data to include in the response.
      * @return UpdateWebhookSubscriptionResponse
      */
     private function buildUpdateWebhookResponse(array $data): UpdateWebhookSubscriptionResponse
@@ -251,8 +251,7 @@ trait MocksSquareConfigDependency
     /**
      * Build a test webhook subscription response.
      *
-     * @param array|null $data The data to include in the response.
-     *
+     * @param  array|null  $data  The data to include in the response.
      * @return TestWebhookSubscriptionResponse
      */
     private function buildTestWebhookResponse(?array $data = null): TestWebhookSubscriptionResponse
@@ -265,8 +264,7 @@ trait MocksSquareConfigDependency
     /**
      * Build an update webhook subscription signature key response.
      *
-     * @param array|null $data The data to include in the response.
-     *
+     * @param  array|null  $data  The data to include in the response.
      * @return UpdateWebhookSubscriptionSignatureKeyResponse
      */
     private function buildUpdateWebhookSignatureKeyResponse(?array $data = null): UpdateWebhookSubscriptionSignatureKeyResponse
@@ -277,7 +275,7 @@ trait MocksSquareConfigDependency
             $responseBuilder->signatureKey($data['signatureKey']);
         } else {
             // Generate a mock signature key if none provided
-            $responseBuilder->signatureKey('test_signature_key_' . uniqid());
+            $responseBuilder->signatureKey('test_signature_key_'.uniqid());
         }
 
         return $responseBuilder->build();
@@ -286,15 +284,14 @@ trait MocksSquareConfigDependency
     /**
      * Bind the mock to the service container using dependency injection.
      *
-     * @param string      $endpoint        The webhook endpoint to mock.
-     * @param ApiResponse $mockApiResponse The mock API response to return.
-     *
+     * @param  string  $endpoint  The webhook endpoint to mock.
+     * @param  ApiResponse  $mockApiResponse  The mock API response to return.
      * @return void
      */
     private function bindMockToServiceContainer(string $endpoint, ApiResponse $mockApiResponse): void
     {
         // Get or create a persistent mock webhooks API
-        if (!isset($this->mockWebhooksApi)) {
+        if (! isset($this->mockWebhooksApi)) {
             $this->mockWebhooksApi = $this->createMock(WebhookSubscriptionsApi::class);
         }
 
@@ -302,7 +299,7 @@ trait MocksSquareConfigDependency
         $this->mockWebhooksApi->method($endpoint)->willReturn($mockApiResponse);
 
         // Get or create a persistent mock SquareConfig
-        if (!isset($this->mockSquareConfig)) {
+        if (! isset($this->mockSquareConfig)) {
             $this->mockSquareConfig = $this->createMock(SquareConfig::class);
             $this->mockSquareConfig->method('webhooksAPI')->willReturn($this->mockWebhooksApi);
 
@@ -314,8 +311,7 @@ trait MocksSquareConfigDependency
     /**
      * Mocks the webhooksAPI()->createWebhookSubscription($subscriptionId, $request) method in the SquareService class.
      *
-     * @param array $responseData Data to include in the successful response.
-     *
+     * @param  array  $responseData  Data to include in the successful response.
      * @return void
      */
     protected function mockCreateWebhookSuccess(array $responseData = []): void
@@ -326,8 +322,7 @@ trait MocksSquareConfigDependency
     /**
      * Mocks the webhooksAPI()->createWebhookSubscription($subscriptionId, $request) method in the SquareService class.
      *
-     * @param array $responseData Data to include in the successful response.
-     *
+     * @param  array  $responseData  Data to include in the successful response.
      * @return void
      */
     protected function mockCreateWebhookError(string $message = 'Create webhook failed', int $code = 400): void
@@ -338,8 +333,7 @@ trait MocksSquareConfigDependency
     /**
      * Mocks the webhooksAPI()->listWebhookSubscriptions(...) method in the SquareService class.
      *
-     * @param null|array $responseData Data to include in the successful response.
-     *
+     * @param  null|array  $responseData  Data to include in the successful response.
      * @return void
      */
     protected function mockListWebhookSuccess(?array $responseData = null): void
@@ -350,8 +344,7 @@ trait MocksSquareConfigDependency
     /**
      * Mocks the webhooksAPI()->retrieveWebhookSubscription($subscriptionId) method in the SquareService class.
      *
-     * @param array $responseData Data to include in the successful response.
-     *
+     * @param  array  $responseData  Data to include in the successful response.
      * @return void
      */
     protected function mockRetrieveWebhookSuccess(array $responseData = []): void
@@ -362,8 +355,7 @@ trait MocksSquareConfigDependency
     /**
      * Mocks the webhooksAPI()->updateWebhookSubscription($subscriptionId, $request) method in the SquareService class.
      *
-     * @param array $responseData Data to include in the successful response.
-     *
+     * @param  array  $responseData  Data to include in the successful response.
      * @return void
      */
     protected function mockUpdateWebhookSuccess(array $responseData = []): void
@@ -374,8 +366,7 @@ trait MocksSquareConfigDependency
     /**
      * Mocks the webhooksAPI()->updateWebhookSubscription($subscriptionId, $request) method in the SquareService class.
      *
-     * @param array $responseData Data to include in the successful response.
-     *
+     * @param  array  $responseData  Data to include in the successful response.
      * @return void
      */
     protected function mockUpdateWebhookError(string $message = 'Update webhook failed', int $code = 400): void
@@ -406,8 +397,7 @@ trait MocksSquareConfigDependency
     /**
      * Mocks the webhooksAPI()->testWebhookSubscription($subscriptionId, $request) method in the SquareService class.
      *
-     * @param array $responseData Data to include in the successful response.
-     *
+     * @param  array  $responseData  Data to include in the successful response.
      * @return void
      */
     protected function mockTestWebhookSuccess(array $responseData = []): void
@@ -418,9 +408,8 @@ trait MocksSquareConfigDependency
     /**
      * Mocks the webhooksAPI()->testWebhookSubscription($subscriptionId, $request) method in the SquareService class.
      *
-     * @param string $message Error message to return.
-     * @param int $code HTTP error code to return.
-     *
+     * @param  string  $message  Error message to return.
+     * @param  int  $code  HTTP error code to return.
      * @return void
      */
     protected function mockTestWebhookError(string $message = 'Test webhook failed', int $code = 400): void
@@ -431,8 +420,7 @@ trait MocksSquareConfigDependency
     /**
      * Mocks the webhooksAPI()->updateWebhookSubscriptionSignatureKey($subscriptionId, $request) method in the SquareService class.
      *
-     * @param array $responseData Data to include in the successful response.
-     *
+     * @param  array  $responseData  Data to include in the successful response.
      * @return void
      */
     protected function mockUpdateWebhookSignatureKey(array $responseData = []): void
@@ -443,9 +431,8 @@ trait MocksSquareConfigDependency
     /**
      * Mocks the webhooksAPI()->updateWebhookSubscriptionSignatureKey($subscriptionId, $request) method in the SquareService class.
      *
-     * @param string $message Error message to return.
-     * @param int $code HTTP error code to return.
-     *
+     * @param  string  $message  Error message to return.
+     * @param  int  $code  HTTP error code to return.
      * @return void
      */
     protected function mockUpdateWebhookSignatureKeyError(string $message = 'Update webhook signature key failed', int $code = 400): void
@@ -458,11 +445,10 @@ trait MocksSquareConfigDependency
      *
      * This method reuses the webhook event factory data structure to create realistic Square webhook payloads.
      *
-     * @param string $eventType The type of webhook event ('order.created', 'payment.updated', etc.)
-     * @param string $signatureKey The webhook subscription signature key
-     * @param string $notificationUrl The webhook subscription notification URL
-     * @param array|null $customData Optional custom data to override defaults
-     *
+     * @param  string  $eventType  The type of webhook event ('order.created', 'payment.updated', etc.)
+     * @param  string  $signatureKey  The webhook subscription signature key
+     * @param  string  $notificationUrl  The webhook subscription notification URL
+     * @param  array|null  $customData  Optional custom data to override defaults
      * @return Request
      */
     protected function mockWebhookSubscriptionResponse(
@@ -511,7 +497,7 @@ trait MocksSquareConfigDependency
         $jsonAttribute = (new InputBag())->set('parameters', $webhookPayload);
         $request->setJson($jsonAttribute);
 
-        if (!empty($retryData)) {
+        if (! empty($retryData)) {
             $request->headers->set('square-retry-reason', $retryData['reason']);
             $request->headers->set('square-retry-number', (string) $retryData['number']);
             $request->headers->set('square-initial-delivery-timestamp', $retryData['initialDeliveryTimestamp']);
@@ -524,9 +510,8 @@ trait MocksSquareConfigDependency
     /**
      * Generate plain webhook payload array with correct structure for signature verification.
      *
-     * @param string $eventType The webhook event type
-     * @param array|null $customData Custom data to override defaults
-     *
+     * @param  string  $eventType  The webhook event type
+     * @param  array|null  $customData  Custom data to override defaults
      * @return array
      */
     private function generateWebhookPayload(string $eventType): array
@@ -537,22 +522,22 @@ trait MocksSquareConfigDependency
 
         // Build the webhook payload structure that Square actually sends
         return [
-            'merchant_id' => $webhookEvent->getMerchantId() ?? 'test-merchant-' . uniqid(),
+            'merchant_id' => $webhookEvent->getMerchantId() ?? 'test-merchant-'.uniqid(),
             'type' => $eventType,
             'event_id' => $webhookEvent->square_event_id,
             'created_at' => $webhookEvent->event_time->toIsoString(),
             'data' => [
                 'type' => WebhookEvent::getObjectTypeKey($eventType),
-                'id' => $webhookEvent->getOrderId() ?? 'data-object-' . uniqid(),
-                'object' => $webhookEvent->getEventObject()
-            ]
+                'id' => $webhookEvent->getOrderId() ?? 'data-object-'.uniqid(),
+                'object' => $webhookEvent->getEventObject(),
+            ],
         ];
     }
 
     /**
      * Get the factory state name for the given event type.
      *
-     * @param string $eventType
+     * @param  string  $eventType
      * @return string
      */
     private function getFactoryStateForEventType(string $eventType): string
@@ -586,7 +571,7 @@ trait MocksSquareConfigDependency
 
         return [
             $event,
-            $eventData
+            $eventData,
         ];
     }
 
@@ -607,15 +592,14 @@ trait MocksSquareConfigDependency
 
         return [
             $event,
-            $eventData
+            $eventData,
         ];
     }
 
     /**
      * Build a single webhook subscription model.
      *
-     * @param array $data The data to include in the subscription.
-     *
+     * @param  array  $data  The data to include in the subscription.
      * @return SquareWebhookSubscription
      */
     private function buildSingleWebhook(array $data): SquareWebhookSubscription
@@ -955,6 +939,330 @@ trait MocksSquareConfigDependency
         $mockApiResponse->method('getStatusCode')->willReturn(409);
 
         $this->bindMockOrdersToServiceContainer('updateOrder', $mockApiResponse);
+    }
+
+    // ========================================
+    // Customers API Mocking Methods
+    // ========================================
+
+    /**
+     * Mock the SquareConfig dependency for customers operations.
+     *
+     * @param string  $endpoint     The customers endpoint to mock.
+     * @param array|null   $responseData The data to include in successful responses.
+     * @param boolean $shouldFail   Whether to simulate an API error.
+     * @param string  $errorMessage Error message if shouldFail is true.
+     * @param int     $errorCode    HTTP error code if shouldFail is true.
+     */
+    protected function mockSquareCustomersEndpoint(
+        string $endpoint,
+        ?array $responseData = null,
+        bool $shouldFail = false,
+        string $errorMessage = 'API Error',
+        int $errorCode = 400
+    ): void {
+        if ($shouldFail) {
+            $this->mockSquareCustomersError($endpoint, $errorMessage, $errorCode);
+        } else {
+            $this->mockSquareCustomersSuccess($endpoint, $responseData);
+        }
+    }
+
+    /**
+     * Mock a successful customers API response.
+     *
+     * @param string $endpoint The customers endpoint to mock.
+     * @param array|null  $responseData The data to include in the response.
+     *
+     * @return void
+     */
+    private function mockSquareCustomersSuccess(string $endpoint, ?array $responseData = null): void
+    {
+        // Build the appropriate response based on endpoint
+        $mockResult = $this->buildCustomersResponseForEndpoint($endpoint, $responseData);
+
+        // Create mock API response
+        $mockApiResponse = $this->createMock(ApiResponse::class);
+        $mockApiResponse->method('isError')->willReturn(false);
+        $mockApiResponse->method('isSuccess')->willReturn(true);
+        $mockApiResponse->method('getResult')->willReturn($mockResult);
+        $mockApiResponse->method('getErrors')->willReturn([]);
+
+        $this->bindMockCustomersToServiceContainer($endpoint, $mockApiResponse);
+    }
+
+    /**
+     * Mock an error customers API response.
+     *
+     * @param string $endpoint The customers endpoint to mock.
+     * @param string $errorMessage The error message to return.
+     * @param int    $errorCode The HTTP status code to return.
+     *
+     * @return void
+     */
+    private function mockSquareCustomersError(string $endpoint, string $errorMessage, int $errorCode): void
+    {
+        // Create error object using Square's builder
+        $error = ErrorBuilder::init('INVALID_REQUEST_ERROR', 'GENERIC_ERROR')
+            ->detail($errorMessage)
+            ->field(null)
+            ->build();
+
+        // Create mock API response for error
+        $mockApiResponse = $this->createMock(ApiResponse::class);
+        $mockApiResponse->method('isError')->willReturn(true);
+        $mockApiResponse->method('isSuccess')->willReturn(false);
+        $mockApiResponse->method('getResult')->willReturn(null);
+        $mockApiResponse->method('getErrors')->willReturn([$error]);
+        $mockApiResponse->method('getStatusCode')->willReturn($errorCode);
+
+        $this->bindMockCustomersToServiceContainer($endpoint, $mockApiResponse);
+    }
+
+    /**
+     * Build the appropriate response object based on the customers endpoint.
+     */
+    private function buildCustomersResponseForEndpoint(string $endpoint, ?array $data): mixed
+    {
+        switch ($endpoint) {
+            case 'createCustomer':
+                return $this->buildCreateCustomerResponse($data);
+            case 'updateCustomer':
+                return $this->buildUpdateCustomerResponse($data);
+            default:
+                return $this->buildCreateCustomerResponse($data);
+        }
+    }
+
+    /**
+     * Build a create customer response.
+     *
+     * @param array|null $data The data to include in the response.
+     *
+     * @return CreateCustomerResponse
+     */
+    private function buildCreateCustomerResponse(?array $data = null): CreateCustomerResponse
+    {
+        $customerData = $data ?? [
+            'id' => 'test-customer-' . uniqid(),
+            'givenName' => 'Test',
+            'familyName' => 'Customer',
+            'emailAddress' => 'test@example.com',
+            'version' => 1,
+            'createdAt' => now()->toISOString(),
+            'updatedAt' => now()->toISOString()
+        ];
+
+        $customerBuilder = CustomerBuilder::init()
+            ->id($customerData['id'])
+            ->version($customerData['version'])
+            ->createdAt($customerData['createdAt'])
+            ->updatedAt($customerData['updatedAt']);
+
+        if (isset($customerData['givenName'])) {
+            $customerBuilder->givenName($customerData['givenName']);
+        }
+        if (isset($customerData['familyName'])) {
+            $customerBuilder->familyName($customerData['familyName']);
+        }
+        if (isset($customerData['emailAddress'])) {
+            $customerBuilder->emailAddress($customerData['emailAddress']);
+        }
+        if (isset($customerData['phoneNumber'])) {
+            $customerBuilder->phoneNumber($customerData['phoneNumber']);
+        }
+        if (isset($customerData['companyName'])) {
+            $customerBuilder->companyName($customerData['companyName']);
+        }
+        if (isset($customerData['nickname'])) {
+            $customerBuilder->nickname($customerData['nickname']);
+        }
+        if (isset($customerData['referenceId'])) {
+            $customerBuilder->referenceId($customerData['referenceId']);
+        }
+        if (isset($customerData['note'])) {
+            $customerBuilder->note($customerData['note']);
+        }
+        if (isset($customerData['birthday'])) {
+            $customerBuilder->birthday($customerData['birthday']);
+        }
+        if (isset($customerData['creationSource'])) {
+            $customerBuilder->creationSource($customerData['creationSource']);
+        }
+        if (isset($customerData['address'])) {
+            $customerBuilder->address($customerData['address']);
+        }
+        if (isset($customerData['preferences'])) {
+            $customerBuilder->preferences($customerData['preferences']);
+        }
+        if (isset($customerData['groupIds'])) {
+            $customerBuilder->groupIds($customerData['groupIds']);
+        }
+        if (isset($customerData['segmentIds'])) {
+            $customerBuilder->segmentIds($customerData['segmentIds']);
+        }
+
+        $customer = $customerBuilder->build();
+
+        return CreateCustomerResponseBuilder::init()
+            ->customer($customer)
+            ->build();
+    }
+
+    /**
+     * Build an update customer response.
+     *
+     * @param array|null $data The data to include in the response.
+     *
+     * @return UpdateCustomerResponse
+     */
+    private function buildUpdateCustomerResponse(?array $data = null): UpdateCustomerResponse
+    {
+        $customerData = $data ?? [
+            'id' => 'test-customer-123',
+            'givenName' => 'Updated',
+            'familyName' => 'Customer',
+            'emailAddress' => 'updated@example.com',
+            'version' => 2,
+            'createdAt' => now()->subHour()->toISOString(),
+            'updatedAt' => now()->toISOString()
+        ];
+
+        $customerBuilder = CustomerBuilder::init()
+            ->id($customerData['id'])
+            ->version($customerData['version'])
+            ->createdAt($customerData['createdAt'])
+            ->updatedAt($customerData['updatedAt']);
+
+        if (isset($customerData['givenName'])) {
+            $customerBuilder->givenName($customerData['givenName']);
+        }
+        if (isset($customerData['familyName'])) {
+            $customerBuilder->familyName($customerData['familyName']);
+        }
+        if (isset($customerData['emailAddress'])) {
+            $customerBuilder->emailAddress($customerData['emailAddress']);
+        }
+        if (isset($customerData['phoneNumber'])) {
+            $customerBuilder->phoneNumber($customerData['phoneNumber']);
+        }
+        if (isset($customerData['companyName'])) {
+            $customerBuilder->companyName($customerData['companyName']);
+        }
+        if (isset($customerData['nickname'])) {
+            $customerBuilder->nickname($customerData['nickname']);
+        }
+        if (isset($customerData['referenceId'])) {
+            $customerBuilder->referenceId($customerData['referenceId']);
+        }
+        if (isset($customerData['note'])) {
+            $customerBuilder->note($customerData['note']);
+        }
+        if (isset($customerData['birthday'])) {
+            $customerBuilder->birthday($customerData['birthday']);
+        }
+        if (isset($customerData['creationSource'])) {
+            $customerBuilder->creationSource($customerData['creationSource']);
+        }
+        if (isset($customerData['address'])) {
+            $customerBuilder->address($customerData['address']);
+        }
+        if (isset($customerData['preferences'])) {
+            $customerBuilder->preferences($customerData['preferences']);
+        }
+        if (isset($customerData['groupIds'])) {
+            $customerBuilder->groupIds($customerData['groupIds']);
+        }
+        if (isset($customerData['segmentIds'])) {
+            $customerBuilder->segmentIds($customerData['segmentIds']);
+        }
+
+        $customer = $customerBuilder->build();
+
+        return UpdateCustomerResponseBuilder::init()
+            ->customer($customer)
+            ->build();
+    }
+
+    /**
+     * Bind the customers mock to the service container using dependency injection.
+     *
+     * @param string      $endpoint        The customers endpoint to mock.
+     * @param ApiResponse $mockApiResponse The mock API response to return.
+     *
+     * @return void
+     */
+    private function bindMockCustomersToServiceContainer(string $endpoint, ApiResponse $mockApiResponse): void
+    {
+        // Get or create a persistent mock customers API
+        if (!isset($this->mockCustomersApi)) {
+            $this->mockCustomersApi = $this->createMock(CustomersApi::class);
+        }
+
+        // Configure the specific endpoint on the existing mock
+        $this->mockCustomersApi->method($endpoint)->willReturn($mockApiResponse);
+
+        // Get or create a persistent mock SquareConfig
+        if (!isset($this->mockSquareConfig)) {
+            $this->mockSquareConfig = $this->createMock(SquareConfig::class);
+            $this->mockSquareConfig->method('customersAPI')->willReturn($this->mockCustomersApi);
+
+            // Bind once to the service container
+            $this->app->instance(SquareConfig::class, $this->mockSquareConfig);
+        } else {
+            // Update existing mock config to include customers API
+            $this->mockSquareConfig->method('customersAPI')->willReturn($this->mockCustomersApi);
+        }
+    }
+
+    /**
+     * Mock the customersAPI()->createCustomer($request) method in the SquareService class.
+     *
+     * @param array $responseData Data to include in the successful response.
+     *
+     * @return void
+     */
+    protected function mockCreateCustomerSuccess(array $responseData = []): void
+    {
+        $this->mockSquareCustomersEndpoint('createCustomer', $responseData);
+    }
+
+    /**
+     * Mock the customersAPI()->createCustomer($request) method with error in the SquareService class.
+     *
+     * @param string $message Error message to return.
+     * @param int $code HTTP error code to return.
+     *
+     * @return void
+     */
+    protected function mockCreateCustomerError(string $message = 'Create customer failed', int $code = 400): void
+    {
+        $this->mockSquareCustomersEndpoint('createCustomer', [], true, $message, $code);
+    }
+
+    /**
+     * Mock the customersAPI()->updateCustomer($customerId, $request) method in the SquareService class.
+     *
+     * @param array $responseData Data to include in the successful response.
+     *
+     * @return void
+     */
+    protected function mockUpdateCustomerSuccess(array $responseData = []): void
+    {
+        $this->mockSquareCustomersEndpoint('updateCustomer', $responseData);
+    }
+
+    /**
+     * Mock the customersAPI()->updateCustomer($customerId, $request) method with error in the SquareService class.
+     *
+     * @param string $message Error message to return.
+     * @param int $code HTTP error code to return.
+     *
+     * @return void
+     */
+    protected function mockUpdateCustomerError(string $message = 'Update customer failed', int $code = 400): void
+    {
+        $this->mockSquareCustomersEndpoint('updateCustomer', [], true, $message, $code);
     }
 
     // ========================================
