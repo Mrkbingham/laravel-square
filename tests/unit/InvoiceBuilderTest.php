@@ -159,12 +159,13 @@ class InvoiceBuilderTest extends TestCase
         $recipient = $request->getInvoice()->getPrimaryRecipient();
 
         $this->assertNotNull($recipient);
-        $this->assertEquals('test@example.com', $recipient->getEmailAddress());
-        $this->assertEquals('John', $recipient->getGivenName());
-        $this->assertEquals('Doe', $recipient->getFamilyName());
-        $this->assertEquals('Test Company', $recipient->getCompanyName());
-        $this->assertEquals('+1234567890', $recipient->getPhoneNumber());
         $this->assertEquals($customer->payment_service_id, $recipient->getCustomerId());
+        // These fields are derived from customer_id, so they cannot be set on the create request
+        $this->assertNull($recipient->getEmailAddress());
+        $this->assertNull($recipient->getGivenName());
+        $this->assertNull($recipient->getFamilyName());
+        $this->assertNull($recipient->getCompanyName());
+        $this->assertNull($recipient->getPhoneNumber());
     }
 
     /**
@@ -214,15 +215,9 @@ class InvoiceBuilderTest extends TestCase
         $request = $this->builder->buildCreateInvoiceRequest($invoice);
 
         $recipient = $request->getInvoice()->getPrimaryRecipient();
-        $address = $recipient->getAddress();
 
-        $this->assertNotNull($address);
-        $this->assertEquals('123 Test St', $address->getAddressLine1());
-        $this->assertEquals('Apt 4', $address->getAddressLine2());
-        $this->assertEquals('Test City', $address->getLocality());
-        $this->assertEquals('CA', $address->getAdministrativeDistrictLevel1());
-        $this->assertEquals('12345', $address->getPostalCode());
-        $this->assertEquals('US', $address->getCountry());
+        $this->assertNotNull($recipient);
+        $this->assertNull($recipient->getAddress());
     }
 
     /**
@@ -508,7 +503,6 @@ class InvoiceBuilderTest extends TestCase
         $this->assertEquals('Updated description', $squareInvoice->getDescription());
         $this->assertEquals('INV-002', $squareInvoice->getInvoiceNumber());
         $this->assertNotNull($squareInvoice->getPrimaryRecipient());
-        $this->assertEquals('updated@example.com', $squareInvoice->getPrimaryRecipient()->getEmailAddress());
         $this->assertNotNull($squareInvoice->getPaymentRequests());
         $this->assertCount(1, $squareInvoice->getPaymentRequests());
         $this->assertNotNull($squareInvoice->getAcceptedPaymentMethods());

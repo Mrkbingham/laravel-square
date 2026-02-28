@@ -20,7 +20,6 @@ use Square\Models\Money;
 use Square\Models\PublishInvoiceRequest;
 use Square\Models\UpdateInvoiceRequest;
 use Square\Models\Builders\InvoiceAcceptedPaymentMethodsBuilder;
-use Square\Models\Builders\AddressBuilder;
 use Square\Models\Builders\CreateInvoiceRequestBuilder;
 use Square\Models\Builders\InvoiceBuilder as SquareInvoiceBuilder;
 use Square\Models\Builders\InvoiceCustomFieldBuilder;
@@ -216,6 +215,14 @@ class InvoiceBuilder
     /**
      * Build an InvoiceRecipient for the Square API.
      *
+     * The following fields are derived (via customer_id) and CANNOT be set directly on the recipient:
+     *   given_name
+     *   family_name
+     *   email_address
+     *   phone_number
+     *   address
+     *   company_name
+     *
      * @param  InvoiceRecipient  $recipient
      * @return SquareInvoiceRecipient
      */
@@ -225,52 +232,6 @@ class InvoiceBuilder
 
         if ($recipient->customer_id) {
             $builder->customerId($recipient->customer->payment_service_id);
-        }
-
-        if ($recipient->given_name) {
-            $builder->givenName($recipient->given_name);
-        }
-
-        if ($recipient->family_name) {
-            $builder->familyName($recipient->family_name);
-        }
-
-        if ($recipient->email_address) {
-            $builder->emailAddress($recipient->email_address);
-        }
-
-        if ($recipient->phone_number) {
-            $builder->phoneNumber($recipient->phone_number);
-        }
-
-        if ($recipient->company_name) {
-            $builder->companyName($recipient->company_name);
-        }
-
-        // Build address if provided
-        if ($recipient->address_line_1 || $recipient->locality || $recipient->postal_code) {
-            $addressBuilder = AddressBuilder::init();
-
-            if ($recipient->address_line_1) {
-                $addressBuilder->addressLine1($recipient->address_line_1);
-            }
-            if ($recipient->address_line_2) {
-                $addressBuilder->addressLine2($recipient->address_line_2);
-            }
-            if ($recipient->locality) {
-                $addressBuilder->locality($recipient->locality);
-            }
-            if ($recipient->administrative_district_level_1) {
-                $addressBuilder->administrativeDistrictLevel1($recipient->administrative_district_level_1);
-            }
-            if ($recipient->postal_code) {
-                $addressBuilder->postalCode($recipient->postal_code);
-            }
-            if ($recipient->country) {
-                $addressBuilder->country($recipient->country);
-            }
-
-            $builder->address($addressBuilder->build());
         }
 
         return $builder->build();
