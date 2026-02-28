@@ -306,6 +306,36 @@ class SquareServiceTest extends TestCase
     }
 
     /**
+     * Tests that buildProducts falls back to the product's price when pivot base_price_money_amount is null.
+     *
+     * @return void
+     */
+    public function test_build_products_falls_back_to_product_price_when_pivot_is_null(): void
+    {
+        $order = factory(Order::class)->create();
+        $product = factory(Product::class)->create([
+            'price' => 1500,
+        ]);
+
+        // Attach product with null pivot price to simulate missing pivot value
+        $order->products()->attach($product, [
+            'quantity' => 1,
+            'base_price_money_amount' => null,
+        ]);
+
+        $order->load('products');
+
+        $products = Square::getSquareBuilder()->buildProducts(
+            $order->products,
+            'USD'
+        );
+
+        $this->assertNotNull($products);
+        $this->assertCount(1, $products);
+        $this->assertEquals(1500, $products[0]->getBasePriceMoney()->getAmount());
+    }
+
+    /**
      * Tests the buildProducts method with an option-based modifier.
      *
      * @return void
@@ -1674,6 +1704,17 @@ class SquareServiceTest extends TestCase
             'name' => 'Test Product',
             'price' => 1000,
             'quantity' => 1,
+        ]);
+
+        // Mock retrieveOrder response (called before update to detect changes)
+        $this->mockRetrieveOrderSuccess([
+            'id' => 'SQUARE_ORDER_123',
+            'locationId' => $locationId,
+            'state' => 'OPEN',
+            'version' => 1,
+            'lineItems' => [],
+            'createdAt' => now()->subHour()->toISOString(),
+            'updatedAt' => now()->subMinutes(10)->toISOString(),
         ]);
 
         // Mock successful updateOrder response

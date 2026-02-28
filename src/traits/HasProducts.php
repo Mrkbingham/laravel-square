@@ -112,9 +112,9 @@ trait HasProducts
         $productModel = $product instanceof Product ? $product : Product::find($product);
 
         // Merge the product's current price into the pivot attributes
-        $pivotData = array_merge($attributes, [
-            'base_price_money_amount' => $productModel->price
-        ]);
+        $pivotData = array_merge([
+            'base_price_money_amount' => $productModel->price,
+        ], $attributes);
 
         $this->products()->attach($product, $pivotData);
     }

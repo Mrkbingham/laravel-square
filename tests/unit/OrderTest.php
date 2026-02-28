@@ -158,6 +158,40 @@ class OrderTest extends TestCase
     }
 
     /**
+     * Tests that attachProduct allows an explicit price override.
+     *
+     * @return void
+     */
+    public function test_attach_product_allows_explicit_price_override(): void
+    {
+        $order = factory(Order::class)->create();
+        $product = factory(Product::class)->create([
+            'price' => 1000,
+        ]);
+
+        $order->attachProduct($product, ['base_price_money_amount' => 2500]);
+
+        $this->assertEquals(2500, $order->products()->first()->pivot->base_price_money_amount);
+    }
+
+    /**
+     * Tests that attachProduct uses the product price as the default.
+     *
+     * @return void
+     */
+    public function test_attach_product_uses_product_price_as_default(): void
+    {
+        $order = factory(Order::class)->create();
+        $product = factory(Product::class)->create([
+            'price' => 1800,
+        ]);
+
+        $order->attachProduct($product);
+
+        $this->assertEquals(1800, $order->products()->first()->pivot->base_price_money_amount);
+    }
+
+    /**
      * Tests the hasReturns trait functionality.
      *
      * @return void
