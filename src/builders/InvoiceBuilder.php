@@ -41,6 +41,7 @@ class InvoiceBuilder
     public function buildCreateInvoiceRequest(Invoice $invoice): CreateInvoiceRequest
     {
         $this->validateOrderId($invoice);
+        $this->validateLocation($invoice);
         $this->validatePaymentRequests($invoice);
         $this->validateAcceptedPaymentMethods($invoice);
         $this->validateDeliveryMethod($invoice);
@@ -125,6 +126,7 @@ class InvoiceBuilder
     public function buildUpdateInvoiceRequest(Invoice $invoice, int $version): UpdateInvoiceRequest
     {
         $this->validateOrderId($invoice);
+        $this->validateLocation($invoice);
         $this->validatePaymentRequests($invoice);
         $this->validateAcceptedPaymentMethods($invoice);
         $this->validateDeliveryMethod($invoice);
@@ -391,6 +393,28 @@ class InvoiceBuilder
         if (empty($invoice->order->{$property})) {
             throw new MissingPropertyException(
                 "Cannot create invoice without a Square order ID. The order must be saved to Square first (order.{$property} is required)."
+            );
+        }
+    }
+
+    /**
+     * Validate that the invoice has an associated location with a Square ID.
+     *
+     * @param  Invoice  $invoice
+     * @return void
+     * @throws MissingPropertyException
+     */
+    private function validateLocation(Invoice $invoice): void
+    {
+        if (!$invoice->location) {
+            throw new MissingPropertyException(
+                'Cannot create invoice without an associated location. The invoice must have a location relationship defined.'
+            );
+        }
+
+        if (empty($invoice->location->square_id)) {
+            throw new MissingPropertyException(
+                'Cannot create invoice without a Square location ID. The location must have a square_id set.'
             );
         }
     }
