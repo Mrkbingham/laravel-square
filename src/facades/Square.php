@@ -15,6 +15,7 @@ use Nikolag\Square\SquareService;
 use Square\Models\BatchDeleteCatalogObjectsResponse;
 use Square\Models\BatchUpsertCatalogObjectsResponse;
 use Square\Models\CreateCatalogImageResponse;
+use Square\Models\Invoice as SquareInvoice;
 use Square\Models\ListLocationsResponse;
 use Square\Models\ListPaymentsResponse;
 use Square\Models\ListWebhookEventTypesResponse;
@@ -70,9 +71,9 @@ use Square\Models\UpdateWebhookSubscriptionSignatureKeyResponse;
  * @method static bool                                          markWebhookEventFailed(string $eventId)
  *
  * Invoice Management Methods
- * @method static void    saveInvoice(Invoice $invoice)
- * @method static void    publishInvoice(Invoice $invoice)
- * @method static Invoice getInvoice(string $squareInvoiceId)
+ * @method static void          saveInvoice(Invoice $invoice)
+ * @method static void          publishInvoice(Invoice $invoice)
+ * @method static SquareInvoice getInvoice(string $squareInvoiceId)
  *
  * @see \Nikolag\Square\SquareService
  */
