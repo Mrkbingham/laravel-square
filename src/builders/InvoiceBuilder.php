@@ -84,7 +84,7 @@ class InvoiceBuilder
         }
 
         // Add store payment method enabled
-        if ($invoice->store_payment_method_enabled) {
+        if ($invoice->store_payment_method_enabled !== null) {
             $invoiceBuilder->storePaymentMethodEnabled($invoice->store_payment_method_enabled);
         }
 
@@ -170,7 +170,7 @@ class InvoiceBuilder
         }
 
         // Add store payment method enabled
-        if ($invoice->store_payment_method_enabled) {
+        if ($invoice->store_payment_method_enabled !== null) {
             $invoiceBuilder->storePaymentMethodEnabled($invoice->store_payment_method_enabled);
         }
 
@@ -270,7 +270,7 @@ class InvoiceBuilder
                 $builder->automaticPaymentSource($paymentRequest->automatic_payment_source);
             }
 
-            if ($paymentRequest->fixed_amount_requested_money_amount) {
+            if ($paymentRequest->fixed_amount_requested_money_amount !== null) {
                 $builder->fixedAmountRequestedMoney(
                     MoneyBuilder::init()
                         ->amount($paymentRequest->fixed_amount_requested_money_amount)
@@ -279,7 +279,7 @@ class InvoiceBuilder
                 );
             }
 
-            if ($paymentRequest->percentage_requested) {
+            if ($paymentRequest->percentage_requested !== null) {
                 $builder->percentageRequested($paymentRequest->percentage_requested);
             }
 
@@ -297,23 +297,23 @@ class InvoiceBuilder
     {
         $builder = InvoiceAcceptedPaymentMethodsBuilder::init();
 
-        if ($methods->card) {
+        if ($methods->card !== null) {
             $builder->card($methods->card);
         }
 
-        if ($methods->square_gift_card) {
+        if ($methods->square_gift_card !== null) {
             $builder->squareGiftCard($methods->square_gift_card);
         }
 
-        if ($methods->bank_account) {
+        if ($methods->bank_account !== null) {
             $builder->bankAccount($methods->bank_account);
         }
 
-        if ($methods->buy_now_pay_later) {
+        if ($methods->buy_now_pay_later !== null) {
             $builder->buyNowPayLater($methods->buy_now_pay_later);
         }
 
-        if ($methods->cash_app_pay) {
+        if ($methods->cash_app_pay !== null) {
             $builder->cashAppPay($methods->cash_app_pay);
         }
 
