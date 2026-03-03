@@ -11,6 +11,7 @@ use Nikolag\Square\Models\InvoiceAcceptedPaymentMethods;
 use Nikolag\Square\Models\InvoiceCustomField;
 use Nikolag\Square\Models\InvoicePaymentRequest;
 use Nikolag\Square\Models\InvoiceRecipient;
+use Nikolag\Square\Models\Location;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
@@ -177,13 +178,14 @@ class InvoiceTest extends TestCase
     public function test_create_invoice_for_order(): void
     {
         $order = factory(Order::class)->create();
+        $location = factory(Location::class)->create();
         $customer = factory(Constants::CUSTOMER_NAMESPACE)->create([
             'email' => 'test@example.com',
         ]);
 
         $invoice = Invoice::create([
             'order_id' => $order->id,
-            'location_id' => env('SQUARE_LOCATION', 'main'),
+            'location_id' => $location->id,
             'title' => 'Test Invoice',
             'description' => 'Test invoice description',
             'delivery_method' => 'EMAIL',
