@@ -807,7 +807,10 @@ class SquareRequestBuilder
                 $this->productServiceCharges = $this->productServiceCharges->merge($serviceCharges);
 
                 $money = new Money();
-                $money->setAmount($product->pivot->base_price_money_amount);
+                $price = filled($product->pivot->base_price_money_amount)
+                    ? $product->pivot->base_price_money_amount
+                    : $product->price;
+                $money->setAmount($price);
                 $money->setCurrency($currency);
                 $tempProduct = new OrderLineItem($quantity);
                 $tempProduct->setName($product->name);
