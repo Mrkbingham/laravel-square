@@ -1775,6 +1775,13 @@ class SquareService extends CorePaymentService implements SquareServiceContract
             );
         }
 
+        if (empty($invoice->payment_service_id)) {
+            throw new MissingPropertyException(
+                'Cannot publish invoice: payment_service_id is missing. The invoice must be created in Square first.',
+                422
+            );
+        }
+
         $publishRequest = $this->invoiceBuilder->buildPublishInvoiceRequest($version);
 
         $response = $this->config->invoicesAPI()->publishInvoice(
