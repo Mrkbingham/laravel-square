@@ -28,10 +28,8 @@ class CreateNikolagInvoicesTable extends Migration
             $table->id();
             $table->string('payment_service_id')->nullable()->index();
             $table->integer('payment_service_version')->nullable();
-            $table->unsignedBigInteger('location_id')
-                ->foreign('location_id')->references('id')->on('nikolag_locations')->onDelete('cascade');
-            $table->unsignedBigInteger('order_id')->unique()
-                ->foreign('order_id')->references('id')->on($orderTable)->onDelete('cascade');
+            $table->foreignId('location_id')->constrained('nikolag_locations')->onDelete('cascade');
+            $table->foreignId('order_id')->unique()->constrained($orderTable)->onDelete('cascade');
             $table->enum('delivery_method', [
                 InvoiceDeliveryMethod::EMAIL,
                 InvoiceDeliveryMethod::SHARE_MANUALLY,
