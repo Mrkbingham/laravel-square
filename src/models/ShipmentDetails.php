@@ -8,7 +8,6 @@ use Nikolag\Square\Utils\Constants;
 
 class ShipmentDetails extends Model
 {
-
     /**
      * The table associated with the model.
      *
@@ -82,7 +81,7 @@ class ShipmentDetails extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param \DateTimeInterface $date The date to serialize.
+     * @param  \DateTimeInterface  $date  The date to serialize.
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

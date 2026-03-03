@@ -3,8 +3,6 @@
 namespace Nikolag\Square\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Nikolag\Square\Models\Customer;
-use Nikolag\Square\Models\Fulfillment;
 use Square\Models\Address;
 
 class Recipient extends Model

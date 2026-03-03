@@ -42,7 +42,7 @@ interface SquareServiceContract extends PaymentServiceContract
      *
      * Note: Orders can only have one fulfillment as per Square API limitations.
      *
-     * @param mixed $fulfillment The fulfillment model or array data.
+     * @param  mixed  $fulfillment  The fulfillment model or array data.
      * @return SquareServiceContract
      */
     public function setFulfillment(mixed $fulfillment): SquareServiceContract;
@@ -50,7 +50,7 @@ interface SquareServiceContract extends PaymentServiceContract
     /**
      * Set the recipient for the fulfillment details.
      *
-     * @param mixed $recipient The recipient model or array data.
+     * @param  mixed  $recipient  The recipient model or array data.
      * @return SquareServiceContract
      */
     public function setFulfillmentRecipient(mixed $recipient): SquareServiceContract;

@@ -287,9 +287,8 @@ class Util
     /**
      * Check if source has fulfillment.
      *
-     * @param \Illuminate\Database\Eloquent\Collection|Collection  $source
+     * @param  \Illuminate\Database\Eloquent\Collection|Collection  $source
      * @param  Fulfillment|int|array|null  $fulfillment
-     *
      * @return bool
      */
     public static function hasFulfillment(\Illuminate\Database\Eloquent\Collection|Collection $source, Fulfillment|int|array|null $fulfillment): bool

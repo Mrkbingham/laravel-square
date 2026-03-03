@@ -11,8 +11,8 @@ trait HasFulfillments
     /**
      * Checks if this model already has a specific fulfillment.
      *
-     * @param mixed $fulfillment The fulfillment to check for.
-     * @return boolean
+     * @param  mixed  $fulfillment  The fulfillment to check for.
+     * @return bool
      */
     public function hasFulfillment(mixed $fulfillment): bool
     {

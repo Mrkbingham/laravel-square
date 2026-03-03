@@ -19,7 +19,7 @@ class RecipientBuilder
     /**
      * Find or create a recipient.
      *
-     * @param array $recipientData The recipient data array.
+     * @param  array  $recipientData  The recipient data array.
      * @return Recipient
      *
      * @throws MissingPropertyException When required recipient data is invalid.
@@ -51,8 +51,8 @@ class RecipientBuilder
     /**
      * Validate the recipient data.
      *
-     * @param array $recipientData The recipient data array to validate.
-     * @return boolean
+     * @param  array  $recipientData  The recipient data array to validate.
+     * @return bool
      *
      * @throws ValidationException When validation fails for recipient data.
      */

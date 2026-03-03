@@ -17,7 +17,6 @@ use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
-use Square\Models\FulfillmentType;
 
 class UtilTest extends TestCase
 {

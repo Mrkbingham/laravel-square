@@ -2,19 +2,16 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
-use Str;
 use Nikolag\Square\Exception;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\DeliveryDetails;
-use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\PickupDetails;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Models\Recipient;
 use Nikolag\Square\Models\ShipmentDetails;
-use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\Models\User;
@@ -22,12 +19,9 @@ use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
-use Square\Models\FulfillmentType;
-use Square\Models\BatchUpsertCatalogObjectsRequest;
-use Square\Models\BatchUpsertCatalogObjectsResponse;
-use Square\Utils\FileWrapper;
 use Square\Models\CatalogObject;
 use Square\Models\CatalogObjectType;
+use Square\Models\FulfillmentType;
 
 class SquareServiceTest extends TestCase
 {

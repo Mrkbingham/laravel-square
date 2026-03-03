@@ -192,7 +192,7 @@ $factory->state(Fulfillment::class, FulfillmentType::SHIPMENT, function () {
 $factory->define(Order::class, function (Faker\Generator $faker) {
     return [
         'payment_service_type' => 'square',
-        'location_id'          => env('SQUARE_LOCATION'),
+        'location_id' => env('SQUARE_LOCATION'),
     ];
 });
 
