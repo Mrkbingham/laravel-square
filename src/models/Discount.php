@@ -14,7 +14,7 @@ class Discount extends CoreDiscount
      * @var array
      */
     protected $fillable = [
-        'name', 'amount', 'percentage', 'reference_id', 'square_catalog_object_id'
+        'name', 'amount', 'percentage', 'reference_id', 'square_catalog_object_id',
     ];
 
     /**
@@ -40,7 +40,8 @@ class Discount extends CoreDiscount
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

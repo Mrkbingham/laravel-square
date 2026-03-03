@@ -36,13 +36,13 @@ class Tax extends CoreTax
      * @var array
      */
     protected $casts = [
-        'percentage' => 'float',
+        'percentage'                => 'float',
         'applies_to_custom_amounts' => 'boolean',
-        'enabled' => 'boolean',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'square_created_at' => 'datetime',
-        'square_updated_at' => 'datetime',
+        'enabled'                   => 'boolean',
+        'created_at'                => 'datetime',
+        'updated_at'                => 'datetime',
+        'square_created_at'         => 'datetime',
+        'square_updated_at'         => 'datetime',
     ];
 
     //
@@ -135,13 +135,14 @@ class Tax extends CoreTax
      * Set the percentage attribute.
      *
      * @param mixed $value
+     *
      * @return void
      */
     public function setPercentageAttribute($value)
     {
         if (!is_null($this->amount_money) && !is_null($value)) {
             throw ValidationException::withMessages([
-                'tax' => 'Tax cannot have percentage while amount_money is set.'
+                'tax' => 'Tax cannot have percentage while amount_money is set.',
             ]);
         }
 
@@ -152,13 +153,14 @@ class Tax extends CoreTax
      * Set the amount_money attribute.
      *
      * @param mixed $value
+     *
      * @return void
      */
     public function setAmountMoneyAttribute($value)
     {
         if (!is_null($this->amount_money) && !is_null($value)) {
             throw ValidationException::withMessages([
-                'tax' => 'Tax cannot have amount_money while percentage is set.'
+                'tax' => 'Tax cannot have amount_money while percentage is set.',
             ]);
         }
 
@@ -172,8 +174,9 @@ class Tax extends CoreTax
     /**
      * Validate that only one of percentage or amount_money is set.
      *
-     * @return void
      * @throws ValidationException
+     *
+     * @return void
      */
     protected function validateTaxType()
     {
@@ -182,13 +185,13 @@ class Tax extends CoreTax
 
         if ($hasPercentage && $hasAmount) {
             throw ValidationException::withMessages([
-                'service_charge' => 'Tax cannot have both percentage and amount_money set. Please specify only one.'
+                'service_charge' => 'Tax cannot have both percentage and amount_money set. Please specify only one.',
             ]);
         }
 
         if (!$hasPercentage && !$hasAmount) {
             throw ValidationException::withMessages([
-                'service_charge' => 'Tax must have either percentage or amount_money set.'
+                'service_charge' => 'Tax must have either percentage or amount_money set.',
             ]);
         }
     }
@@ -224,7 +227,8 @@ class Tax extends CoreTax
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

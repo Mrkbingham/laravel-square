@@ -16,12 +16,13 @@ class TaxesBuilder
      * Find or create tax models
      * from taxes array.
      *
-     * @param  array  $taxes
-     * @param  string  $scope
-     * @param  Model|null  $parent
-     * @return Collection
+     * @param array      $taxes
+     * @param string     $scope
+     * @param Model|null $parent
      *
      * @throws MissingPropertyException
+     *
+     * @return Collection
      */
     public function createTaxes(array $taxes, string $scope, ?Model $parent = null): Collection
     {
@@ -34,7 +35,7 @@ class TaxesBuilder
             }
             //Check if parent is present or parent already has this tax or if tax
             //doesn't have property $id then create new Tax object
-            if (($parent && ! $parent->hasTax($tax)) || ! Arr::has($tax, 'id')) {
+            if (($parent && !$parent->hasTax($tax)) || !Arr::has($tax, 'id')) {
                 $tempTax = new Tax($tax);
             } else {
                 // Load tax with pivot

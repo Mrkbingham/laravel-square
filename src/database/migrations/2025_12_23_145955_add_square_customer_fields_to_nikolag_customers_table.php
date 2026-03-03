@@ -15,8 +15,7 @@ use Square\Models\CustomerCreationSource;
  *
  * Enables full parity with Square's Customer object and better sync consistency.
  */
-return new class extends Migration
-{
+return new class() extends Migration {
     /**
      * Run the migrations.
      *

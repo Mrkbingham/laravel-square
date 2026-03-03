@@ -6,8 +6,7 @@ use Illuminate\Support\Facades\Schema;
 use Square\Models\OrderServiceChargeCalculationPhase;
 use Square\Models\OrderServiceChargeTreatmentType;
 
-return new class extends Migration
-{
+return new class() extends Migration {
     /**
      * Run the migrations.
      */
@@ -23,7 +22,7 @@ return new class extends Migration
                 OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
                 OrderServiceChargeCalculationPhase::TOTAL_PHASE,
                 OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
-                OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE
+                OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
             ])->default('SUBTOTAL_PHASE');
             $table->boolean('taxable')->default(false);
             $table->enum('treatment_type', [

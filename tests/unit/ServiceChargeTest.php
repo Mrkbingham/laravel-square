@@ -36,7 +36,7 @@ class ServiceChargeTest extends TestCase
         $name = $this->faker->name;
 
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'name' => $name,
+            'name'         => $name,
             'amount_money' => 1000,
         ]);
 
@@ -57,7 +57,7 @@ class ServiceChargeTest extends TestCase
         $order2 = factory(Order::class)->create();
 
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'name' => $name,
+            'name'         => $name,
             'amount_money' => 1000,
         ]);
 
@@ -80,7 +80,7 @@ class ServiceChargeTest extends TestCase
         $product2 = factory(OrderProductPivot::class)->create();
 
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'name' => $name,
+            'name'         => $name,
             'amount_money' => 1000,
         ]);
 
@@ -99,7 +99,7 @@ class ServiceChargeTest extends TestCase
     public function test_service_charge_percentage(): void
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'percentage' => 10.0,
+            'percentage'   => 10.0,
             'amount_money' => null,
         ]);
 
@@ -115,9 +115,9 @@ class ServiceChargeTest extends TestCase
     public function test_service_charge_fixed_amount(): void
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'amount_money' => 500,
+            'amount_money'    => 500,
             'amount_currency' => 'USD',
-            'percentage' => null,
+            'percentage'      => null,
         ]);
 
         $this->assertEquals(500, $serviceCharge->amount_money);
@@ -134,7 +134,7 @@ class ServiceChargeTest extends TestCase
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
             'amount_money' => 1000,
-            'taxable' => true,
+            'taxable'      => true,
         ]);
 
         $this->assertTrue($serviceCharge->taxable);
@@ -153,7 +153,7 @@ class ServiceChargeTest extends TestCase
 
         factory(ServiceCharge::class)->create([
             'amount_money' => null,
-            'percentage' => null,
+            'percentage'   => null,
         ]);
     }
 
@@ -169,7 +169,7 @@ class ServiceChargeTest extends TestCase
 
         factory(ServiceCharge::class)->create([
             'amount_money' => 100,
-            'percentage' => 5.0,
+            'percentage'   => 5.0,
         ]);
 
         $this->expectException(ValidationException::class);
@@ -177,7 +177,7 @@ class ServiceChargeTest extends TestCase
 
         factory(ServiceCharge::class)->create([
             'amount_money' => 100,
-            'percentage' => 5.0,
+            'percentage'   => 5.0,
         ]);
     }
 
@@ -191,7 +191,7 @@ class ServiceChargeTest extends TestCase
         // Create a new tax of 8%
         $tax = factory(Tax::class)->create([
             'percentage' => 8.0,
-            'type' => Constants::TAX_ADDITIVE,
+            'type'       => Constants::TAX_ADDITIVE,
         ]);
 
         $serviceCharge = factory(ServiceCharge::class)->create([
@@ -201,7 +201,7 @@ class ServiceChargeTest extends TestCase
         $serviceCharge->taxes()->attach($tax->id, [
             'deductible_type' => Constants::TAX_NAMESPACE,
             'featurable_type' => Constants::SERVICE_CHARGE_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_SERVICE_CHARGE
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_SERVICE_CHARGE,
         ]);
 
         $this->assertCount(1, $serviceCharge->taxes);

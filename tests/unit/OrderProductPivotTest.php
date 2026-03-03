@@ -26,10 +26,10 @@ class OrderProductPivotTest extends TestCase
         ]);
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
-            'quantity' => 2,
-            'base_price_money_amount' => 15_00,
+            'order_id'                  => $order->id,
+            'product_id'                => $product->id,
+            'quantity'                  => 2,
+            'base_price_money_amount'   => 15_00,
             'base_price_money_currency' => 'USD',
         ]);
 
@@ -52,28 +52,28 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
-            'quantity' => 3,
-            'square_uid' => 'test-square-uid',
-            'name' => 'Test Product Name',
-            'variation_name' => 'Large Size',
-            'catalog_object_id' => 'test-catalog-object-id',
-            'catalog_version' => 5,
-            'item_type' => 'ITEM',
-            'note' => 'Special instructions for this line item',
-            'base_price_money_amount' => 20_00,
-            'base_price_money_currency' => 'USD',
-            'variation_total_price_money_amount' => 60_00,
+            'order_id'                             => $order->id,
+            'product_id'                           => $product->id,
+            'quantity'                             => 3,
+            'square_uid'                           => 'test-square-uid',
+            'name'                                 => 'Test Product Name',
+            'variation_name'                       => 'Large Size',
+            'catalog_object_id'                    => 'test-catalog-object-id',
+            'catalog_version'                      => 5,
+            'item_type'                            => 'ITEM',
+            'note'                                 => 'Special instructions for this line item',
+            'base_price_money_amount'              => 20_00,
+            'base_price_money_currency'            => 'USD',
+            'variation_total_price_money_amount'   => 60_00,
             'variation_total_price_money_currency' => 'USD',
-            'gross_sales_money_amount' => 65_00,
-            'gross_sales_money_currency' => 'USD',
-            'total_tax_money_amount' => 5_00,
-            'total_tax_money_currency' => 'USD',
-            'total_discount_money_amount' => 3_00,
-            'total_discount_money_currency' => 'USD',
-            'total_money_amount' => 67_00,
-            'total_money_currency' => 'USD',
+            'gross_sales_money_amount'             => 65_00,
+            'gross_sales_money_currency'           => 'USD',
+            'total_tax_money_amount'               => 5_00,
+            'total_tax_money_currency'             => 'USD',
+            'total_discount_money_amount'          => 3_00,
+            'total_discount_money_currency'        => 'USD',
+            'total_money_amount'                   => 67_00,
+            'total_money_currency'                 => 'USD',
         ]);
 
         $this->assertNotNull($pivot);
@@ -104,7 +104,7 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
 
@@ -123,7 +123,7 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
 
@@ -142,7 +142,7 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
 
@@ -151,7 +151,7 @@ class OrderProductPivotTest extends TestCase
         $pivot->taxes()->attach($tax->id, [
             'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
             'deductible_type' => Constants::TAX_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $this->assertNotNull($pivot->taxes);
@@ -170,7 +170,7 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
 
@@ -179,7 +179,7 @@ class OrderProductPivotTest extends TestCase
         $pivot->discounts()->attach($discount->id, [
             'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
             'deductible_type' => Constants::DISCOUNT_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $this->assertNotNull($pivot->discounts);
@@ -198,7 +198,7 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
 
@@ -207,7 +207,7 @@ class OrderProductPivotTest extends TestCase
         $pivot->serviceCharges()->attach($serviceCharge->id, [
             'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $this->assertNotNull($pivot->serviceCharges);
@@ -226,7 +226,7 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
 
@@ -249,23 +249,23 @@ class OrderProductPivotTest extends TestCase
         $order = factory(Order::class)->create();
         $product = factory(Product::class)->create();
 
-        $catalogObjectId = 'CATALOG_OBJECT_' . uniqid();
+        $catalogObjectId = 'CATALOG_OBJECT_'.uniqid();
         $catalogVersion = rand(1, 100);
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
+            'order_id'          => $order->id,
+            'product_id'        => $product->id,
             'catalog_object_id' => $catalogObjectId,
-            'catalog_version' => $catalogVersion,
+            'catalog_version'   => $catalogVersion,
         ]);
 
         $this->assertEquals($catalogObjectId, $pivot->catalog_object_id);
         $this->assertEquals($catalogVersion, $pivot->catalog_version);
 
         $this->assertDatabaseHas('nikolag_product_order', [
-            'id' => $pivot->id,
+            'id'                => $pivot->id,
             'catalog_object_id' => $catalogObjectId,
-            'catalog_version' => $catalogVersion,
+            'catalog_version'   => $catalogVersion,
         ]);
     }
 
@@ -280,14 +280,14 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
-            'base_price_money_amount' => 10_00,
+            'order_id'                           => $order->id,
+            'product_id'                         => $product->id,
+            'base_price_money_amount'            => 10_00,
             'variation_total_price_money_amount' => 20_00,
-            'gross_sales_money_amount' => 22_00,
-            'total_tax_money_amount' => 2_00,
-            'total_discount_money_amount' => 1_00,
-            'total_money_amount' => 23_00,
+            'gross_sales_money_amount'           => 22_00,
+            'total_tax_money_amount'             => 2_00,
+            'total_discount_money_amount'        => 1_00,
+            'total_money_amount'                 => 23_00,
         ]);
 
         // Test that values are stored correctly
@@ -320,15 +320,15 @@ class OrderProductPivotTest extends TestCase
         $note = 'This is a special line item note with instructions';
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
-            'note' => $note,
+            'note'       => $note,
         ]);
 
         $this->assertEquals($note, $pivot->note);
 
         $this->assertDatabaseHas('nikolag_product_order', [
-            'id' => $pivot->id,
+            'id'   => $pivot->id,
             'note' => $note,
         ]);
     }
@@ -348,15 +348,15 @@ class OrderProductPivotTest extends TestCase
             $product = factory(Product::class)->create();
 
             $pivot = factory(OrderProductPivot::class)->create([
-                'order_id' => $order->id,
+                'order_id'   => $order->id,
                 'product_id' => $product->id,
-                'item_type' => $itemType,
+                'item_type'  => $itemType,
             ]);
 
             $this->assertEquals($itemType, $pivot->item_type);
 
             $this->assertDatabaseHas('nikolag_product_order', [
-                'id' => $pivot->id,
+                'id'        => $pivot->id,
                 'item_type' => $itemType,
             ]);
         }
@@ -372,10 +372,10 @@ class OrderProductPivotTest extends TestCase
         $order = factory(Order::class)->create();
         $product = factory(Product::class)->create();
 
-        $squareUid = 'SQUARE_UID_' . uniqid();
+        $squareUid = 'SQUARE_UID_'.uniqid();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
             'square_uid' => $squareUid,
         ]);
@@ -383,7 +383,7 @@ class OrderProductPivotTest extends TestCase
         $this->assertEquals($squareUid, $pivot->square_uid);
 
         $this->assertDatabaseHas('nikolag_product_order', [
-            'id' => $pivot->id,
+            'id'         => $pivot->id,
             'square_uid' => $squareUid,
         ]);
     }
@@ -399,7 +399,7 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
 
@@ -422,15 +422,15 @@ class OrderProductPivotTest extends TestCase
         $variationName = 'Large - Red';
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
+            'order_id'       => $order->id,
+            'product_id'     => $product->id,
             'variation_name' => $variationName,
         ]);
 
         $this->assertEquals($variationName, $pivot->variation_name);
 
         $this->assertDatabaseHas('nikolag_product_order', [
-            'id' => $pivot->id,
+            'id'             => $pivot->id,
             'variation_name' => $variationName,
         ]);
     }
@@ -464,24 +464,24 @@ class OrderProductPivotTest extends TestCase
     public function test_database_has_expected_columns(): void
     {
         $pivot = factory(OrderProductPivot::class)->create([
-            'square_uid' => 'test-uid',
-            'name' => 'Test Name',
-            'variation_name' => 'Test Variation',
+            'square_uid'        => 'test-uid',
+            'name'              => 'Test Name',
+            'variation_name'    => 'Test Variation',
             'catalog_object_id' => 'test-catalog-id',
-            'catalog_version' => 1,
-            'item_type' => 'ITEM',
-            'note' => 'Test note',
+            'catalog_version'   => 1,
+            'item_type'         => 'ITEM',
+            'note'              => 'Test note',
         ]);
 
         $this->assertDatabaseHas('nikolag_product_order', [
-            'id' => $pivot->id,
-            'square_uid' => 'test-uid',
-            'name' => 'Test Name',
-            'variation_name' => 'Test Variation',
+            'id'                => $pivot->id,
+            'square_uid'        => 'test-uid',
+            'name'              => 'Test Name',
+            'variation_name'    => 'Test Variation',
             'catalog_object_id' => 'test-catalog-id',
-            'catalog_version' => 1,
-            'item_type' => 'ITEM',
-            'note' => 'Test note',
+            'catalog_version'   => 1,
+            'item_type'         => 'ITEM',
+            'note'              => 'Test note',
         ]);
     }
 
@@ -496,9 +496,9 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
-            'base_price_money_amount' => 25_50,
+            'order_id'                  => $order->id,
+            'product_id'                => $product->id,
+            'base_price_money_amount'   => 25_50,
             'base_price_money_currency' => 'USD',
         ]);
 
@@ -512,8 +512,8 @@ class OrderProductPivotTest extends TestCase
 
         // Test database persistence
         $this->assertDatabaseHas('nikolag_product_order', [
-            'id' => $pivot->id,
-            'base_price_money_amount' => 25_50,
+            'id'                        => $pivot->id,
+            'base_price_money_amount'   => 25_50,
             'base_price_money_currency' => 'USD',
         ]);
     }
@@ -538,21 +538,21 @@ class OrderProductPivotTest extends TestCase
         $totalMoney = $grossSales + $taxAmount - $discountAmount;  // $34.30
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
-            'quantity' => $quantity,
-            'base_price_money_amount' => $basePrice,
-            'base_price_money_currency' => 'USD',
-            'variation_total_price_money_amount' => $variationTotal,
+            'order_id'                             => $order->id,
+            'product_id'                           => $product->id,
+            'quantity'                             => $quantity,
+            'base_price_money_amount'              => $basePrice,
+            'base_price_money_currency'            => 'USD',
+            'variation_total_price_money_amount'   => $variationTotal,
             'variation_total_price_money_currency' => 'USD',
-            'gross_sales_money_amount' => $grossSales,
-            'gross_sales_money_currency' => 'USD',
-            'total_tax_money_amount' => $taxAmount,
-            'total_tax_money_currency' => 'USD',
-            'total_discount_money_amount' => $discountAmount,
-            'total_discount_money_currency' => 'USD',
-            'total_money_amount' => $totalMoney,
-            'total_money_currency' => 'USD',
+            'gross_sales_money_amount'             => $grossSales,
+            'gross_sales_money_currency'           => 'USD',
+            'total_tax_money_amount'               => $taxAmount,
+            'total_tax_money_currency'             => 'USD',
+            'total_discount_money_amount'          => $discountAmount,
+            'total_discount_money_currency'        => 'USD',
+            'total_money_amount'                   => $totalMoney,
+            'total_money_currency'                 => 'USD',
         ]);
 
         // Verify the mathematical relationships
@@ -580,20 +580,20 @@ class OrderProductPivotTest extends TestCase
             $product = factory(Product::class)->create();
 
             $pivot = factory(OrderProductPivot::class)->create([
-                'order_id' => $order->id,
-                'product_id' => $product->id,
-                'base_price_money_amount' => 10_00,
-                'base_price_money_currency' => $currency,
-                'variation_total_price_money_amount' => 20_00,
+                'order_id'                             => $order->id,
+                'product_id'                           => $product->id,
+                'base_price_money_amount'              => 10_00,
+                'base_price_money_currency'            => $currency,
+                'variation_total_price_money_amount'   => 20_00,
                 'variation_total_price_money_currency' => $currency,
-                'gross_sales_money_amount' => 20_00,
-                'gross_sales_money_currency' => $currency,
-                'total_tax_money_amount' => 1_60,
-                'total_tax_money_currency' => $currency,
-                'total_discount_money_amount' => 2_00,
-                'total_discount_money_currency' => $currency,
-                'total_money_amount' => 19_60,
-                'total_money_currency' => $currency,
+                'gross_sales_money_amount'             => 20_00,
+                'gross_sales_money_currency'           => $currency,
+                'total_tax_money_amount'               => 1_60,
+                'total_tax_money_currency'             => $currency,
+                'total_discount_money_amount'          => 2_00,
+                'total_discount_money_currency'        => $currency,
+                'total_money_amount'                   => 19_60,
+                'total_money_currency'                 => $currency,
             ]);
 
             // Verify all currency fields match the specified currency
@@ -606,9 +606,9 @@ class OrderProductPivotTest extends TestCase
 
             // Verify database persistence
             $this->assertDatabaseHas('nikolag_product_order', [
-                'id' => $pivot->id,
+                'id'                        => $pivot->id,
                 'base_price_money_currency' => $currency,
-                'total_money_currency' => $currency,
+                'total_money_currency'      => $currency,
             ]);
         }
     }
@@ -624,29 +624,29 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
-            'quantity' => 1,
+            'quantity'   => 1,
             // Explicitly set nullable fields to null
-            'square_uid' => null,
-            'name' => null,
-            'variation_name' => null,
-            'catalog_object_id' => null,
-            'catalog_version' => null,
-            'item_type' => null,
-            'note' => null,
-            'base_price_money_amount' => null,
-            'base_price_money_currency' => null,
-            'variation_total_price_money_amount' => null,
+            'square_uid'                           => null,
+            'name'                                 => null,
+            'variation_name'                       => null,
+            'catalog_object_id'                    => null,
+            'catalog_version'                      => null,
+            'item_type'                            => null,
+            'note'                                 => null,
+            'base_price_money_amount'              => null,
+            'base_price_money_currency'            => null,
+            'variation_total_price_money_amount'   => null,
             'variation_total_price_money_currency' => null,
-            'gross_sales_money_amount' => null,
-            'gross_sales_money_currency' => null,
-            'total_tax_money_amount' => null,
-            'total_tax_money_currency' => null,
-            'total_discount_money_amount' => null,
-            'total_discount_money_currency' => null,
-            'total_money_amount' => null,
-            'total_money_currency' => null,
+            'gross_sales_money_amount'             => null,
+            'gross_sales_money_currency'           => null,
+            'total_tax_money_amount'               => null,
+            'total_tax_money_currency'             => null,
+            'total_discount_money_amount'          => null,
+            'total_discount_money_currency'        => null,
+            'total_money_amount'                   => null,
+            'total_money_currency'                 => null,
         ]);
 
         // Verify all fields are null
@@ -677,16 +677,16 @@ class OrderProductPivotTest extends TestCase
 
         // Create pivot with minimal fields to test defaults
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
-            'quantity' => 1,
+            'quantity'   => 1,
             // Don't specify money fields to test defaults
-            'base_price_money_amount' => null,
+            'base_price_money_amount'            => null,
             'variation_total_price_money_amount' => null,
-            'gross_sales_money_amount' => null,
-            'total_tax_money_amount' => null,
-            'total_discount_money_amount' => null,
-            'total_money_amount' => null,
+            'gross_sales_money_amount'           => null,
+            'total_tax_money_amount'             => null,
+            'total_discount_money_amount'        => null,
+            'total_money_amount'                 => null,
         ]);
 
         // Verify default values from migration (nullable fields can be null)
@@ -698,8 +698,8 @@ class OrderProductPivotTest extends TestCase
 
         // Verify the pivot exists in database
         $this->assertDatabaseHas('nikolag_product_order', [
-            'id' => $freshPivot->id,
-            'order_id' => $order->id,
+            'id'         => $freshPivot->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
     }
@@ -715,14 +715,14 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
-            'base_price_money_amount' => 0,
+            'order_id'                           => $order->id,
+            'product_id'                         => $product->id,
+            'base_price_money_amount'            => 0,
             'variation_total_price_money_amount' => 0,
-            'gross_sales_money_amount' => 0,
-            'total_tax_money_amount' => 0,
-            'total_discount_money_amount' => 0,
-            'total_money_amount' => 0,
+            'gross_sales_money_amount'           => 0,
+            'total_tax_money_amount'             => 0,
+            'total_discount_money_amount'        => 0,
+            'total_money_amount'                 => 0,
         ]);
 
         // Verify all amounts are zero
@@ -752,14 +752,14 @@ class OrderProductPivotTest extends TestCase
         $largeAmount = 9_999_999_99;
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
-            'base_price_money_amount' => $largeAmount,
+            'order_id'                           => $order->id,
+            'product_id'                         => $product->id,
+            'base_price_money_amount'            => $largeAmount,
             'variation_total_price_money_amount' => $largeAmount,
-            'gross_sales_money_amount' => $largeAmount,
-            'total_tax_money_amount' => $largeAmount,
-            'total_discount_money_amount' => $largeAmount,
-            'total_money_amount' => $largeAmount,
+            'gross_sales_money_amount'           => $largeAmount,
+            'total_tax_money_amount'             => $largeAmount,
+            'total_discount_money_amount'        => $largeAmount,
+            'total_money_amount'                 => $largeAmount,
         ]);
 
         // Verify large amounts are stored correctly
@@ -782,10 +782,10 @@ class OrderProductPivotTest extends TestCase
     public function test_catalog_object_id_accepts_various_formats(): void
     {
         $testCases = [
-            'UUID format' => '550e8400-e29b-41d4-a716-446655440000',
+            'UUID format'       => '550e8400-e29b-41d4-a716-446655440000',
             'Square catalog ID' => 'CATALOG_ITEM_1234567890ABCDEF',
-            'Long string' => str_repeat('A', 192),  // Maximum length
-            'Short ID' => 'ABC123',
+            'Long string'       => str_repeat('A', 192),  // Maximum length
+            'Short ID'          => 'ABC123',
         ];
 
         foreach ($testCases as $description => $catalogId) {
@@ -793,15 +793,15 @@ class OrderProductPivotTest extends TestCase
             $product = factory(Product::class)->create();
 
             $pivot = factory(OrderProductPivot::class)->create([
-                'order_id' => $order->id,
-                'product_id' => $product->id,
+                'order_id'          => $order->id,
+                'product_id'        => $product->id,
                 'catalog_object_id' => $catalogId,
             ]);
 
             $this->assertEquals($catalogId, $pivot->catalog_object_id, "Failed for: {$description}");
 
             $this->assertDatabaseHas('nikolag_product_order', [
-                'id' => $pivot->id,
+                'id'                => $pivot->id,
                 'catalog_object_id' => $catalogId,
             ]);
         }
@@ -827,27 +827,27 @@ class OrderProductPivotTest extends TestCase
         $total = 29_40;            // $30.00 + $2.40 - $3.00 = $29.40
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
-            'quantity' => $quantity,
-            'name' => 'Premium Widget',
-            'variation_name' => 'Large',
-            'catalog_object_id' => 'CATALOG_ABC123',
-            'catalog_version' => 1,
-            'item_type' => 'ITEM',
-            'note' => 'Customer requested express shipping',
-            'base_price_money_amount' => $basePrice,
-            'base_price_money_currency' => 'USD',
-            'variation_total_price_money_amount' => $variationTotal,
+            'order_id'                             => $order->id,
+            'product_id'                           => $product->id,
+            'quantity'                             => $quantity,
+            'name'                                 => 'Premium Widget',
+            'variation_name'                       => 'Large',
+            'catalog_object_id'                    => 'CATALOG_ABC123',
+            'catalog_version'                      => 1,
+            'item_type'                            => 'ITEM',
+            'note'                                 => 'Customer requested express shipping',
+            'base_price_money_amount'              => $basePrice,
+            'base_price_money_currency'            => 'USD',
+            'variation_total_price_money_amount'   => $variationTotal,
             'variation_total_price_money_currency' => 'USD',
-            'gross_sales_money_amount' => $grossSales,
-            'gross_sales_money_currency' => 'USD',
-            'total_tax_money_amount' => $tax,
-            'total_tax_money_currency' => 'USD',
-            'total_discount_money_amount' => $discount,
-            'total_discount_money_currency' => 'USD',
-            'total_money_amount' => $total,
-            'total_money_currency' => 'USD',
+            'gross_sales_money_amount'             => $grossSales,
+            'gross_sales_money_currency'           => 'USD',
+            'total_tax_money_amount'               => $tax,
+            'total_tax_money_currency'             => 'USD',
+            'total_discount_money_amount'          => $discount,
+            'total_discount_money_currency'        => 'USD',
+            'total_money_amount'                   => $total,
+            'total_money_currency'                 => 'USD',
         ]);
 
         // Verify all fields
@@ -890,8 +890,8 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
+            'order_id'                => $order->id,
+            'product_id'              => $product->id,
             'base_price_money_amount' => 10_00,
         ]);
 
@@ -930,28 +930,28 @@ class OrderProductPivotTest extends TestCase
         $product = factory(Product::class)->create();
 
         $data = [
-            'order_id' => $order->id,
-            'product_id' => $product->id,
-            'quantity' => 2,
-            'square_uid' => 'test-uid',
-            'name' => 'Test Product',
-            'variation_name' => 'Test Variation',
-            'catalog_object_id' => 'CATALOG_123',
-            'catalog_version' => 5,
-            'item_type' => 'ITEM',
-            'note' => 'Test note',
-            'base_price_money_amount' => 10_00,
-            'base_price_money_currency' => 'USD',
-            'variation_total_price_money_amount' => 20_00,
+            'order_id'                             => $order->id,
+            'product_id'                           => $product->id,
+            'quantity'                             => 2,
+            'square_uid'                           => 'test-uid',
+            'name'                                 => 'Test Product',
+            'variation_name'                       => 'Test Variation',
+            'catalog_object_id'                    => 'CATALOG_123',
+            'catalog_version'                      => 5,
+            'item_type'                            => 'ITEM',
+            'note'                                 => 'Test note',
+            'base_price_money_amount'              => 10_00,
+            'base_price_money_currency'            => 'USD',
+            'variation_total_price_money_amount'   => 20_00,
             'variation_total_price_money_currency' => 'USD',
-            'gross_sales_money_amount' => 20_00,
-            'gross_sales_money_currency' => 'USD',
-            'total_tax_money_amount' => 1_60,
-            'total_tax_money_currency' => 'USD',
-            'total_discount_money_amount' => 2_00,
-            'total_discount_money_currency' => 'USD',
-            'total_money_amount' => 19_60,
-            'total_money_currency' => 'USD',
+            'gross_sales_money_amount'             => 20_00,
+            'gross_sales_money_currency'           => 'USD',
+            'total_tax_money_amount'               => 1_60,
+            'total_tax_money_currency'             => 'USD',
+            'total_discount_money_amount'          => 2_00,
+            'total_discount_money_currency'        => 'USD',
+            'total_money_amount'                   => 19_60,
+            'total_money_currency'                 => 'USD',
         ];
 
         // This should not throw a MassAssignmentException
@@ -977,10 +977,10 @@ class OrderProductPivotTest extends TestCase
 
         // Create with version 1
         $pivot = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
-            'product_id' => $product->id,
+            'order_id'          => $order->id,
+            'product_id'        => $product->id,
             'catalog_object_id' => 'CATALOG_ABC',
-            'catalog_version' => 1,
+            'catalog_version'   => 1,
         ]);
 
         $this->assertEquals(1, $pivot->catalog_version);
@@ -994,9 +994,9 @@ class OrderProductPivotTest extends TestCase
 
         // Verify in database
         $this->assertDatabaseHas('nikolag_product_order', [
-            'id' => $pivot->id,
+            'id'                => $pivot->id,
             'catalog_object_id' => 'CATALOG_ABC',
-            'catalog_version' => 2,
+            'catalog_version'   => 2,
         ]);
 
         // Update to version 3

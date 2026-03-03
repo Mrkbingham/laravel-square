@@ -15,12 +15,13 @@ class ModifiersBuilder
     /**
      * Associate modifiers with the product.
      *
-     * @param  OrderProductPivot $productPivot
-     * @param  array|Collection  $modifiers
-     * @return OrderProductPivot
+     * @param OrderProductPivot $productPivot
+     * @param array|Collection  $modifiers
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return OrderProductPivot
      */
     public function addModifiers(OrderProductPivot $orderProduct, array|Collection $modifiers): OrderProductPivot
     {
@@ -37,6 +38,7 @@ class ModifiersBuilder
 
     /**
      * Associate the modifier.
+     *
      * @param OrderProductPivot       $productPivot
      * @param Modifier|ModifierOption $modifier
      *

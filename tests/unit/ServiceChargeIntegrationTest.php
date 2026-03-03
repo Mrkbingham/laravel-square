@@ -3,17 +3,16 @@
 namespace Nikolag\Square\Tests\Unit;
 
 use Exception;
-use Illuminate\Validation\ValidationException;
+use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Discount;
+use Nikolag\Square\Models\Product;
+use Nikolag\Square\Models\Product as ModelsProduct;
 use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Tests\Models\Order;
-use Nikolag\Square\Models\Product;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
-use Nikolag\Square\Facades\Square;
-use Nikolag\Square\Models\Product as ModelsProduct;
 use Square\Models\OrderServiceChargeCalculationPhase;
 use Square\Models\OrderServiceChargeTreatmentType;
 
@@ -33,30 +32,30 @@ class ServiceChargeIntegrationTest extends TestCase
 
         // Create service charges
         $orderServiceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Handling Fee',
-            'amount_money' => 5_00, // $5.00
+            'name'              => 'Handling Fee',
+            'amount_money'      => 5_00, // $5.00
             'calculation_phase' => OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
-            'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
-            'taxable' => false,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+            'taxable'           => false,
         ]);
 
         $productServiceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Fake Percentage Fee',
-            'percentage' => 5.0,
-            'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+            'name'              => 'Fake Percentage Fee',
+            'percentage'        => 5.0,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
             'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE,
-            'taxable' => false,
+            'taxable'           => false,
         ]);
 
         // Create tax and discount for comprehensive testing
         $tax = factory(Tax::class)->create([
             'percentage' => 8.5,
-            'type' => Constants::TAX_ADDITIVE,
+            'type'       => Constants::TAX_ADDITIVE,
         ]);
 
         $discount = factory(Discount::class)->create([
             'percentage' => 10.0,
-            'amount' => null,
+            'amount'     => null,
         ]);
 
         // Build order through Square service
@@ -69,27 +68,27 @@ class ServiceChargeIntegrationTest extends TestCase
         $order->serviceCharges()->attach($orderServiceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         // Attach product-level service charge to first product
         $order->products->first()->pivot->serviceCharges()->attach($productServiceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         // Attach tax and discount at order level
         $order->taxes()->attach($tax->id, [
             'deductible_type' => Constants::TAX_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $order->discounts()->attach($discount->id, [
             'deductible_type' => Constants::DISCOUNT_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         // Refresh the order to get updated relationships
@@ -143,8 +142,8 @@ class ServiceChargeIntegrationTest extends TestCase
         $variableProduct = factory(Product::class)->create(['price' => null]);
 
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Processing Fee',
-            'percentage' => 2.5,
+            'name'         => 'Processing Fee',
+            'percentage'   => 2.5,
             'amount_money' => null,
         ]);
 
@@ -159,7 +158,7 @@ class ServiceChargeIntegrationTest extends TestCase
         $order->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $order->refresh();
@@ -168,8 +167,11 @@ class ServiceChargeIntegrationTest extends TestCase
         $expectedTotal = 4613;
         $actualTotal = Util::calculateTotalOrderCostByModel($order);
 
-        $this->assertEquals($expectedTotal, $actualTotal, 
-            'Service charge should work correctly with variable pricing');
+        $this->assertEquals(
+            $expectedTotal,
+            $actualTotal,
+            'Service charge should work correctly with variable pricing'
+        );
     }
 
     /**
@@ -183,17 +185,17 @@ class ServiceChargeIntegrationTest extends TestCase
         $product = factory(Product::class)->create(['price' => 2000]); // $20.00
 
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Service Fee',
-            'amount_money' => 300, // $3.00
+            'name'            => 'Service Fee',
+            'amount_money'    => 300, // $3.00
             'amount_currency' => 'USD',
-            'percentage' => null,
+            'percentage'      => null,
         ]);
 
         // Add a service charge to the order
         $order->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         // Build order with service charge
@@ -211,8 +213,8 @@ class ServiceChargeIntegrationTest extends TestCase
 
         // Test charging the order
         $transaction = $square->charge([
-            'amount' => $expectedTotal,
-            'source_id' => 'cnon:card-nonce-ok',
+            'amount'      => $expectedTotal,
+            'source_id'   => 'cnon:card-nonce-ok',
             'location_id' => env('SQUARE_LOCATION'),
         ]);
 
@@ -233,18 +235,18 @@ class ServiceChargeIntegrationTest extends TestCase
 
         // Create a service charge with apportioned amount calculation
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Fixed amount service charge',
-            'amount_money' => 10_00, // 10.00 USD
+            'name'              => 'Fixed amount service charge',
+            'amount_money'      => 10_00, // 10.00 USD
             'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
-            'taxable' => true,
-            'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+            'taxable'           => true,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
         ]);
 
         // Add a service charge to the product
         $order->products->first()->pivot->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         // Build order with service charge
@@ -258,8 +260,8 @@ class ServiceChargeIntegrationTest extends TestCase
 
         // Test charging the order
         $transaction = $square->charge([
-            'amount' => $expectedTotal,
-            'source_id' => 'cnon:card-nonce-ok',
+            'amount'      => $expectedTotal,
+            'source_id'   => 'cnon:card-nonce-ok',
             'location_id' => env('SQUARE_LOCATION'),
         ]);
 
@@ -279,13 +281,13 @@ class ServiceChargeIntegrationTest extends TestCase
 
         // Create multiple service charges
         $serviceCharge1 = factory(ServiceCharge::class)->create([
-            'name' => 'Service Fee',
+            'name'       => 'Service Fee',
             'percentage' => 5.0,
         ]);
 
         $serviceCharge2 = factory(ServiceCharge::class)->create([
-            'name' => 'Processing Fee',
-            'amount_money' => 100, // $1.00
+            'name'            => 'Processing Fee',
+            'amount_money'    => 100, // $1.00
             'amount_currency' => 'USD',
         ]);
 
@@ -297,13 +299,13 @@ class ServiceChargeIntegrationTest extends TestCase
         $order->serviceCharges()->attach($serviceCharge1->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $order->serviceCharges()->attach($serviceCharge2->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $order->refresh();
@@ -332,11 +334,11 @@ class ServiceChargeIntegrationTest extends TestCase
 
         // Create a service charge to be applied to a product within the order
         $productServiceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Handling Fee',
-            'amount_money' => 1_50, // $1.50
-            'amount_currency' => 'USD',
+            'name'              => 'Handling Fee',
+            'amount_money'      => 1_50, // $1.50
+            'amount_currency'   => 'USD',
             'calculation_phase' => OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
-            'treatment_type' => OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT,
+            'treatment_type'    => OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT,
         ]);
 
         // Build order through Square service
@@ -349,7 +351,7 @@ class ServiceChargeIntegrationTest extends TestCase
         $order->products->first()->pivot->serviceCharges()->attach($productServiceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $this->expectException(Exception::class);

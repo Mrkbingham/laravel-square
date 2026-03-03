@@ -22,15 +22,15 @@ class WebhookProcessorTest extends TestCase
 
         $this->validPayload = json_encode([
             'merchant_id' => 'test-merchant-123',
-            'type' => 'order.created',
-            'event_id' => 'event-123',
-            'created_at' => '2024-01-01T12:00:00Z',
-            'data' => [
-                'type' => 'order',
-                'id' => 'order-data-123',
+            'type'        => 'order.created',
+            'event_id'    => 'event-123',
+            'created_at'  => '2024-01-01T12:00:00Z',
+            'data'        => [
+                'type'   => 'order',
+                'id'     => 'order-data-123',
                 'object' => [
                     'order' => [
-                        'id' => 'order-456',
+                        'id'          => 'order-456',
                         'location_id' => 'location-789',
                     ],
                 ],
@@ -39,15 +39,15 @@ class WebhookProcessorTest extends TestCase
 
         $this->validEventData = [
             'merchant_id' => 'test-merchant-123',
-            'type' => 'order.created',
-            'event_id' => 'event-123',
-            'created_at' => '2024-01-01T12:00:00Z',
-            'data' => [
-                'type' => 'order',
-                'id' => 'order-data-123',
+            'type'        => 'order.created',
+            'event_id'    => 'event-123',
+            'created_at'  => '2024-01-01T12:00:00Z',
+            'data'        => [
+                'type'   => 'order',
+                'id'     => 'order-data-123',
                 'object' => [
                     'order' => [
-                        'id' => 'order-456',
+                        'id'          => 'order-456',
                         'location_id' => 'location-789',
                     ],
                 ],
@@ -58,7 +58,7 @@ class WebhookProcessorTest extends TestCase
     public function test_verify_and_process_succeeds_with_valid_data()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'signature_key' => $this->testSignatureKey,
+            'signature_key'    => $this->testSignatureKey,
             'notification_url' => $this->testNotificationUrl,
         ]);
 
@@ -86,7 +86,7 @@ class WebhookProcessorTest extends TestCase
     public function test_verify_and_process_handles_lowercase_signature_header()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'signature_key' => $this->testSignatureKey,
+            'signature_key'    => $this->testSignatureKey,
             'notification_url' => $this->testNotificationUrl,
         ]);
 
@@ -110,7 +110,7 @@ class WebhookProcessorTest extends TestCase
     public function test_verify_and_process_throws_exception_for_missing_signature_header()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'signature_key' => $this->testSignatureKey,
+            'signature_key'    => $this->testSignatureKey,
             'notification_url' => $this->testNotificationUrl,
         ]);
 
@@ -125,7 +125,7 @@ class WebhookProcessorTest extends TestCase
     public function test_verify_and_process_throws_exception_for_invalid_signature()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'signature_key' => $this->testSignatureKey,
+            'signature_key'    => $this->testSignatureKey,
             'notification_url' => $this->testNotificationUrl,
         ]);
 
@@ -144,12 +144,12 @@ class WebhookProcessorTest extends TestCase
     public function test_verify_and_process_throws_exception_for_missing_event_id()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'signature_key' => $this->testSignatureKey,
+            'signature_key'    => $this->testSignatureKey,
             'notification_url' => $this->testNotificationUrl,
         ]);
 
         $payloadWithoutEventId = json_encode([
-            'type' => 'order.created',
+            'type'       => 'order.created',
             'created_at' => '2024-01-01T12:00:00Z',
         ]);
 
@@ -173,12 +173,12 @@ class WebhookProcessorTest extends TestCase
     public function test_verify_and_process_throws_exception_for_missing_event_type()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'signature_key' => $this->testSignatureKey,
+            'signature_key'    => $this->testSignatureKey,
             'notification_url' => $this->testNotificationUrl,
         ]);
 
         $payloadWithoutType = json_encode([
-            'event_id' => 'event-123',
+            'event_id'   => 'event-123',
             'created_at' => '2024-01-01T12:00:00Z',
         ]);
 
@@ -202,13 +202,13 @@ class WebhookProcessorTest extends TestCase
     public function test_verify_and_process_throws_exception_for_missing_created_at()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'signature_key' => $this->testSignatureKey,
+            'signature_key'    => $this->testSignatureKey,
             'notification_url' => $this->testNotificationUrl,
         ]);
 
         $payloadWithoutCreatedAt = json_encode([
             'event_id' => 'event-123',
-            'type' => 'order.created',
+            'type'     => 'order.created',
         ]);
 
         $signature = WebhookProcessor::generateTestSignature(
@@ -231,7 +231,7 @@ class WebhookProcessorTest extends TestCase
     public function test_generate_test_signature_produces_verifiable_signature()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'signature_key' => $this->testSignatureKey,
+            'signature_key'    => $this->testSignatureKey,
             'notification_url' => $this->testNotificationUrl,
         ]);
 
@@ -261,8 +261,8 @@ class WebhookProcessorTest extends TestCase
     public function test_is_valid_order_event_returns_true_for_valid_order_events()
     {
         $validOrderEvents = [
-            'order.created' => $this->validEventData,
-            'order.updated' => array_merge($this->validEventData, ['type' => 'order.updated']),
+            'order.created'   => $this->validEventData,
+            'order.updated'   => array_merge($this->validEventData, ['type' => 'order.updated']),
             'order.fulfilled' => array_merge($this->validEventData, ['type' => 'order.fulfilled']),
         ];
 
@@ -294,22 +294,22 @@ class WebhookProcessorTest extends TestCase
             'missing_data_type' => [
                 'type' => 'order.created',
                 'data' => [
-                    'id' => 'test-id',
+                    'id'     => 'test-id',
                     'object' => ['order' => ['id' => 'order-123']],
                 ],
             ],
             'missing_data_id' => [
                 'type' => 'order.created',
                 'data' => [
-                    'type' => 'order',
+                    'type'   => 'order',
                     'object' => ['order' => ['id' => 'order-123']],
                 ],
             ],
             'missing_order_id' => [
                 'type' => 'order.created',
                 'data' => [
-                    'type' => 'order',
-                    'id' => 'test-id',
+                    'type'   => 'order',
+                    'id'     => 'test-id',
                     'object' => ['order' => []],
                 ],
             ],
@@ -317,14 +317,14 @@ class WebhookProcessorTest extends TestCase
                 'type' => 'order.created',
                 'data' => [
                     'type' => 'order',
-                    'id' => 'test-id',
+                    'id'   => 'test-id',
                 ],
             ],
             'missing_order_object' => [
                 'type' => 'order.created',
                 'data' => [
-                    'type' => 'order',
-                    'id' => 'test-id',
+                    'type'   => 'order',
+                    'id'     => 'test-id',
                     'object' => [],
                 ],
             ],
@@ -419,8 +419,8 @@ class WebhookProcessorTest extends TestCase
         $validOrderEvent = [
             'type' => 'order.created',
             'data' => [
-                'type' => 'order',
-                'id' => 'test-id',
+                'type'   => 'order',
+                'id'     => 'test-id',
                 'object' => [
                     'order' => [
                         'id' => 'order-123',
@@ -435,7 +435,7 @@ class WebhookProcessorTest extends TestCase
     public function test_verify_and_process_with_empty_headers()
     {
         $subscription = factory(WebhookSubscription::class)->create([
-            'signature_key' => $this->testSignatureKey,
+            'signature_key'    => $this->testSignatureKey,
             'notification_url' => $this->testNotificationUrl,
         ]);
 

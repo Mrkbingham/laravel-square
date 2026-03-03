@@ -8,7 +8,6 @@ use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Modifier;
 use Nikolag\Square\Models\ModifierOption;
-use Nikolag\Square\Models\ModifierOptionLocationPivot;
 use Nikolag\Square\Models\OrderProductModifierPivot;
 use Nikolag\Square\Models\OrderProductPivot;
 use Nikolag\Square\Models\Product;
@@ -40,7 +39,7 @@ class OrderProductModifierPivotTest extends TestCase
         $order = factory(Order::class)->create();
         $product = factory(Product::class)->create();
         $orderProduct = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
         $productModifier = factory(OrderProductModifierPivot::class)->create([
@@ -50,7 +49,7 @@ class OrderProductModifierPivotTest extends TestCase
         $this->assertNotNull($productModifier, 'Order Product Modifier Pivot is null.');
 
         $this->assertDatabaseHas('nikolag_product_order_modifier', [
-            'modifiable_type' => ModifierOption::class,
+            'modifiable_type'  => ModifierOption::class,
             'order_product_id' => $orderProduct->id,
         ]);
     }
@@ -66,7 +65,7 @@ class OrderProductModifierPivotTest extends TestCase
         $order = factory(Order::class)->create();
         $product = factory(Product::class)->create();
         $orderProduct = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
         $productModifier = factory(OrderProductModifierPivot::class)->create([
@@ -173,7 +172,6 @@ class OrderProductModifierPivotTest extends TestCase
      */
     public function test_add_product_modifier_list_type_exception(): void
     {
-
         $order = factory(Order::class)->create();
         $product = factory(Product::class)->create();
 
@@ -227,7 +225,7 @@ class OrderProductModifierPivotTest extends TestCase
         $order = factory(Order::class)->create();
         $product = factory(Product::class)->create();
         $orderProduct = factory(OrderProductPivot::class)->create([
-            'order_id' => $order->id,
+            'order_id'   => $order->id,
             'product_id' => $product->id,
         ]);
 
@@ -237,15 +235,15 @@ class OrderProductModifierPivotTest extends TestCase
         // Create the first modifier relationship
         $firstModifier = OrderProductModifierPivot::create([
             'order_product_id' => $orderProduct->id,
-            'modifiable_id' => $modifierOption->id,
-            'modifiable_type' => ModifierOption::class,
-            'quantity' => 1,
+            'modifiable_id'    => $modifierOption->id,
+            'modifiable_type'  => ModifierOption::class,
+            'quantity'         => 1,
         ]);
 
         $this->assertDatabaseHas('nikolag_product_order_modifier', [
             'order_product_id' => $orderProduct->id,
-            'modifiable_id' => $modifierOption->id,
-            'modifiable_type' => ModifierOption::class,
+            'modifiable_id'    => $modifierOption->id,
+            'modifiable_type'  => ModifierOption::class,
         ]);
 
         // Attempt to create a duplicate modifier relationship should fail
@@ -254,9 +252,9 @@ class OrderProductModifierPivotTest extends TestCase
 
         OrderProductModifierPivot::create([
             'order_product_id' => $orderProduct->id,
-            'modifiable_id' => $modifierOption->id,  // Same modifier option
-            'modifiable_type' => ModifierOption::class,  // Same type
-            'quantity' => 1,
+            'modifiable_id'    => $modifierOption->id,  // Same modifier option
+            'modifiable_type'  => ModifierOption::class,  // Same type
+            'quantity'         => 1,
         ]);
     }
 }

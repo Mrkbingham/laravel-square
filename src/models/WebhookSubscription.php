@@ -41,10 +41,10 @@ class WebhookSubscription extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'event_types' => 'array',
-        'signature_key' => 'encrypted',
-        'is_enabled' => 'boolean',
-        'is_active' => 'boolean',
+        'event_types'    => 'array',
+        'signature_key'  => 'encrypted',
+        'is_enabled'     => 'boolean',
+        'is_active'      => 'boolean',
         'last_tested_at' => 'datetime',
         'last_failed_at' => 'datetime',
     ];
@@ -62,7 +62,8 @@ class WebhookSubscription extends Model
     /**
      * Scope a query to only include enabled webhooks.
      *
-     * @param  Builder  $query
+     * @param Builder $query
+     *
      * @return Builder
      */
     public function scopeEnabled($query): Builder
@@ -73,8 +74,9 @@ class WebhookSubscription extends Model
     /**
      * Scope a query to only include webhooks for a specific event type.
      *
-     * @param  Builder  $query
-     * @param  string  $eventType
+     * @param Builder $query
+     * @param string  $eventType
+     *
      * @return Builder
      */
     public function scopeForEventType($query, string $eventType): Builder
@@ -85,7 +87,8 @@ class WebhookSubscription extends Model
     /**
      * Check if this subscription handles a specific event type.
      *
-     * @param  string  $eventType
+     * @param string $eventType
+     *
      * @return bool
      */
     public function handlesEventType(string $eventType): bool
@@ -96,7 +99,8 @@ class WebhookSubscription extends Model
     /**
      * Scope a query to only include active webhooks.
      *
-     * @param  Builder  $query
+     * @param Builder $query
+     *
      * @return Builder
      */
     public function scopeActive($query): Builder
@@ -113,21 +117,22 @@ class WebhookSubscription extends Model
     {
         return $this->update([
             'last_tested_at' => now(),
-            'last_error' => null,
+            'last_error'     => null,
         ]);
     }
 
     /**
      * Mark the webhook subscription as failed with an error.
      *
-     * @param  string  $error
+     * @param string $error
+     *
      * @return bool
      */
     public function markAsFailed(string $error): bool
     {
         return $this->update([
             'last_failed_at' => now(),
-            'last_error' => $error,
+            'last_error'     => $error,
         ]);
     }
 

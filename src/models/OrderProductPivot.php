@@ -4,7 +4,6 @@ namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
 use Nikolag\Core\Models\OrderProductPivot as IntermediateTable;
-use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Utils\Constants;
 
 class OrderProductPivot extends IntermediateTable
@@ -52,16 +51,16 @@ class OrderProductPivot extends IntermediateTable
      * @var array
      */
     protected $casts = [
-        'quantity' => 'integer',
-        'base_price_money_amount' => 'integer',
-        'catalog_version' => 'integer',
+        'quantity'                           => 'integer',
+        'base_price_money_amount'            => 'integer',
+        'catalog_version'                    => 'integer',
         'variation_total_price_money_amount' => 'integer',
-        'gross_sales_money_amount' => 'integer',
-        'total_tax_money_amount' => 'integer',
-        'total_discount_money_amount' => 'integer',
-        'total_money_amount' => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'gross_sales_money_amount'           => 'integer',
+        'total_tax_money_amount'             => 'integer',
+        'total_discount_money_amount'        => 'integer',
+        'total_money_amount'                 => 'integer',
+        'created_at'                         => 'datetime',
+        'updated_at'                         => 'datetime',
     ];
 
     /**
@@ -87,7 +86,8 @@ class OrderProductPivot extends IntermediateTable
     /**
      * Does intermediate table has discount.
      *
-     * @param  mixed  $discount
+     * @param mixed $discount
+     *
      * @return bool
      */
     public function hasDiscount($discount)
@@ -100,7 +100,8 @@ class OrderProductPivot extends IntermediateTable
     /**
      * Does intermediate table has tax.
      *
-     * @param  mixed  $tax
+     * @param mixed $tax
+     *
      * @return bool
      */
     public function hasTax($tax)
@@ -113,7 +114,8 @@ class OrderProductPivot extends IntermediateTable
     /**
      * Does intermediate table has service charge.
      *
-     * @param  mixed  $serviceCharge
+     * @param mixed $serviceCharge
+     *
      * @return bool
      */
     public function hasServiceCharge($serviceCharge)
@@ -126,7 +128,8 @@ class OrderProductPivot extends IntermediateTable
     /**
      * Does intermediate table has product.
      *
-     * @param  mixed  $product
+     * @param mixed $product
+     *
      * @return bool
      */
     public function hasProduct($product)
@@ -137,7 +140,7 @@ class OrderProductPivot extends IntermediateTable
     }
 
     /**
-     * Associates a modifier
+     * Associates a modifier.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
@@ -199,7 +202,8 @@ class OrderProductPivot extends IntermediateTable
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

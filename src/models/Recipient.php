@@ -4,10 +4,7 @@ namespace Nikolag\Square\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Nikolag\Square\Models\Customer;
-use Nikolag\Square\Models\Fulfillment;
 use Nikolag\Square\Traits\HasAddress;
-use Square\Models\Address as SquareAddress;
 
 class Recipient extends Model
 {

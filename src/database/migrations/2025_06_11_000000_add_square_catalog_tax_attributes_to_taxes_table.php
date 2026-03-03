@@ -26,11 +26,11 @@ class AddSquareCatalogTaxAttributesToTaxesTable extends Migration
             $table->string('amount_currency', 3)->nullable();
             $table->enum('calculation_phase', [
                 TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
-                TaxCalculationPhase::TAX_TOTAL_PHASE
+                TaxCalculationPhase::TAX_TOTAL_PHASE,
             ])->default(TaxCalculationPhase::TAX_TOTAL_PHASE);
             $table->enum('inclusion_type', [
                 TaxInclusionType::ADDITIVE,
-                TaxInclusionType::INCLUSIVE
+                TaxInclusionType::INCLUSIVE,
             ])->default(TaxInclusionType::ADDITIVE);
             $table->boolean('applies_to_custom_amounts')->default(false);
             $table->boolean('enabled')->default(true);
@@ -53,4 +53,4 @@ class AddSquareCatalogTaxAttributesToTaxesTable extends Migration
             ]);
         });
     }
-};
+}

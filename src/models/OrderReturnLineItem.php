@@ -7,36 +7,35 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Carbon;
-use Nikolag\Square\Models\OrderReturn;
 
 /**
- * Nikolag\Square\Models\OrderReturnLineItem
+ * Nikolag\Square\Models\OrderReturnLineItem.
  *
  * Represents a single line item within an order return, tracking which specific
  * items and quantities were returned from an original order.
  *
- * @property int $id
- * @property int $order_return_id
- * @property int|null $product_id
- * @property int $quantity
- * @property string $square_uid
+ * @property int         $id
+ * @property int         $order_return_id
+ * @property int|null    $product_id
+ * @property int         $quantity
+ * @property string      $square_uid
  * @property string|null $source_line_item_uid
  * @property string|null $catalog_object_id
- * @property int|null $catalog_version
+ * @property int|null    $catalog_version
  * @property string|null $variation_name
  * @property string|null $item_type
  * @property string|null $note
- * @property int|null $base_price_money_amount
+ * @property int|null    $base_price_money_amount
  * @property string|null $base_price_money_currency
- * @property int|null $variation_total_price_money_amount
+ * @property int|null    $variation_total_price_money_amount
  * @property string|null $variation_total_price_money_currency
- * @property int|null $gross_return_money_amount
+ * @property int|null    $gross_return_money_amount
  * @property string|null $gross_return_money_currency
- * @property int|null $total_discount_money_amount
+ * @property int|null    $total_discount_money_amount
  * @property string|null $total_discount_money_currency
- * @property int|null $total_money_amount
+ * @property int|null    $total_money_amount
  * @property string|null $total_money_currency
- * @property int|null $total_service_charge_money_amount
+ * @property int|null    $total_service_charge_money_amount
  * @property string|null $total_service_charge_money_currency
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -171,7 +170,8 @@ class OrderReturnLineItem extends Model
     /**
      * Does line item have discount.
      *
-     * @param  mixed  $discount
+     * @param mixed $discount
+     *
      * @return bool
      */
     public function hasDiscount($discount): bool
@@ -186,7 +186,8 @@ class OrderReturnLineItem extends Model
     /**
      * Does line item have tax.
      *
-     * @param  mixed  $tax
+     * @param mixed $tax
+     *
      * @return bool
      */
     public function hasTax($tax): bool
@@ -201,7 +202,8 @@ class OrderReturnLineItem extends Model
     /**
      * Does line item have service charge.
      *
-     * @param  mixed  $serviceCharge
+     * @param mixed $serviceCharge
+     *
      * @return bool
      */
     public function hasServiceCharge($serviceCharge): bool
@@ -226,7 +228,7 @@ class OrderReturnLineItem extends Model
      */
     public function getGrossReturnAmount(): float
     {
-        if (! $this->gross_return_money_amount) {
+        if (!$this->gross_return_money_amount) {
             return 0.0;
         }
 
@@ -238,7 +240,7 @@ class OrderReturnLineItem extends Model
      */
     public function getBasePriceAmount(): float
     {
-        if (! $this->base_price_money_amount) {
+        if (!$this->base_price_money_amount) {
             return 0.0;
         }
 
@@ -250,7 +252,7 @@ class OrderReturnLineItem extends Model
      */
     public function hasSourceLineItem(): bool
     {
-        return ! empty($this->source_line_item_uid);
+        return !empty($this->source_line_item_uid);
     }
 
     /**
@@ -258,13 +260,14 @@ class OrderReturnLineItem extends Model
      */
     public function hasProduct(): bool
     {
-        return ! empty($this->product_id);
+        return !empty($this->product_id);
     }
 
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  DateTimeInterface  $date
+     * @param DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date): string
