@@ -346,8 +346,8 @@ class InvoiceBuilderTest extends TestCase
         $this->assertNotNull($methods);
         $this->assertTrue($methods->getCard());
         $this->assertTrue($methods->getSquareGiftCard());
-        $this->assertNull($methods->getBankAccount()); // Square SDK only sets true values
-        $this->assertNull($methods->getBuyNowPayLater()); // Square SDK only sets true values
+        $this->assertFalse($methods->getBankAccount());
+        $this->assertFalse($methods->getBuyNowPayLater());
         $this->assertTrue($methods->getCashAppPay());
     }
 
@@ -546,8 +546,8 @@ class InvoiceBuilderTest extends TestCase
         $squareInvoice = SquareInvoiceBuilder::init()
             ->id('inv_square_123')
             ->version(2)
-            ->locationId($location->id)
-            ->orderId($order->id)
+            ->locationId($location->square_id)
+            ->orderId($order->payment_service_id)
             ->status(InvoiceStatus::UNPAID)
             ->publicUrl('https://squareup.com/invoice/inv_square_123')
             ->invoiceNumber('INV-SQUARE-001')
@@ -597,8 +597,8 @@ class InvoiceBuilderTest extends TestCase
         $squareInvoice = SquareInvoiceBuilder::init()
             ->id('inv_minimal_123')
             ->version(1)
-            ->locationId($location->id)
-            ->orderId($order->id)
+            ->locationId($location->square_id)
+            ->orderId($order->payment_service_id)
             ->status(InvoiceStatus::DRAFT)
             ->build();
 
@@ -652,10 +652,8 @@ class InvoiceBuilderTest extends TestCase
 
         $location = factory(Location::class)->create();
 
-        // Create an order without a payment_service_id
+        // Create an order without a payment_service_id (factory default is null)
         $order = factory(Order::class)->create();
-        $order->payment_service_id = null;
-        $order->save();
 
         $invoice = Invoice::create([
             'order_id' => $order->id,
@@ -703,10 +701,8 @@ class InvoiceBuilderTest extends TestCase
 
         $location = factory(Location::class)->create();
 
-        // Create an order without a payment_service_id
+        // Create an order without a payment_service_id (factory default is null)
         $order = factory(Order::class)->create();
-        $order->payment_service_id = null;
-        $order->save();
 
         $invoice = Invoice::create([
             'order_id' => $order->id,
