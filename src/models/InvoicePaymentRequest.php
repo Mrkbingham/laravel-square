@@ -45,7 +45,7 @@ class InvoicePaymentRequest extends Model
      * @var array
      */
     protected $casts = [
-        'due_date' => 'datetime',
+        'due_date' => 'date',
         'tipping_enabled' => 'boolean',
         'computed_amount_money_amount' => 'integer',
         'total_completed_amount_money_amount' => 'integer',
