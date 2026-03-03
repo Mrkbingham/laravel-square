@@ -1823,6 +1823,13 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         );
 
         if ($response->isError()) {
+            if ($response->getStatusCode() === 409) {
+                throw new InvalidSquareVersionException(
+                    'Version conflict: ' . ($response->getErrors()[0]->getDetail() ?? 'Unknown conflict') .
+                    '. The invoice may have been modified. Please refresh and try again.',
+                    409
+                );
+            }
             throw $this->_handleApiResponseErrors($response);
         }
 
