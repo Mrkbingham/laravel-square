@@ -98,7 +98,7 @@ class InvoiceTest extends TestCase
             'order_id' => $order->id,
         ]);
 
-        $methods = factory(Constants::INVOICE_ACCEPTED_PAYMENT_METHODS_NAMESPACE)->create([
+        factory(Constants::INVOICE_ACCEPTED_PAYMENT_METHODS_NAMESPACE)->create([
             'invoice_id' => $invoice->id,
             'card' => true,
             'bank_account' => true,
