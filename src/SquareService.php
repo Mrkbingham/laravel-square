@@ -417,6 +417,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * Add a fulfillment to the order.
      *
      * "Orders can only be created with at most one fulfillment using the API"
+     *
      * @see https://developer.squareup.com/reference/square/objects/OrderFulfillment
      *
      * @param  mixed  $fulfillment
