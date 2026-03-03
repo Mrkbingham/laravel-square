@@ -1683,9 +1683,11 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * Save an invoice to Square (create or update).
      *
      * @param Invoice $invoice
-     * @return void
+     *
      * @throws InvalidInvoiceStateException
      * @throws ApiException
+     *
+     * @return void
      */
     public function saveInvoice(Invoice $invoice): void
     {
@@ -1713,8 +1715,10 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * Create a new invoice in Square.
      *
      * @param Invoice $invoice
-     * @return void
+     *
      * @throws ApiException
+     *
+     * @return void
      */
     private function createSquareInvoice(Invoice $invoice): void
     {
@@ -1725,11 +1729,12 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         if ($response->isError()) {
             if ($response->getStatusCode() === 409) {
                 throw new InvalidSquareVersionException(
-                    'Version conflict: ' . ($response->getErrors()[0]->getDetail() ?? 'Unknown conflict') .
+                    'Version conflict: '.($response->getErrors()[0]->getDetail() ?? 'Unknown conflict').
                     '. The invoice may have been modified. Please refresh and try again.',
                     409
                 );
             }
+
             throw $this->_handleApiResponseErrors($response);
         }
 
@@ -1742,9 +1747,11 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * Update an existing invoice in Square.
      *
      * @param Invoice $invoice
-     * @return void
+     *
      * @throws InvalidSquareVersionException
      * @throws ApiException
+     *
+     * @return void
      */
     private function updateSquareInvoice(Invoice $invoice): void
     {
@@ -1768,11 +1775,12 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         if ($response->isError()) {
             if ($response->getStatusCode() === 409) {
                 throw new InvalidSquareVersionException(
-                    'Version conflict: ' . ($response->getErrors()[0]->getDetail() ?? 'Unknown conflict') .
+                    'Version conflict: '.($response->getErrors()[0]->getDetail() ?? 'Unknown conflict').
                     '. The invoice may have been modified. Please refresh and try again.',
                     409
                 );
             }
+
             throw $this->_handleApiResponseErrors($response);
         }
 
@@ -1785,10 +1793,12 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * Publish an invoice in Square.
      *
      * @param Invoice $invoice
-     * @return void
+     *
      * @throws InvalidInvoiceStateException
      * @throws InvalidSquareVersionException
      * @throws ApiException
+     *
+     * @return void
      */
     public function publishInvoice(Invoice $invoice): void
     {
@@ -1825,11 +1835,12 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         if ($response->isError()) {
             if ($response->getStatusCode() === 409) {
                 throw new InvalidSquareVersionException(
-                    'Version conflict: ' . ($response->getErrors()[0]->getDetail() ?? 'Unknown conflict') .
+                    'Version conflict: '.($response->getErrors()[0]->getDetail() ?? 'Unknown conflict').
                     '. The invoice may have been modified. Please refresh and try again.',
                     409
                 );
             }
+
             throw $this->_handleApiResponseErrors($response);
         }
 
@@ -1844,8 +1855,10 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * Retrieve an invoice from Square by ID.
      *
      * @param string $squareInvoiceId
-     * @return \Square\Models\Invoice
+     *
      * @throws ApiException
+     *
+     * @return \Square\Models\Invoice
      */
     public function getInvoice(string $squareInvoiceId): \Square\Models\Invoice
     {

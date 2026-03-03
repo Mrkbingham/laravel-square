@@ -44,11 +44,11 @@ class InvoicePaymentRequest extends Model
      * @var array
      */
     protected $casts = [
-        'due_date' => 'date',
-        'tipping_enabled' => 'boolean',
-        'computed_amount_money_amount' => 'integer',
+        'due_date'                            => 'date',
+        'tipping_enabled'                     => 'boolean',
+        'computed_amount_money_amount'        => 'integer',
         'total_completed_amount_money_amount' => 'integer',
-        'rounding_adjustment_amount' => 'integer',
+        'rounding_adjustment_amount'          => 'integer',
         'fixed_amount_requested_money_amount' => 'integer',
     ];
 
@@ -65,7 +65,8 @@ class InvoicePaymentRequest extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

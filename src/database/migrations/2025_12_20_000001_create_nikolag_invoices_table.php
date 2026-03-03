@@ -22,7 +22,7 @@ class CreateNikolagInvoicesTable extends Migration
         }
 
         // Get the table name for orders from the configuration
-        $orderTable = (new $orderClass)->getTable();
+        $orderTable = (new $orderClass())->getTable();
 
         Schema::create('nikolag_invoices', function (Blueprint $table) use ($orderTable) {
             $table->id();

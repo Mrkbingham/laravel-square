@@ -35,11 +35,11 @@ class InvoiceAcceptedPaymentMethods extends Model
      * @var array
      */
     protected $casts = [
-        'card' => 'boolean',
-        'square_gift_card' => 'boolean',
-        'bank_account' => 'boolean',
+        'card'              => 'boolean',
+        'square_gift_card'  => 'boolean',
+        'bank_account'      => 'boolean',
         'buy_now_pay_later' => 'boolean',
-        'cash_app_pay' => 'boolean',
+        'cash_app_pay'      => 'boolean',
     ];
 
     /**
@@ -55,7 +55,8 @@ class InvoiceAcceptedPaymentMethods extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

@@ -70,8 +70,8 @@ use Square\Models\UpdateWebhookSubscriptionSignatureKeyResponse;
  * @method static bool                                          markWebhookEventFailed(string $eventId)
  *
  * Invoice Management Methods
- * @method static void saveInvoice(Invoice $invoice)
- * @method static void publishInvoice(Invoice $invoice)
+ * @method static void    saveInvoice(Invoice $invoice)
+ * @method static void    publishInvoice(Invoice $invoice)
  * @method static Invoice getInvoice(string $squareInvoiceId)
  *
  * @see \Nikolag\Square\SquareService

@@ -9,18 +9,9 @@ use Nikolag\Square\Models\InvoiceAcceptedPaymentMethods;
 use Nikolag\Square\Models\InvoiceCustomField;
 use Nikolag\Square\Models\InvoicePaymentRequest;
 use Nikolag\Square\Models\InvoiceRecipient;
-use Square\Models\InvoiceAcceptedPaymentMethods as SquareInvoiceAcceptedPaymentMethods;
 use Square\Models\Address;
-use Square\Models\CreateInvoiceRequest;
-use Square\Models\InvoiceCustomField as SquareInvoiceCustomField;
-use Square\Models\InvoiceDeliveryMethod;
-use Square\Models\InvoicePaymentRequest as SquareInvoicePaymentRequest;
-use Square\Models\InvoiceRecipient as SquareInvoiceRecipient;
-use Square\Models\Money;
-use Square\Models\PublishInvoiceRequest;
-use Square\Models\UpdateInvoiceRequest;
-use Square\Models\Builders\InvoiceAcceptedPaymentMethodsBuilder;
 use Square\Models\Builders\CreateInvoiceRequestBuilder;
+use Square\Models\Builders\InvoiceAcceptedPaymentMethodsBuilder;
 use Square\Models\Builders\InvoiceBuilder as SquareInvoiceBuilder;
 use Square\Models\Builders\InvoiceCustomFieldBuilder;
 use Square\Models\Builders\InvoicePaymentRequestBuilder;
@@ -28,15 +19,23 @@ use Square\Models\Builders\InvoiceRecipientBuilder as SquareInvoiceRecipientBuil
 use Square\Models\Builders\MoneyBuilder;
 use Square\Models\Builders\PublishInvoiceRequestBuilder;
 use Square\Models\Builders\UpdateInvoiceRequestBuilder;
+use Square\Models\CreateInvoiceRequest;
+use Square\Models\InvoiceAcceptedPaymentMethods as SquareInvoiceAcceptedPaymentMethods;
+use Square\Models\InvoiceDeliveryMethod;
+use Square\Models\InvoiceRecipient as SquareInvoiceRecipient;
+use Square\Models\PublishInvoiceRequest;
+use Square\Models\UpdateInvoiceRequest;
 
 class InvoiceBuilder
 {
     /**
      * Build a CreateInvoiceRequest for the Square API.
      *
-     * @param  Invoice  $invoice
-     * @return CreateInvoiceRequest
+     * @param Invoice $invoice
+     *
      * @throws MissingPropertyException
+     *
+     * @return CreateInvoiceRequest
      */
     public function buildCreateInvoiceRequest(Invoice $invoice): CreateInvoiceRequest
     {
@@ -118,10 +117,12 @@ class InvoiceBuilder
     /**
      * Build an UpdateInvoiceRequest for the Square API.
      *
-     * @param  Invoice  $invoice
-     * @param  int  $version
-     * @return UpdateInvoiceRequest
+     * @param Invoice $invoice
+     * @param int     $version
+     *
      * @throws MissingPropertyException
+     *
+     * @return UpdateInvoiceRequest
      */
     public function buildUpdateInvoiceRequest(Invoice $invoice, int $version): UpdateInvoiceRequest
     {
@@ -204,7 +205,8 @@ class InvoiceBuilder
     /**
      * Build a PublishInvoiceRequest for the Square API.
      *
-     * @param  int  $version
+     * @param int $version
+     *
      * @return PublishInvoiceRequest
      */
     public function buildPublishInvoiceRequest(int $version): PublishInvoiceRequest
@@ -225,7 +227,8 @@ class InvoiceBuilder
      *   address
      *   company_name
      *
-     * @param  InvoiceRecipient  $recipient
+     * @param InvoiceRecipient $recipient
+     *
      * @return SquareInvoiceRecipient
      */
     private function buildInvoiceRecipient(InvoiceRecipient $recipient): SquareInvoiceRecipient
@@ -247,7 +250,8 @@ class InvoiceBuilder
     /**
      * Build an array of InvoicePaymentRequests for the Square API.
      *
-     * @param  Collection  $paymentRequests
+     * @param Collection $paymentRequests
+     *
      * @return array
      */
     private function buildPaymentRequests(Collection $paymentRequests): array
@@ -295,7 +299,8 @@ class InvoiceBuilder
     /**
      * Build AcceptedPaymentMethods for the Square API.
      *
-     * @param  InvoiceAcceptedPaymentMethods  $methods
+     * @param InvoiceAcceptedPaymentMethods $methods
+     *
      * @return SquareInvoiceAcceptedPaymentMethods
      */
     private function buildAcceptedPaymentMethods(InvoiceAcceptedPaymentMethods $methods): SquareInvoiceAcceptedPaymentMethods
@@ -328,7 +333,8 @@ class InvoiceBuilder
     /**
      * Build an array of InvoiceCustomFields for the Square API.
      *
-     * @param  Collection  $customFields
+     * @param Collection $customFields
+     *
      * @return array
      */
     private function buildCustomFields(Collection $customFields): array
@@ -355,8 +361,9 @@ class InvoiceBuilder
     /**
      * Sync data from a Square Invoice response to the local Invoice model.
      *
-     * @param  Invoice  $invoice
-     * @param  \Square\Models\Invoice  $squareInvoice
+     * @param Invoice                $invoice
+     * @param \Square\Models\Invoice $squareInvoice
+     *
      * @return void
      */
     public function syncFromSquareResponse(Invoice $invoice, \Square\Models\Invoice $squareInvoice): void
@@ -381,9 +388,11 @@ class InvoiceBuilder
     /**
      * Validate that the invoice has an associated order with a Square order ID.
      *
-     * @param  Invoice  $invoice
-     * @return void
+     * @param Invoice $invoice
+     *
      * @throws MissingPropertyException
+     *
+     * @return void
      */
     private function validateOrderId(Invoice $invoice): void
     {
@@ -405,9 +414,11 @@ class InvoiceBuilder
     /**
      * Validate that the invoice has an associated location with a Square ID.
      *
-     * @param  Invoice  $invoice
-     * @return void
+     * @param Invoice $invoice
+     *
      * @throws MissingPropertyException
+     *
+     * @return void
      */
     private function validateLocation(Invoice $invoice): void
     {
@@ -430,9 +441,11 @@ class InvoiceBuilder
      * Square API requires every invoice to have at least one payment request
      * with a due_date and request_type specified.
      *
-     * @param  Invoice  $invoice
-     * @return void
+     * @param Invoice $invoice
+     *
      * @throws MissingPropertyException
+     *
+     * @return void
      */
     private function validatePaymentRequests(Invoice $invoice): void
     {
@@ -444,7 +457,7 @@ class InvoiceBuilder
         // Check if invoice has at least one payment request
         if (!$invoice->paymentRequests || $invoice->paymentRequests->isEmpty()) {
             throw new MissingPropertyException(
-                'Cannot create invoice without at least one payment request. Square requires all invoices to have payment request(s) with a due_date and request_type. ' .
+                'Cannot create invoice without at least one payment request. Square requires all invoices to have payment request(s) with a due_date and request_type. '.
                 'Add a payment request using $invoice->paymentRequests()->create([...]).'
             );
         }
@@ -470,9 +483,11 @@ class InvoiceBuilder
      *
      * Square API requires every invoice to specify which payment methods are accepted.
      *
-     * @param  Invoice  $invoice
-     * @return void
+     * @param Invoice $invoice
+     *
      * @throws MissingPropertyException
+     *
+     * @return void
      */
     private function validateAcceptedPaymentMethods(Invoice $invoice): void
     {
@@ -484,7 +499,7 @@ class InvoiceBuilder
         // Check if invoice has accepted payment methods defined
         if (!$invoice->acceptedPaymentMethods) {
             throw new MissingPropertyException(
-                'Cannot create invoice without accepted payment methods. Square requires all invoices to specify which payment methods are accepted. ' .
+                'Cannot create invoice without accepted payment methods. Square requires all invoices to specify which payment methods are accepted. '.
                 'Add accepted payment methods using $invoice->acceptedPaymentMethods()->create([\'card\' => true, ...]).'
             );
         }
@@ -495,9 +510,11 @@ class InvoiceBuilder
      *
      * Square API requires every invoice to specify how it will be delivered.
      *
-     * @param  Invoice  $invoice
-     * @return void
+     * @param Invoice $invoice
+     *
      * @throws MissingPropertyException
+     *
+     * @return void
      */
     private function validateDeliveryMethod(Invoice $invoice): void
     {
@@ -515,7 +532,7 @@ class InvoiceBuilder
 
         if (!in_array($invoice->delivery_method, $validMethods)) {
             throw new MissingPropertyException(
-                "Invalid delivery_method '{$invoice->delivery_method}'. " .
+                "Invalid delivery_method '{$invoice->delivery_method}'. ".
                 'Valid values are: InvoiceDeliveryMethod::EMAIL, InvoiceDeliveryMethod::SMS, or InvoiceDeliveryMethod::SHARE_MANUALLY.'
             );
         }

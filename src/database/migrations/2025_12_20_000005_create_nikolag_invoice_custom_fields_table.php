@@ -21,7 +21,7 @@ class CreateNikolagInvoiceCustomFieldsTable extends Migration
             $table->string('value', 2000)->nullable();
             $table->enum('placement', [
                 InvoiceCustomFieldPlacement::ABOVE_LINE_ITEMS,
-                InvoiceCustomFieldPlacement::BELOW_LINE_ITEMS
+                InvoiceCustomFieldPlacement::BELOW_LINE_ITEMS,
             ]);
             $table->timestamps();
 

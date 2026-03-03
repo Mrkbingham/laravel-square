@@ -315,7 +315,7 @@ class SquareServiceTest extends TestCase
 
         // Attach product with null pivot price to simulate missing pivot value
         $order->products()->attach($product, [
-            'quantity' => 1,
+            'quantity'                => 1,
             'base_price_money_amount' => null,
         ]);
 
@@ -1713,13 +1713,13 @@ class SquareServiceTest extends TestCase
 
         // Mock retrieveOrder response (called before update to detect changes)
         $this->mockRetrieveOrderSuccess([
-            'id' => 'SQUARE_ORDER_123',
+            'id'         => 'SQUARE_ORDER_123',
             'locationId' => $locationId,
-            'state' => 'OPEN',
-            'version' => 1,
-            'lineItems' => [],
-            'createdAt' => now()->subHour()->toISOString(),
-            'updatedAt' => now()->subMinutes(10)->toISOString(),
+            'state'      => 'OPEN',
+            'version'    => 1,
+            'lineItems'  => [],
+            'createdAt'  => now()->subHour()->toISOString(),
+            'updatedAt'  => now()->subMinutes(10)->toISOString(),
         ]);
 
         // Mock successful updateOrder response

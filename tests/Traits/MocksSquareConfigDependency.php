@@ -37,12 +37,12 @@ use Square\Models\Builders\WebhookSubscriptionBuilder;
 use Square\Models\CreateCustomerResponse;
 use Square\Models\CreateInvoiceResponse;
 use Square\Models\CreateOrderResponse;
-use Square\Models\GetInvoiceResponse;
-use Square\Models\Invoice as SquareInvoice;
-use Square\Models\PublishInvoiceResponse;
 use Square\Models\CreateWebhookSubscriptionResponse;
 use Square\Models\DeleteWebhookSubscriptionResponse;
+use Square\Models\GetInvoiceResponse;
+use Square\Models\Invoice as SquareInvoice;
 use Square\Models\ListWebhookSubscriptionsResponse;
+use Square\Models\PublishInvoiceResponse;
 use Square\Models\RetrieveOrderResponse;
 use Square\Models\TestWebhookSubscriptionResponse;
 use Square\Models\UpdateCustomerResponse;
@@ -1295,11 +1295,11 @@ trait MocksSquareConfigDependency
     /**
      * Mock the SquareConfig dependency for invoice operations.
      *
-     * @param string  $endpoint     The invoice endpoint to mock.
-     * @param array|null   $responseData The data to include in successful responses.
-     * @param boolean $shouldFail   Whether to simulate an API error.
-     * @param string  $errorMessage Error message if shouldFail is true.
-     * @param int     $errorCode    HTTP error code if shouldFail is true.
+     * @param string     $endpoint     The invoice endpoint to mock.
+     * @param array|null $responseData The data to include in successful responses.
+     * @param bool       $shouldFail   Whether to simulate an API error.
+     * @param string     $errorMessage Error message if shouldFail is true.
+     * @param int        $errorCode    HTTP error code if shouldFail is true.
      */
     protected function mockSquareInvoiceEndpoint(
         string $endpoint,
@@ -1318,8 +1318,8 @@ trait MocksSquareConfigDependency
     /**
      * Mock a successful invoice API response.
      *
-     * @param string $endpoint The invoice endpoint to mock.
-     * @param array|null  $responseData The data to include in the response.
+     * @param string     $endpoint     The invoice endpoint to mock.
+     * @param array|null $responseData The data to include in the response.
      *
      * @return void
      */
@@ -1341,9 +1341,9 @@ trait MocksSquareConfigDependency
     /**
      * Mock an error invoice API response.
      *
-     * @param string $endpoint The invoice endpoint to mock.
+     * @param string $endpoint     The invoice endpoint to mock.
      * @param string $errorMessage Error message to include in the response.
-     * @param int    $errorCode HTTP error code to return.
+     * @param int    $errorCode    HTTP error code to return.
      *
      * @return void
      */
@@ -1369,8 +1369,8 @@ trait MocksSquareConfigDependency
     /**
      * Build the appropriate invoice response object for an endpoint.
      *
-     * @param string $endpoint The endpoint to build a response for.
-     * @param array|null  $responseData Data to include in the response.
+     * @param string     $endpoint     The endpoint to build a response for.
+     * @param array|null $responseData Data to include in the response.
      *
      * @return CreateInvoiceResponse|UpdateInvoiceResponse|PublishInvoiceResponse|GetInvoiceResponse
      */
@@ -1378,14 +1378,14 @@ trait MocksSquareConfigDependency
     {
         // Default response data
         $defaultData = [
-            'invoice_id' => 'inv_' . uniqid(),
-            'version' => 1,
-            'status' => 'DRAFT',
-            'location_id' => 'main',
-            'order_id' => 'order_123',
+            'invoice_id'     => 'inv_'.uniqid(),
+            'version'        => 1,
+            'status'         => 'DRAFT',
+            'location_id'    => 'main',
+            'order_id'       => 'order_123',
             'invoice_number' => 'INV-001',
-            'public_url' => null,
-            'title' => 'Test Invoice',
+            'public_url'     => null,
+            'title'          => 'Test Invoice',
         ];
 
         $data = array_merge($defaultData, $responseData ?? []);
@@ -1430,7 +1430,7 @@ trait MocksSquareConfigDependency
     private function buildSquareInvoice(array $data): SquareInvoice
     {
         $builder = InvoiceBuilder::init()
-            ->id($data['invoice_id'] ?? 'inv_' . uniqid())
+            ->id($data['invoice_id'] ?? 'inv_'.uniqid())
             ->version($data['version'] ?? 1)
             ->locationId($data['location_id'] ?? 'main')
             ->orderId($data['order_id'] ?? 'order_123');
@@ -1470,7 +1470,7 @@ trait MocksSquareConfigDependency
     /**
      * Bind invoice mock to the service container.
      *
-     * @param string $endpoint The invoice endpoint being mocked.
+     * @param string      $endpoint        The invoice endpoint being mocked.
      * @param ApiResponse $mockApiResponse The mocked API response.
      *
      * @return void
@@ -1514,7 +1514,7 @@ trait MocksSquareConfigDependency
      * Mock the invoicesAPI()->createInvoice($request) method with error.
      *
      * @param string $message Error message to return.
-     * @param int $code HTTP error code to return.
+     * @param int    $code    HTTP error code to return.
      *
      * @return void
      */
@@ -1539,7 +1539,7 @@ trait MocksSquareConfigDependency
      * Mock the invoicesAPI()->updateInvoice($invoiceId, $request) method with error.
      *
      * @param string $message Error message to return.
-     * @param int $code HTTP error code to return.
+     * @param int    $code    HTTP error code to return.
      *
      * @return void
      */
@@ -1588,7 +1588,7 @@ trait MocksSquareConfigDependency
      * Mock the invoicesAPI()->publishInvoice($invoiceId, $request) method with error.
      *
      * @param string $message Error message to return.
-     * @param int $code HTTP error code to return.
+     * @param int    $code    HTTP error code to return.
      *
      * @return void
      */
@@ -1613,7 +1613,7 @@ trait MocksSquareConfigDependency
      * Mock the invoicesAPI()->getInvoice($invoiceId) method with error.
      *
      * @param string $message Error message to return.
-     * @param int $code HTTP error code to return.
+     * @param int    $code    HTTP error code to return.
      *
      * @return void
      */

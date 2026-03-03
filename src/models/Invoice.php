@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 
 class Invoice extends Model
 {
@@ -51,13 +50,13 @@ class Invoice extends Model
      * @var array
      */
     protected $casts = [
-        'scheduled_at' => 'datetime',
-        'sale_or_service_date' => 'date',
-        'store_payment_method_enabled' => 'boolean',
+        'scheduled_at'                     => 'datetime',
+        'sale_or_service_date'             => 'date',
+        'store_payment_method_enabled'     => 'boolean',
         'next_payment_amount_money_amount' => 'integer',
-        'payment_service_version' => 'integer',
-        'square_created_at' => 'datetime',
-        'square_updated_at' => 'datetime',
+        'payment_service_version'          => 'integer',
+        'square_created_at'                => 'datetime',
+        'square_updated_at'                => 'datetime',
     ];
 
     /**
@@ -132,7 +131,7 @@ class Invoice extends Model
 
     /**
      * Check if the invoice is in a terminal state.
-     * Terminal states: PAID, REFUNDED, CANCELED, FAILED
+     * Terminal states: PAID, REFUNDED, CANCELED, FAILED.
      *
      * @return bool
      */
@@ -144,7 +143,8 @@ class Invoice extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

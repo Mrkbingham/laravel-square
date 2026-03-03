@@ -2,17 +2,8 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
-use Nikolag\Square\Exceptions\InvalidSquareOrderException;
-use Nikolag\Square\Exceptions\InvalidSquareVersionException;
-use Nikolag\Square\Facades\Square;
-use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\Invoice;
-use Nikolag\Square\Models\InvoiceAcceptedPaymentMethods;
-use Nikolag\Square\Models\InvoiceCustomField;
-use Nikolag\Square\Models\InvoicePaymentRequest;
-use Nikolag\Square\Models\InvoiceRecipient;
 use Nikolag\Square\Models\Location;
-use Nikolag\Square\Models\Product;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Utils\Constants;
@@ -51,7 +42,7 @@ class InvoiceTest extends TestCase
         ]);
 
         $recipient = factory(Constants::INVOICE_RECIPIENT_NAMESPACE)->create([
-            'invoice_id' => $invoice->id,
+            'invoice_id'  => $invoice->id,
             'customer_id' => $customer->id,
         ]);
 
@@ -73,12 +64,12 @@ class InvoiceTest extends TestCase
         ]);
 
         factory(Constants::INVOICE_PAYMENT_REQUEST_NAMESPACE)->create([
-            'invoice_id' => $invoice->id,
+            'invoice_id'   => $invoice->id,
             'request_type' => 'BALANCE',
         ]);
 
         factory(Constants::INVOICE_PAYMENT_REQUEST_NAMESPACE)->create([
-            'invoice_id' => $invoice->id,
+            'invoice_id'   => $invoice->id,
             'request_type' => 'INSTALLMENT',
         ]);
 
@@ -99,8 +90,8 @@ class InvoiceTest extends TestCase
         ]);
 
         factory(Constants::INVOICE_ACCEPTED_PAYMENT_METHODS_NAMESPACE)->create([
-            'invoice_id' => $invoice->id,
-            'card' => true,
+            'invoice_id'   => $invoice->id,
+            'card'         => true,
             'bank_account' => true,
         ]);
 
@@ -123,14 +114,14 @@ class InvoiceTest extends TestCase
 
         factory(Constants::INVOICE_CUSTOM_FIELD_NAMESPACE)->create([
             'invoice_id' => $invoice->id,
-            'label' => 'PO Number',
-            'value' => 'PO-12345',
+            'label'      => 'PO Number',
+            'value'      => 'PO-12345',
         ]);
 
         factory(Constants::INVOICE_CUSTOM_FIELD_NAMESPACE)->create([
             'invoice_id' => $invoice->id,
-            'label' => 'Project Code',
-            'value' => 'PROJ-ABC',
+            'label'      => 'Project Code',
+            'value'      => 'PROJ-ABC',
         ]);
 
         $this->assertNotNull($invoice->customFields, 'Custom fields are null');
@@ -184,33 +175,33 @@ class InvoiceTest extends TestCase
         ]);
 
         $invoice = Invoice::create([
-            'order_id' => $order->id,
-            'location_id' => $location->id,
-            'title' => 'Test Invoice',
-            'description' => 'Test invoice description',
+            'order_id'        => $order->id,
+            'location_id'     => $location->id,
+            'title'           => 'Test Invoice',
+            'description'     => 'Test invoice description',
             'delivery_method' => 'EMAIL',
-            'status' => InvoiceStatus::DRAFT,
+            'status'          => InvoiceStatus::DRAFT,
         ]);
 
         // Create recipient
         $invoice->recipient()->create([
-            'customer_id' => $customer->id,
+            'customer_id'   => $customer->id,
             'email_address' => 'test@example.com',
-            'given_name' => 'John',
-            'family_name' => 'Doe',
+            'given_name'    => 'John',
+            'family_name'   => 'Doe',
         ]);
 
         // Create payment request
         $invoice->paymentRequests()->create([
-            'request_type' => 'BALANCE',
-            'due_date' => now()->addDays(30),
-            'computed_amount_money_amount' => 10000,
+            'request_type'                   => 'BALANCE',
+            'due_date'                       => now()->addDays(30),
+            'computed_amount_money_amount'   => 10000,
             'computed_amount_money_currency' => 'USD',
         ]);
 
         // Create accepted payment methods
         $invoice->acceptedPaymentMethods()->create([
-            'card' => true,
+            'card'         => true,
             'bank_account' => false,
         ]);
 

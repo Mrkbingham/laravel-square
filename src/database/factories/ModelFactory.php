@@ -56,34 +56,34 @@ $factory->state(Constants::TAX_NAMESPACE, 'INCLUSIVE', [
 /* LOCATION */
 $factory->define(Location::class, function (Faker\Generator $faker) {
     return [
-        'name' => $faker->company,
+        'name'    => $faker->company,
         'address' => json_encode([
-            'address_line_1' => $faker->streetAddress,
-            'address_line_2' => $faker->secondaryAddress,
-            'locality' => $faker->city,
+            'address_line_1'                  => $faker->streetAddress,
+            'address_line_2'                  => $faker->secondaryAddress,
+            'locality'                        => $faker->city,
             'administrative_district_level_1' => $faker->state,
-            'postal_code' => $faker->postcode,
-            'country' => $faker->countryCode,
+            'postal_code'                     => $faker->postcode,
+            'country'                         => $faker->countryCode,
         ]),
-        'timezone' => $faker->timezone,
-        'capabilities' => ['CREDIT_CARD_PROCESSING', 'IN_STORE_PICKUP'],
-        'status' => Arr::random(['ACTIVE', 'INACTIVE']),
-        'square_created_at' => $faker->dateTimeBetween('-1 year', 'now'),
-        'merchant_id' => 'merchant_' . $faker->uuid,
-        'country' => $faker->countryCode,
-        'language_code' => 'en-US',
-        'currency' => 'USD',
-        'phone_number' => $faker->phoneNumber,
-        'business_name' => $faker->company,
-        'type' => Arr::random(['PHYSICAL', 'MOBILE']),
-        'website_url' => $faker->url,
-        'business_hours' => null,
-        'business_email' => $faker->companyEmail,
-        'twitter_username' => $faker->userName,
+        'timezone'           => $faker->timezone,
+        'capabilities'       => ['CREDIT_CARD_PROCESSING', 'IN_STORE_PICKUP'],
+        'status'             => Arr::random(['ACTIVE', 'INACTIVE']),
+        'square_created_at'  => $faker->dateTimeBetween('-1 year', 'now'),
+        'merchant_id'        => 'merchant_'.$faker->uuid,
+        'country'            => $faker->countryCode,
+        'language_code'      => 'en-US',
+        'currency'           => 'USD',
+        'phone_number'       => $faker->phoneNumber,
+        'business_name'      => $faker->company,
+        'type'               => Arr::random(['PHYSICAL', 'MOBILE']),
+        'website_url'        => $faker->url,
+        'business_hours'     => null,
+        'business_email'     => $faker->companyEmail,
+        'twitter_username'   => $faker->userName,
         'instagram_username' => $faker->userName,
-        'facebook_url' => $faker->url,
-        'mcc' => $faker->numberBetween(1000, 9999),
-        'square_id' => 'location_' . $faker->uuid,
+        'facebook_url'       => $faker->url,
+        'mcc'                => $faker->numberBetween(1000, 9999),
+        'square_id'          => 'location_'.$faker->uuid,
     ];
 });
 
@@ -892,18 +892,18 @@ $factory->define(Constants::INVOICE_NAMESPACE, function (Faker\Generator $faker)
         'location_id' => function () {
             return factory(Location::class)->create();
         },
-        'invoice_number' => $faker->unique()->numerify('inv:0-####'),
-        'title' => $faker->sentence(3),
-        'description' => $faker->paragraph(),
-        'scheduled_at' => $faker->optional()->dateTimeBetween('now', '+30 days'),
-        'status' => InvoiceStatus::DRAFT,
+        'invoice_number'  => $faker->unique()->numerify('inv:0-####'),
+        'title'           => $faker->sentence(3),
+        'description'     => $faker->paragraph(),
+        'scheduled_at'    => $faker->optional()->dateTimeBetween('now', '+30 days'),
+        'status'          => InvoiceStatus::DRAFT,
         'delivery_method' => $faker->randomElement([
             InvoiceDeliveryMethod::EMAIL,
             InvoiceDeliveryMethod::SHARE_MANUALLY,
-            InvoiceDeliveryMethod::SMS
+            InvoiceDeliveryMethod::SMS,
         ]),
-        'timezone' => $faker->timezone,
-        'sale_or_service_date' => $faker->optional()->dateTimeBetween('-30 days', 'now'),
+        'timezone'                     => $faker->timezone,
+        'sale_or_service_date'         => $faker->optional()->dateTimeBetween('-30 days', 'now'),
         'store_payment_method_enabled' => $faker->boolean(30),
     ];
 });
@@ -915,13 +915,13 @@ $factory->state(Constants::INVOICE_NAMESPACE, 'DRAFT', [
 
 /* UNPAID STATE */
 $factory->state(Constants::INVOICE_NAMESPACE, 'UNPAID', [
-    'status' => InvoiceStatus::UNPAID,
+    'status'     => InvoiceStatus::UNPAID,
     'public_url' => 'https://squareup.com/pay-invoice/abc123',
 ]);
 
 /* PAID STATE */
 $factory->state(Constants::INVOICE_NAMESPACE, 'PAID', [
-    'status' => InvoiceStatus::PAID,
+    'status'     => InvoiceStatus::PAID,
     'public_url' => 'https://squareup.com/pay-invoice/abc123',
 ]);
 
@@ -939,16 +939,16 @@ $factory->define(Constants::INVOICE_RECIPIENT_NAMESPACE, function (Faker\Generat
         'customer_id' => function () {
             return factory(Constants::CUSTOMER_NAMESPACE)->create();
         },
-        'given_name' => $faker->firstName,
-        'family_name' => $faker->lastName,
-        'email_address' => $faker->email,
-        'phone_number' => $faker->phoneNumber,
-        'company_name' => $faker->optional()->company,
-        'address_line_1' => $faker->optional()->streetAddress,
-        'locality' => $faker->optional()->city,
+        'given_name'                      => $faker->firstName,
+        'family_name'                     => $faker->lastName,
+        'email_address'                   => $faker->email,
+        'phone_number'                    => $faker->phoneNumber,
+        'company_name'                    => $faker->optional()->company,
+        'address_line_1'                  => $faker->optional()->streetAddress,
+        'locality'                        => $faker->optional()->city,
         'administrative_district_level_1' => $faker->optional()->state,
-        'postal_code' => $faker->optional()->postcode,
-        'country' => $faker->optional()->countryCode,
+        'postal_code'                     => $faker->optional()->postcode,
+        'country'                         => $faker->optional()->countryCode,
     ];
 });
 
@@ -960,14 +960,14 @@ $factory->define(Constants::INVOICE_PAYMENT_REQUEST_NAMESPACE, function (Faker\G
         'invoice_id' => function () {
             return factory(Constants::INVOICE_NAMESPACE)->create();
         },
-        'square_uid' => $faker->optional()->uuid,
-        'request_type' => $faker->randomElement(['BALANCE', 'INSTALLMENT']),
-        'due_date' => $faker->dateTimeBetween('now', '+30 days'),
-        'tipping_enabled' => $faker->boolean(30),
-        'automatic_payment_source' => $faker->randomElement(['NONE', 'CARD_ON_FILE', 'BANK_ON_FILE']),
-        'computed_amount_money_amount' => $amount,
-        'computed_amount_money_currency' => 'USD',
-        'total_completed_amount_money_amount' => $faker->optional()->numberBetween(0, $amount),
+        'square_uid'                            => $faker->optional()->uuid,
+        'request_type'                          => $faker->randomElement(['BALANCE', 'INSTALLMENT']),
+        'due_date'                              => $faker->dateTimeBetween('now', '+30 days'),
+        'tipping_enabled'                       => $faker->boolean(30),
+        'automatic_payment_source'              => $faker->randomElement(['NONE', 'CARD_ON_FILE', 'BANK_ON_FILE']),
+        'computed_amount_money_amount'          => $amount,
+        'computed_amount_money_currency'        => 'USD',
+        'total_completed_amount_money_amount'   => $faker->optional()->numberBetween(0, $amount),
         'total_completed_amount_money_currency' => 'USD',
     ];
 });
@@ -978,11 +978,11 @@ $factory->define(Constants::INVOICE_ACCEPTED_PAYMENT_METHODS_NAMESPACE, function
         'invoice_id' => function () {
             return factory(Constants::INVOICE_NAMESPACE)->create();
         },
-        'card' => $faker->boolean(80),
-        'square_gift_card' => $faker->boolean(30),
-        'bank_account' => $faker->boolean(40),
+        'card'              => $faker->boolean(80),
+        'square_gift_card'  => $faker->boolean(30),
+        'bank_account'      => $faker->boolean(40),
         'buy_now_pay_later' => $faker->boolean(20),
-        'cash_app_pay' => $faker->boolean(50),
+        'cash_app_pay'      => $faker->boolean(50),
     ];
 });
 
@@ -992,8 +992,8 @@ $factory->define(Constants::INVOICE_CUSTOM_FIELD_NAMESPACE, function (Faker\Gene
         'invoice_id' => function () {
             return factory(Constants::INVOICE_NAMESPACE)->create();
         },
-        'label' => $faker->words(2, true),
-        'value' => $faker->optional()->sentence,
+        'label'     => $faker->words(2, true),
+        'value'     => $faker->optional()->sentence,
         'placement' => $faker->randomElement(['ABOVE_LINE_ITEMS', 'BELOW_LINE_ITEMS']),
     ];
 });
@@ -1005,11 +1005,11 @@ $factory->define(Constants::INVOICE_ATTACHMENT_NAMESPACE, function (Faker\Genera
             return factory(Constants::INVOICE_NAMESPACE)->create();
         },
         'attachment_id' => $faker->uuid,
-        'filename' => $faker->word . '.' . $faker->fileExtension,
-        'description' => $faker->optional()->sentence,
-        'filesize' => $faker->numberBetween(1024, 1024 * 1024),
-        'hash' => $faker->md5,
-        'mime_type' => $faker->mimeType,
-        'uploaded_at' => $faker->dateTimeThisMonth,
+        'filename'      => $faker->word.'.'.$faker->fileExtension,
+        'description'   => $faker->optional()->sentence,
+        'filesize'      => $faker->numberBetween(1024, 1024 * 1024),
+        'hash'          => $faker->md5,
+        'mime_type'     => $faker->mimeType,
+        'uploaded_at'   => $faker->dateTimeThisMonth,
     ];
 });

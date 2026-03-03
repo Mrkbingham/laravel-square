@@ -37,7 +37,7 @@ class InvoiceAttachment extends Model
      * @var array
      */
     protected $casts = [
-        'filesize' => 'integer',
+        'filesize'    => 'integer',
         'uploaded_at' => 'datetime',
     ];
 
@@ -54,7 +54,8 @@ class InvoiceAttachment extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)
