@@ -7,6 +7,7 @@ use Illuminate\Support\Arr;
 use Nikolag\Core\Abstracts\CorePaymentService;
 use Nikolag\Square\Builders\CustomerBuilder;
 use Nikolag\Square\Builders\FulfillmentBuilder;
+use Nikolag\Square\Builders\InvoiceBuilder;
 use Nikolag\Square\Builders\OrderBuilder;
 use Nikolag\Square\Builders\ProductBuilder;
 use Nikolag\Square\Builders\RecipientBuilder;
@@ -14,12 +15,14 @@ use Nikolag\Square\Builders\SquareRequestBuilder;
 use Nikolag\Square\Builders\WebhookBuilder;
 use Nikolag\Square\Contracts\SquareServiceContract;
 use Nikolag\Square\Exceptions\AlreadyUsedSquareProductException;
+use Nikolag\Square\Exceptions\InvalidInvoiceStateException;
 use Nikolag\Square\Exceptions\InvalidSquareAmountException;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\InvalidSquareSignatureException;
 use Nikolag\Square\Exceptions\InvalidSquareVersionException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Models\Discount;
+use Nikolag\Square\Models\Invoice;
 use Nikolag\Square\Models\Location;
 use Nikolag\Square\Models\Modifier;
 use Nikolag\Square\Models\ModifierOption;
@@ -93,6 +96,10 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      */
     private RecipientBuilder $recipientBuilder;
     /**
+     * @var InvoiceBuilder
+     */
+    private InvoiceBuilder $invoiceBuilder;
+    /**
      * @var string
      */
     private string $locationId;
@@ -139,6 +146,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         $this->customerBuilder = new CustomerBuilder();
         $this->fulfillmentBuilder = new FulfillmentBuilder();
         $this->recipientBuilder = new RecipientBuilder();
+        $this->invoiceBuilder = new InvoiceBuilder();
     }
 
     /**
@@ -1665,5 +1673,201 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         return WebhookEvent::where('created_at', '<', now()->subDays($daysOld))
             ->where('status', '!=', WebhookEvent::STATUS_PENDING)
             ->delete();
+    }
+
+    // ========================================
+    // Invoice Management Methods
+    // ========================================
+
+    /**
+     * Save an invoice to Square (create or update).
+     *
+     * @param Invoice $invoice
+     *
+     * @throws InvalidInvoiceStateException
+     * @throws ApiException
+     *
+     * @return void
+     */
+    public function saveInvoice(Invoice $invoice): void
+    {
+        // Check if invoice is in terminal state
+        if ($invoice->isTerminal()) {
+            throw new InvalidInvoiceStateException(
+                "Cannot update invoice in {$invoice->status} status. This is a terminal state.",
+                400
+            );
+        }
+
+        // Determine if this is a create or update operation
+        $isUpdate = !empty($invoice->payment_service_id);
+
+        if ($isUpdate) {
+            $this->updateSquareInvoice($invoice);
+        } else {
+            $this->createSquareInvoice($invoice);
+        }
+
+        $invoice->save();
+    }
+
+    /**
+     * Create a new invoice in Square.
+     *
+     * @param Invoice $invoice
+     *
+     * @throws ApiException
+     *
+     * @return void
+     */
+    private function createSquareInvoice(Invoice $invoice): void
+    {
+        $createRequest = $this->invoiceBuilder->buildCreateInvoiceRequest($invoice);
+
+        $response = $this->config->invoicesAPI()->createInvoice($createRequest);
+
+        if ($response->isError()) {
+            if ($response->getStatusCode() === 409) {
+                throw new InvalidSquareVersionException(
+                    'Version conflict: '.($response->getErrors()[0]->getDetail() ?? 'Unknown conflict').
+                    '. The invoice may have been modified. Please refresh and try again.',
+                    409
+                );
+            }
+
+            throw $this->_handleApiResponseErrors($response);
+        }
+
+        // Update local invoice with Square response
+        $squareInvoice = $response->getResult()->getInvoice();
+        $this->invoiceBuilder->syncFromSquareResponse($invoice, $squareInvoice);
+    }
+
+    /**
+     * Update an existing invoice in Square.
+     *
+     * @param Invoice $invoice
+     *
+     * @throws InvalidSquareVersionException
+     * @throws ApiException
+     *
+     * @return void
+     */
+    private function updateSquareInvoice(Invoice $invoice): void
+    {
+        $version = $invoice->payment_service_version;
+
+        // Validate version exists for update
+        if (is_null($version)) {
+            throw new InvalidSquareVersionException(
+                'Cannot update invoice: version is missing. Invoice may need to be retrieved from Square first.',
+                500
+            );
+        }
+
+        $updateRequest = $this->invoiceBuilder->buildUpdateInvoiceRequest($invoice, $version);
+
+        $response = $this->config->invoicesAPI()->updateInvoice(
+            $invoice->payment_service_id,
+            $updateRequest
+        );
+
+        if ($response->isError()) {
+            if ($response->getStatusCode() === 409) {
+                throw new InvalidSquareVersionException(
+                    'Version conflict: '.($response->getErrors()[0]->getDetail() ?? 'Unknown conflict').
+                    '. The invoice may have been modified. Please refresh and try again.',
+                    409
+                );
+            }
+
+            throw $this->_handleApiResponseErrors($response);
+        }
+
+        // Update local invoice with Square response
+        $squareInvoice = $response->getResult()->getInvoice();
+        $this->invoiceBuilder->syncFromSquareResponse($invoice, $squareInvoice);
+    }
+
+    /**
+     * Publish an invoice in Square.
+     *
+     * @param Invoice $invoice
+     *
+     * @throws InvalidInvoiceStateException
+     * @throws InvalidSquareVersionException
+     * @throws ApiException
+     *
+     * @return void
+     */
+    public function publishInvoice(Invoice $invoice): void
+    {
+        if ($invoice->status !== 'DRAFT') {
+            throw new InvalidInvoiceStateException(
+                "Only DRAFT invoices can be published. Current status: {$invoice->status}",
+                400
+            );
+        }
+
+        $version = $invoice->payment_service_version;
+
+        if (is_null($version)) {
+            throw new InvalidSquareVersionException(
+                'Cannot publish invoice: version is missing.',
+                500
+            );
+        }
+
+        if (empty($invoice->payment_service_id)) {
+            throw new MissingPropertyException(
+                'Cannot publish invoice: payment_service_id is missing. The invoice must be created in Square first.',
+                422
+            );
+        }
+
+        $publishRequest = $this->invoiceBuilder->buildPublishInvoiceRequest($version);
+
+        $response = $this->config->invoicesAPI()->publishInvoice(
+            $invoice->payment_service_id,
+            $publishRequest
+        );
+
+        if ($response->isError()) {
+            if ($response->getStatusCode() === 409) {
+                throw new InvalidSquareVersionException(
+                    'Version conflict: '.($response->getErrors()[0]->getDetail() ?? 'Unknown conflict').
+                    '. The invoice may have been modified. Please refresh and try again.',
+                    409
+                );
+            }
+
+            throw $this->_handleApiResponseErrors($response);
+        }
+
+        // Update local invoice with Square response
+        $squareInvoice = $response->getResult()->getInvoice();
+        $this->invoiceBuilder->syncFromSquareResponse($invoice, $squareInvoice);
+
+        $invoice->save();
+    }
+
+    /**
+     * Retrieve an invoice from Square by ID.
+     *
+     * @param string $squareInvoiceId
+     *
+     * @throws ApiException
+     *
+     * @return \Square\Models\Invoice
+     */
+    public function getInvoice(string $squareInvoiceId): \Square\Models\Invoice
+    {
+        $response = $this->config->invoicesAPI()->getInvoice($squareInvoiceId);
+
+        if ($response->isError()) {
+            throw $this->_handleApiResponseErrors($response);
+        }
+
+        return $response->getResult()->getInvoice();
     }
 }

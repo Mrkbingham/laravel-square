@@ -51,6 +51,14 @@ class Constants extends CoreConstants
     //Webhook info
     const WEBHOOK_SUBSCRIPTION_NAMESPACE = 'Nikolag\Square\Models\WebhookSubscription';
     const WEBHOOK_EVENT_NAMESPACE = 'Nikolag\Square\Models\WebhookEvent';
+    //Invoice info
+    const INVOICE_NAMESPACE = 'Nikolag\Square\Models\Invoice';
+    const INVOICE_IDENTIFIER = 'id';
+    const INVOICE_RECIPIENT_NAMESPACE = 'Nikolag\Square\Models\InvoiceRecipient';
+    const INVOICE_PAYMENT_REQUEST_NAMESPACE = 'Nikolag\Square\Models\InvoicePaymentRequest';
+    const INVOICE_ACCEPTED_PAYMENT_METHODS_NAMESPACE = 'Nikolag\Square\Models\InvoiceAcceptedPaymentMethods';
+    const INVOICE_CUSTOM_FIELD_NAMESPACE = 'Nikolag\Square\Models\InvoiceCustomField';
+    const INVOICE_ATTACHMENT_NAMESPACE = 'Nikolag\Square\Models\InvoiceAttachment';
 
     //Exceptions
     //INVALID_REQUEST_ERROR
