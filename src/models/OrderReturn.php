@@ -63,7 +63,7 @@ class OrderReturn extends Model
     //
 
     /**
-     * Get the square order return data
+     * Get the square order return data.
      *
      * @return Attribute
      */
@@ -98,7 +98,7 @@ class OrderReturn extends Model
     }
 
     /**
-     * Builds line item return objects from the return data
+     * Builds line item return objects from the return data.
      *
      * @param array $returnLineItems The array of return line items from the data object.
      *
@@ -107,64 +107,65 @@ class OrderReturn extends Model
     public function buildLineItems(array $returnLineItems): Collection
     {
         return collect($returnLineItems)->map(function ($item) {
-                return OrderReturnLineItemBuilder::init($item['quantity'])
-                    ->uid($item['uid'] ?? null)
-                    ->sourceLineItemUid($item['source_line_item_uid'] ?? null)
-                    ->name($item['name'] ?? null)
-                    // ->quantityUnit(?OrderQuantityUnit $value)
-                    ->note($item['note'] ?? null)
-                    ->catalogObjectId($item['catalog_object_id'] ?? null)
-                    ->catalogVersion($item['catalog_version'] ?? null)
-                    ->variationName($item['variation_name'] ?? null)
-                    ->itemType($item['item_type'] ?? null)
-                    // ->returnModifiers(?array $value)
-                    // ->appliedTaxes(?array $value)
-                    // ->appliedDiscounts(?array $value)
-                    ->basePriceMoney(
-                        MoneyBuilder::init()
-                            ->amount($item['base_price_money']['amount'] ?? 0)
-                            ->currency($item['base_price_money']['currency'] ?? 'USD')
-                            ->build()
-                    )
-                    ->variationTotalPriceMoney(
-                        MoneyBuilder::init()
-                            ->amount($item['variation_total_price_money']['amount'] ?? 0)
-                            ->currency($item['variation_total_price_money']['currency'] ?? 'USD')
-                            ->build()
-                    )
-                    ->grossReturnMoney(
-                        MoneyBuilder::init()
-                            ->amount($item['gross_return_money']['amount'] ?? 0)
-                            ->currency($item['gross_return_money']['currency'] ?? 'USD')
-                            ->build()
-                    )
-                    // ->totalTaxMoney(
+            return OrderReturnLineItemBuilder::init($item['quantity'])
+                ->uid($item['uid'] ?? null)
+                ->sourceLineItemUid($item['source_line_item_uid'] ?? null)
+                ->name($item['name'] ?? null)
+                // ->quantityUnit(?OrderQuantityUnit $value)
+                ->note($item['note'] ?? null)
+                ->catalogObjectId($item['catalog_object_id'] ?? null)
+                ->catalogVersion($item['catalog_version'] ?? null)
+                ->variationName($item['variation_name'] ?? null)
+                ->itemType($item['item_type'] ?? null)
+                // ->returnModifiers(?array $value)
+                // ->appliedTaxes(?array $value)
+                // ->appliedDiscounts(?array $value)
+                ->basePriceMoney(
+                    MoneyBuilder::init()
+                        ->amount($item['base_price_money']['amount'] ?? 0)
+                        ->currency($item['base_price_money']['currency'] ?? 'USD')
+                        ->build()
+                )
+                ->variationTotalPriceMoney(
+                    MoneyBuilder::init()
+                        ->amount($item['variation_total_price_money']['amount'] ?? 0)
+                        ->currency($item['variation_total_price_money']['currency'] ?? 'USD')
+                        ->build()
+                )
+                ->grossReturnMoney(
+                    MoneyBuilder::init()
+                        ->amount($item['gross_return_money']['amount'] ?? 0)
+                        ->currency($item['gross_return_money']['currency'] ?? 'USD')
+                        ->build()
+                )
+                // ->totalTaxMoney(
                     //     MoneyBuilder::init()->amount(0_00)->currency('USD')->build()
-                    // )
-                    ->totalDiscountMoney(
-                        MoneyBuilder::init()
-                            ->amount($item['total_discount_money']['amount'] ?? 0)
-                            ->currency($item['total_discount_money']['currency'] ?? 'USD')
-                            ->build()
-                    )
-                    // ->totalMoney(
+                // )
+                ->totalDiscountMoney(
+                    MoneyBuilder::init()
+                        ->amount($item['total_discount_money']['amount'] ?? 0)
+                        ->currency($item['total_discount_money']['currency'] ?? 'USD')
+                        ->build()
+                )
+                // ->totalMoney(
                     //     MoneyBuilder::init()->amount($perItemCost * $quantity)->currency('USD')->build()
-                    // )
-                    // ->appliedServiceCharges(?array $value)
-                    ->totalServiceChargeMoney(
-                        MoneyBuilder::init()
-                            ->amount($item['total_service_charge_money']['amount'] ?? 0)
-                            ->currency($item['total_service_charge_money']['currency'] ?? 'USD')
-                            ->build()
-                    )
-                    ->build();
-            });
+                // )
+                // ->appliedServiceCharges(?array $value)
+                ->totalServiceChargeMoney(
+                    MoneyBuilder::init()
+                        ->amount($item['total_service_charge_money']['amount'] ?? 0)
+                        ->currency($item['total_service_charge_money']['currency'] ?? 'USD')
+                        ->build()
+                )
+                ->build();
+        });
     }
 
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

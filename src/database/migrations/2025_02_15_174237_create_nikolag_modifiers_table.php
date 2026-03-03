@@ -5,8 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Square\Models\CatalogModifierListSelectionType;
 
-return new class extends Migration
-{
+return new class() extends Migration {
     /**
      * Run the migrations.
      */
@@ -20,7 +19,7 @@ return new class extends Migration
             $table->integer('ordinal')->nullable();
             $table->enum('selection_type', [
                 CatalogModifierListSelectionType::SINGLE,
-                CatalogModifierListSelectionType::MULTIPLE
+                CatalogModifierListSelectionType::MULTIPLE,
             ])->default(CatalogModifierListSelectionType::MULTIPLE);
             $table->enum('type', [
                 'LIST',

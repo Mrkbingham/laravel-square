@@ -17,22 +17,23 @@ class ServiceChargesBuilder
      * Find or create service charge models
      * from service charges array.
      *
-     * @param  array  $serviceCharges
-     * @param  string  $scope
-     * @param  Model|null  $parent
-     * @return Collection
+     * @param array      $serviceCharges
+     * @param string     $scope
+     * @param Model|null $parent
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return Collection
      */
-    public function createServiceCharges(array $serviceCharges, string $scope, Model $parent = null): Collection
+    public function createServiceCharges(array $serviceCharges, string $scope, ?Model $parent = null): Collection
     {
         $temp = collect([]);
         foreach ($serviceCharges as $serviceCharge) {
             //If service charge doesn't have amount_money AND percentage in service charges table
             //throw new exception because it should have at least 1
-            if ((! isset($serviceCharge['amount_money']) || $serviceCharge['amount_money'] == null || $serviceCharge['amount_money'] == 0) &&
-                (! isset($serviceCharge['percentage']) || $serviceCharge['percentage'] == null || $serviceCharge['percentage'] == 0.0)) {
+            if ((!isset($serviceCharge['amount_money']) || $serviceCharge['amount_money'] == null || $serviceCharge['amount_money'] == 0) &&
+                (!isset($serviceCharge['percentage']) || $serviceCharge['percentage'] == null || $serviceCharge['percentage'] == 0.0)) {
                 throw new MissingPropertyException('Both $amount_money and $percentage property for object ServiceCharge are missing, 1 is required', 500);
             }
             //If service charge have amount_money AND percentage in service charge table
@@ -44,7 +45,7 @@ class ServiceChargesBuilder
             }
             //Check if parent is present or parent already has this service charge or if service charge
             //doesn't have property $id then create new ServiceCharge object
-            if (($parent && ! $parent->hasServiceCharge($serviceCharge)) || ! Arr::has($serviceCharge, 'id')) {
+            if (($parent && !$parent->hasServiceCharge($serviceCharge)) || !Arr::has($serviceCharge, 'id')) {
                 $tempServiceCharge = new ServiceCharge($serviceCharge);
             } else {
                 // Load service charge with pivot

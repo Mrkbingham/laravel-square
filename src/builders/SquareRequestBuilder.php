@@ -3,38 +3,16 @@
 namespace Nikolag\Square\Builders;
 
 use Exception;
-use Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Nikolag\Square\Builders\SquareRequestBuilders\FulfillmentRequestBuilder;
-use Nikolag\Square\Builders\Validate;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Models\Modifier;
-use Nikolag\Square\Models\ModifierOption;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
 use Square\Models\BatchDeleteCatalogObjectsRequest;
-use Square\Models\CreateCustomerRequest;
-use Square\Models\CreateOrderRequest;
-use Square\Models\UpdateOrderRequest;
-use Square\Models\CatalogPricingType;
-use Square\Models\CreatePaymentRequest;
-use Square\Models\CatalogObject;
-use Square\Models\CatalogObjectType;
-use Square\Models\CreateCatalogImageRequest;
-use Square\Models\Money;
-use Square\Models\Order;
-use Square\Models\OrderLineItem;
-use Square\Models\OrderLineItemAppliedDiscount;
-use Square\Models\OrderLineItemAppliedServiceCharge;
-use Square\Models\OrderLineItemAppliedTax;
-use Square\Models\OrderLineItemDiscount;
-use Square\Models\OrderLineItemTax;
-use Square\Models\TaxCalculationPhase;
-use Square\Models\TaxInclusionType;
-use Square\Models\UpdateCustomerRequest;
 use Square\Models\Builders\BatchDeleteCatalogObjectsRequestBuilder;
 use Square\Models\Builders\CatalogCategoryBuilder;
 use Square\Models\Builders\CatalogImageBuilder;
@@ -45,7 +23,27 @@ use Square\Models\Builders\CatalogTaxBuilder;
 use Square\Models\Builders\CreateCatalogImageRequestBuilder;
 use Square\Models\Builders\MoneyBuilder;
 use Square\Models\Builders\OrderServiceChargeBuilder;
+use Square\Models\CatalogObject;
+use Square\Models\CatalogObjectType;
+use Square\Models\CatalogPricingType;
+use Square\Models\CreateCatalogImageRequest;
+use Square\Models\CreateCustomerRequest;
+use Square\Models\CreateOrderRequest;
+use Square\Models\CreatePaymentRequest;
+use Square\Models\Money;
+use Square\Models\Order;
+use Square\Models\OrderLineItem;
+use Square\Models\OrderLineItemAppliedDiscount;
+use Square\Models\OrderLineItemAppliedServiceCharge;
+use Square\Models\OrderLineItemAppliedTax;
+use Square\Models\OrderLineItemDiscount;
 use Square\Models\OrderLineItemModifier;
+use Square\Models\OrderLineItemTax;
+use Square\Models\TaxCalculationPhase;
+use Square\Models\TaxInclusionType;
+use Square\Models\UpdateCustomerRequest;
+use Square\Models\UpdateOrderRequest;
+use Str;
 
 class SquareRequestBuilder
 {
@@ -94,7 +92,7 @@ class SquareRequestBuilder
     }
 
     /**
-     * Builds a batch delete category objects request
+     * Builds a batch delete category objects request.
      *
      * @param array<string> $catalogObjectIds The catalog object IDs to delete.
      *
@@ -118,7 +116,7 @@ class SquareRequestBuilder
     {
         // Get the required fields
         Validate::validateRequiredFields($data, ['id', 'name']);
-        $id   = $data['id'];
+        $id = $data['id'];
         $name = $data['name'];
 
         // Get the optional fields
@@ -148,13 +146,13 @@ class SquareRequestBuilder
     {
         // Get the required fields
         Validate::validateRequiredFields($data, ['name', 'tax_ids', 'description', 'variations']);
-        $name        = $data['name'];
-        $taxIDs      = $data['tax_ids'];
+        $name = $data['name'];
+        $taxIDs = $data['tax_ids'];
         $description = $data['description'];
-        $variations  = $data['variations'];
+        $variations = $data['variations'];
 
         // Get the optional fields
-        $categoryID   = $data['category_id'] ?? null;
+        $categoryID = $data['category_id'] ?? null;
         $allLocations = $data['all_locations'] ?? true;
 
         // Create a catalog item builder
@@ -177,7 +175,7 @@ class SquareRequestBuilder
             }
         }
 
-        return CatalogObjectBuilder::init(CatalogObjectType::ITEM, '#' . $name)
+        return CatalogObjectBuilder::init(CatalogObjectType::ITEM, '#'.$name)
             ->presentAtAllLocations($allLocations)
             ->itemData($catalogItemBuilder->build())
             ->build();
@@ -194,19 +192,19 @@ class SquareRequestBuilder
     {
         // Get the required fields
         Validate::validateRequiredFields($data, ['name', 'percentage']);
-        $name       = $data['name'];
+        $name = $data['name'];
         $percentage = $data['percentage'];
 
         // Get the optional fields
-        $calculationPhase       = $data['calculation_phase'] ?? TaxCalculationPhase::TAX_TOTAL_PHASE;
-        $inclusionType          = $data['inclusion_type'] ?? TaxInclusionType::ADDITIVE;
+        $calculationPhase = $data['calculation_phase'] ?? TaxCalculationPhase::TAX_TOTAL_PHASE;
+        $inclusionType = $data['inclusion_type'] ?? TaxInclusionType::ADDITIVE;
         $appliesToCustomAmounts = $data['applies_to_custom_amounts'] ?? true;
-        $enabled                = $data['enabled'] ?? true;
-        $allLocations           = $data['all_locations'] ?? true;
+        $enabled = $data['enabled'] ?? true;
+        $allLocations = $data['all_locations'] ?? true;
 
         return CatalogObjectBuilder::init(
             CatalogObjectType::TAX,
-            '#' . $name
+            '#'.$name
         )
             ->presentAtAllLocations($allLocations)
             ->taxData(
@@ -233,7 +231,7 @@ class SquareRequestBuilder
     {
         // Get the required fields
         Validate::validateRequiredFields($data, ['amount', 'currency']);
-        $amount   = $data['amount'];
+        $amount = $data['amount'];
         $currency = $data['currency'];
 
         return MoneyBuilder::init()
@@ -253,16 +251,16 @@ class SquareRequestBuilder
     {
         // Get the required fields
         Validate::validateRequiredFields($data, ['name', 'variation_id', 'item_id', 'price_money']);
-        $name        = $data['name'];
+        $name = $data['name'];
         $variationID = $data['variation_id'];
-        $itemID      = $data['item_id'];
-        $priceMoney  = $data['price_money'];
+        $itemID = $data['item_id'];
+        $priceMoney = $data['price_money'];
         if (!$priceMoney instanceof Money) {
             throw new MissingPropertyException('The price_money field must be an instance of Money', 500);
         }
 
         // Get the optional fields
-        $pricingType  = $data['pricing_type'] ?? CatalogPricingType::FIXED_PRICING;
+        $pricingType = $data['pricing_type'] ?? CatalogPricingType::FIXED_PRICING;
         $allLocations = $data['all_locations'] ?? true;
 
         return CatalogObjectBuilder::init(
@@ -295,15 +293,15 @@ class SquareRequestBuilder
     public function buildCatalogImageRequest(array $data): CreateCatalogImageRequest
     {
         // Get the required fields
-        Validate::validateRequiredFields($data, ['catalog_object_id' ]);
+        Validate::validateRequiredFields($data, ['catalog_object_id']);
         $catalogObjectId = $data['catalog_object_id'];
 
         // Get the optional fields
-        $caption   = $data['caption'] ?? null;
+        $caption = $data['caption'] ?? null;
         $isPrimary = $data['is_primary'] ?? true;
 
         // Create the catalog image request builder
-        $builder =  CreateCatalogImageRequestBuilder::init(
+        $builder = CreateCatalogImageRequestBuilder::init(
             (string) Str::uuid(), // Generate an idempotencyKey
             CatalogObjectBuilder::init(
                 CatalogObjectType::IMAGE,
@@ -325,7 +323,8 @@ class SquareRequestBuilder
     /**
      * Create and return charge request.
      *
-     * @param  array  $prepData
+     * @param array $prepData
+     *
      * @return CreatePaymentRequest
      */
     public function buildChargeRequest(array $prepData): CreatePaymentRequest
@@ -355,7 +354,8 @@ class SquareRequestBuilder
     /**
      * Create and return customer request.
      *
-     * @param  Model  $customer
+     * @param Model $customer
+     *
      * @return CreateCustomerRequest|UpdateCustomerRequest
      */
     public function buildCustomerRequest(Model $customer): UpdateCustomerRequest|CreateCustomerRequest
@@ -390,13 +390,14 @@ class SquareRequestBuilder
     /**
      * Create and return order request.
      *
-     * @param  Model  $order
-     * @param  string  $locationId
-     * @param  string  $currency
-     * @return CreateOrderRequest
+     * @param Model  $order
+     * @param string $locationId
+     * @param string $currency
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return CreateOrderRequest
      */
     public function buildOrderRequest(Model $order, string $locationId, string $currency): CreateOrderRequest
     {
@@ -423,14 +424,15 @@ class SquareRequestBuilder
     /**
      * Create and return update order request.
      *
-     * @param  Model  $order
-     * @param  string  $locationId
-     * @param  string  $currency
-     * @param  int  $version
-     * @return UpdateOrderRequest
+     * @param Model  $order
+     * @param string $locationId
+     * @param string $currency
+     * @param int    $version
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return UpdateOrderRequest
      */
     public function buildUpdateOrderRequest(Model $order, string $locationId, string $currency, int $version): UpdateOrderRequest
     {
@@ -462,12 +464,13 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of discounts.
      *
-     * @param  Collection  $discounts
-     * @param  string  $currency
-     * @return array
+     * @param Collection $discounts
+     * @param string     $currency
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return array
      */
     public function buildDiscounts(Collection $discounts, string $currency): array
     {
@@ -526,7 +529,8 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of already applied discounts.
      *
-     * @param  Collection  $discounts
+     * @param Collection $discounts
+     *
      * @return array
      */
     public function buildAppliedDiscounts(Collection $discounts): array
@@ -547,6 +551,7 @@ class SquareRequestBuilder
      * Builds the modifiers for the order.
      *
      * @param Collection $modifiers
+     *
      * @return array
      */
     public function buildModifiers(Collection $modifiers): array
@@ -585,8 +590,9 @@ class SquareRequestBuilder
     /**
      * Builds the note for the line-item.
      *
-     * @param Product $product
+     * @param Product    $product
      * @param Collection $modifiers
+     *
      * @return string
      */
     public function buildNote(Product $product, Collection $modifiers): string
@@ -595,7 +601,7 @@ class SquareRequestBuilder
 
         foreach ($modifiers as $modifier) {
             if ($modifier->modifiable_type == Modifier::class && $modifier->modifiable->type == 'TEXT') {
-                $note .= ' ' . $modifier->text;
+                $note .= ' '.$modifier->text;
             }
         }
 
@@ -605,10 +611,11 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of taxes.
      *
-     * @param  Collection  $taxes
-     * @return array
+     * @param Collection $taxes
      *
      * @throws MissingPropertyException
+     *
+     * @return array
      */
     public function buildTaxes(Collection $taxes): array
     {
@@ -651,12 +658,13 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of service charges.
      *
-     * @param  Collection  $serviceCharges
-     * @param  string  $currency
-     * @return array
+     * @param Collection $serviceCharges
+     * @param string     $currency
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return array
      */
     public function buildServiceCharges(Collection $serviceCharges, string $currency): array
     {
@@ -730,10 +738,11 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of already applied taxes.
      *
-     * @param  Collection  $taxes
-     * @return array
+     * @param Collection $taxes
      *
      * @throws \Exception
+     *
+     * @return array
      */
     public function buildAppliedTaxes(Collection $taxes): array
     {
@@ -752,7 +761,8 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of already applied service charges.
      *
-     * @param  Collection  $serviceCharges
+     * @param Collection $serviceCharges
+     *
      * @return array
      */
     public function buildAppliedServiceCharges(Collection $serviceCharges): array
@@ -772,12 +782,13 @@ class SquareRequestBuilder
     /**
      * Builds and returns array of \SquareConnect\Model\OrderLineItem for order.
      *
-     * @param  Collection  $products
-     * @param  string  $currency
-     * @return array
+     * @param Collection $products
+     * @param string     $currency
      *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return array
      */
     public function buildProducts(Collection $products, string $currency): array
     {

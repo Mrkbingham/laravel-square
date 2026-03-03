@@ -2,7 +2,6 @@
 
 namespace Nikolag\Square\Models;
 
-use Nikolag\Square\Models\Recipient;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 
@@ -92,7 +91,8 @@ class Fulfillment extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

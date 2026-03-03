@@ -11,7 +11,8 @@ trait HasReturns
     /**
      * Checks if this model already has a specific return.
      *
-     * @param  mixed  $return
+     * @param mixed $return
+     *
      * @return bool
      */
     public function hasReturn(mixed $return): bool

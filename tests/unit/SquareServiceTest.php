@@ -3,9 +3,6 @@
 namespace Nikolag\Square\Tests\Unit;
 
 use Illuminate\Database\Eloquent\Builder;
-use Nikolag\Square\Builders\OrderBuilder;
-use Str;
-use Nikolag\Square\Builders\SquareRequestBuilder;
 use Nikolag\Square\Exception;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
@@ -30,13 +27,12 @@ use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Tests\Traits\MocksSquareConfigDependency;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
+use Square\Models\BatchUpsertCatalogObjectsRequest;
 use Square\Models\CatalogObject;
 use Square\Models\CatalogObjectType;
 use Square\Models\FulfillmentType;
-use Square\Models\BatchUpsertCatalogObjectsRequest;
-use Square\Models\BatchUpsertCatalogObjectsResponse;
-use Square\Utils\FileWrapper;
 use Square\Models\RetrieveOrderResponse;
+use Str;
 
 class SquareServiceTest extends TestCase
 {
@@ -54,7 +50,7 @@ class SquareServiceTest extends TestCase
     }
 
     /**
-     * Tests the batchUpsertCatalogObjectsRequest
+     * Tests the batchUpsertCatalogObjectsRequest.
      *
      * @return void
      */
@@ -68,7 +64,7 @@ class SquareServiceTest extends TestCase
     }
 
     /**
-     * Tests the batchUpsertCatalogObjectsRequest
+     * Tests the batchUpsertCatalogObjectsRequest.
      *
      * @return void
      */
@@ -98,7 +94,7 @@ class SquareServiceTest extends TestCase
 
         // Build the image request
         $batchDeleteRequest = Square::getSquareBuilder()->buildBatchDeleteCategoryObjectsRequest([
-            $catalogObjectID
+            $catalogObjectID,
         ]);
 
         $this->assertNotNull($batchDeleteRequest);
@@ -116,12 +112,12 @@ class SquareServiceTest extends TestCase
     {
         // Set up the variables
         $catalogObjectID = 'Catalog Object ID';
-        $caption         = 'Test Caption';
+        $caption = 'Test Caption';
 
         // Build the image request
         $imageRequest = Square::getSquareBuilder()->buildCatalogImageRequest([
             'catalog_object_id' => $catalogObjectID,
-            'caption'           => $caption
+            'caption'           => $caption,
         ]);
 
         $this->assertNotNull($imageRequest);
@@ -142,13 +138,13 @@ class SquareServiceTest extends TestCase
     public function test_build_category_catalog_object(): void
     {
         // Set up the variables
-        $id   = 1;
+        $id = 1;
         $name = 'Test Category Description';
 
         // Build the category object
         $category = Square::getSquareBuilder()->buildCategoryCatalogObject([
             'id'   => $id,
-            'name' => $name
+            'name' => $name,
         ]);
 
         $this->assertNotNull($category);
@@ -166,12 +162,12 @@ class SquareServiceTest extends TestCase
     public function test_build_item_catalog_object(): void
     {
         // Set up the variables
-        $name        = 'Test Item Name';
-        $taxIDs      = [1, 2, 3];
+        $name = 'Test Item Name';
+        $taxIDs = [1, 2, 3];
         $description = 'Test Item Description';
-        $money       = Square::getSquareBuilder()->buildMoney([
+        $money = Square::getSquareBuilder()->buildMoney([
             'amount'   => 1000,
-            'currency' => Square::getCurrency()
+            'currency' => Square::getCurrency(),
         ]);
 
         // First, create the default variation and category objects
@@ -179,9 +175,9 @@ class SquareServiceTest extends TestCase
             'name'         => 'Variation Name',
             'variation_id' => 'Variation #1',
             'item_id'      => 'Item ID',
-            'price_money'  => $money
+            'price_money'  => $money,
         ]);
-        $category  = Square::getSquareBuilder()->buildCategoryCatalogObject([
+        $category = Square::getSquareBuilder()->buildCategoryCatalogObject([
             'id'   => 1,
             'name' => 'Category Name',
         ]);
@@ -192,14 +188,14 @@ class SquareServiceTest extends TestCase
             'tax_ids'     => $taxIDs,
             'description' => $description,
             'variations'  => [$variation],
-            'category_id' => $category->getId()
+            'category_id' => $category->getId(),
         ]);
 
         $this->assertNotNull($item);
         $this->assertInstanceOf(\Square\Models\CatalogObject::class, $item);
         $this->assertEquals('ITEM', $item->getType());
         // Make sure the ID is the name with a preceding "#" character
-        $this->assertEquals('#' . $name, $item->getId());
+        $this->assertEquals('#'.$name, $item->getId());
         $this->assertEquals($name, $item->getItemData()->getName());
         $this->assertEquals($taxIDs, $item->getItemData()->getTaxIds());
         $this->assertEquals($description, $item->getItemData()->getDescription());
@@ -221,7 +217,7 @@ class SquareServiceTest extends TestCase
         // Build the tax object
         $tax = Square::getSquareBuilder()->buildTaxCatalogObject([
             'name'       => $name,
-            'percentage' => $rate
+            'percentage' => $rate,
         ]);
 
         $this->assertNotNull($tax);
@@ -239,12 +235,12 @@ class SquareServiceTest extends TestCase
     public function test_build_variation_catalog_object(): void
     {
         // Set up the variables
-        $id     = 'Variation #1';
-        $name   = 'Test Item Description';
+        $id = 'Variation #1';
+        $name = 'Test Item Description';
         $itemID = 'Item #1';
-        $money       = Square::getSquareBuilder()->buildMoney([
+        $money = Square::getSquareBuilder()->buildMoney([
             'amount'   => 1000,
-            'currency' => Square::getCurrency()
+            'currency' => Square::getCurrency(),
         ]);
 
         // Build the item object
@@ -252,7 +248,7 @@ class SquareServiceTest extends TestCase
             'name'         => $name,
             'variation_id' => $id,
             'item_id'      => $itemID,
-            'price_money'  => $money
+            'price_money'  => $money,
         ]);
 
         $this->assertNotNull($item);
@@ -271,11 +267,11 @@ class SquareServiceTest extends TestCase
      */
     public function test_build_money(): void
     {
-        $amount   = 1000;
+        $amount = 1000;
         $currency = 'USD';
-        $money    = Square::getSquareBuilder()->buildMoney([
+        $money = Square::getSquareBuilder()->buildMoney([
             'amount'   => $amount,
-            'currency' => $currency
+            'currency' => $currency,
         ]);
 
         $this->assertNotNull($money);
@@ -439,12 +435,12 @@ class SquareServiceTest extends TestCase
     {
         // Create a mocked file
         $fileName = 'image.jpg';
-        $file     = \Illuminate\Http\UploadedFile::fake()->create($fileName, 100);
+        $file = \Illuminate\Http\UploadedFile::fake()->create($fileName, 100);
         $filePath = $file->getPathname();
 
         $request = Square::getSquareBuilder()->buildCatalogImageRequest([
             'catalog_object_id' => 'Fake ID',
-            'caption'           => 'Test caption'
+            'caption'           => 'Test caption',
         ]);
 
         // The request below will be invalid, so make sure it throws an exception.
@@ -721,11 +717,11 @@ class SquareServiceTest extends TestCase
             ->addProduct($this->data->product, 1)
             ->addProduct($product2, 2)
             ->setFulfillment([
-                'type' => FulfillmentType::DELIVERY,
-                'state' => 'PROPOSED',
+                'type'             => FulfillmentType::DELIVERY,
+                'state'            => 'PROPOSED',
                 'delivery_details' => [
                     'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
-                    'placed_at' => now(),
+                    'placed_at'     => now(),
                 ],
             ])->setFulfillmentRecipient(TestDataHolder::buildRecipientArray())
             ->save();
@@ -784,11 +780,11 @@ class SquareServiceTest extends TestCase
             ->addProduct($this->data->product, 1)
             ->addProduct($product2, 2)
             ->setFulfillment([
-                'type' => FulfillmentType::PICKUP,
-                'state' => 'PROPOSED',
+                'type'           => FulfillmentType::PICKUP,
+                'state'          => 'PROPOSED',
                 'pickup_details' => [
                     'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
-                    'placed_at' => now()->format(Constants::DATE_FORMAT),
+                    'placed_at'     => now()->format(Constants::DATE_FORMAT),
                 ],
             ])->setFulfillmentRecipient(TestDataHolder::buildRecipientArray())
             ->save();
@@ -848,12 +844,12 @@ class SquareServiceTest extends TestCase
             ->addProduct($this->data->product, 1)
             ->addProduct($product2, 2)
             ->setFulfillment([
-                'type' => FulfillmentType::PICKUP,
-                'state' => 'PROPOSED',
+                'type'           => FulfillmentType::PICKUP,
+                'state'          => 'PROPOSED',
                 'pickup_details' => [
-                    'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
-                    'placed_at' => now(),
-                    'is_curbside_pickup' => true,
+                    'schedule_type'           => Constants::SCHEDULE_TYPE_ASAP,
+                    'placed_at'               => now(),
+                    'is_curbside_pickup'      => true,
                     'curbside_pickup_details' => [
                         'curbside_details' => 'Mazda CX5, Black, License Plate: 1234567',
                         'buyer_arrived_at' => null,
@@ -875,7 +871,7 @@ class SquareServiceTest extends TestCase
 
         // Make sure the curbside pickup data flag is set to true
         $this->assertTrue(
-            ! empty($square->getOrder()->fulfillments->first()->fulfillmentDetails->is_curbside_pickup),
+            !empty($square->getOrder()->fulfillments->first()->fulfillmentDetails->is_curbside_pickup),
             'Curbside pickup flag is not set to true'
         );
 
@@ -910,11 +906,11 @@ class SquareServiceTest extends TestCase
             ->addProduct($this->data->product, 1)
             ->addProduct($product2, 2)
             ->setFulfillment([
-                'type' => FulfillmentType::SHIPMENT,
-                'state' => 'PROPOSED',
+                'type'             => FulfillmentType::SHIPMENT,
+                'state'            => 'PROPOSED',
                 'shipment_details' => [
                     'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
-                    'placed_at' => now(),
+                    'placed_at'     => now(),
                 ],
             ])->setFulfillmentRecipient(TestDataHolder::buildRecipientArray())
             ->save();
@@ -978,12 +974,12 @@ class SquareServiceTest extends TestCase
             ->addProduct($this->data->product, 1)
             ->addProduct($product2, 2)
             ->setFulfillment([
-                'type' => FulfillmentType::DELIVERY,
-                'state' => 'PROPOSED',
+                'type'             => FulfillmentType::DELIVERY,
+                'state'            => 'PROPOSED',
                 'delivery_details' => [
                     'schedule_type' => Constants::SCHEDULE_TYPE_ASAP,
-                    'placed_at' => now(),
-                    'carrier' => 'USPS',
+                    'placed_at'     => now(),
+                    'carrier'       => 'USPS',
                 ],
             ])
             // ->setFulfillmentRecipient(TestDataHolder::buildRecipientArray()) // Commented out to test the error
@@ -1042,13 +1038,13 @@ class SquareServiceTest extends TestCase
             // Make sure every reference_type is set to square
             $this->assertNotEmpty(
                 $discount->square_catalog_object_id,
-                'Catalog Object ID not synced for product: ' . $discount->toJson()
+                'Catalog Object ID not synced for product: '.$discount->toJson()
             );
 
             // Make sure every discount has a percentage or amount
             $this->assertNotNull(
                 $discount->percentage || $discount->amount,
-                'Discount has no percentage or amount. Discount: ' . $discount->toJson()
+                'Discount has no percentage or amount. Discount: '.$discount->toJson()
             );
         }
     }
@@ -1075,14 +1071,14 @@ class SquareServiceTest extends TestCase
             // Make sure every reference_type is set to square
             $this->assertNotEmpty(
                 $location->square_id,
-                'Square ID not synced for location: ' . $location->toJson()
+                'Square ID not synced for location: '.$location->toJson()
             );
 
             // Make sure every location has a name
-            $this->assertNotNull($location->name, 'Location has no name. Location: ' . $location->toJson());
+            $this->assertNotNull($location->name, 'Location has no name. Location: '.$location->toJson());
 
             // Make sure every location has a name
-            $this->assertNotNull($location->address, 'Location has no address. Location: ' . $location->toJson());
+            $this->assertNotNull($location->address, 'Location has no address. Location: '.$location->toJson());
         }
     }
 
@@ -1115,16 +1111,16 @@ class SquareServiceTest extends TestCase
             // Make sure every square_catalog_object_id is set to square
             $this->assertNotEmpty(
                 $modifier->square_catalog_object_id,
-                'Catalog Object ID not synced for modifier: ' . $modifier->toJson()
+                'Catalog Object ID not synced for modifier: '.$modifier->toJson()
             );
 
             // Make sure every modifier has a name
-            $this->assertNotNull($modifier->name, 'Modifier list has no name. Modifier list: ' . $modifier->toJson());
+            $this->assertNotNull($modifier->name, 'Modifier list has no name. Modifier list: '.$modifier->toJson());
 
             // Make sure every modifier has a selection type
             $this->assertNotNull(
                 $modifier->selection_type,
-                'Modifier list has no selection type. Modifier list: ' . $modifier->toJson()
+                'Modifier list has no selection type. Modifier list: '.$modifier->toJson()
             );
         }
     }
@@ -1160,19 +1156,19 @@ class SquareServiceTest extends TestCase
             // Make sure every reference_type is set to square
             $this->assertNotEmpty(
                 $modifierOption->square_catalog_object_id,
-                'Catalog Object ID not synced for modifier option: ' . $modifierOption->toJson()
+                'Catalog Object ID not synced for modifier option: '.$modifierOption->toJson()
             );
 
             // Make sure every modifier option has a name
             $this->assertNotNull(
                 $modifierOption->name,
-                'Modifier option has no name. Modifier option: ' . $modifierOption->toJson()
+                'Modifier option has no name. Modifier option: '.$modifierOption->toJson()
             );
 
             // Make sure every modifier option is linked to a parent modifier model
             $this->assertNotNull(
                 $modifierOption->modifier_id,
-                'Modifier option has no relationship to Modifier model. Modifier option: ' . $modifierOption->toJson()
+                'Modifier option has no relationship to Modifier model. Modifier option: '.$modifierOption->toJson()
             );
         }
 
@@ -1205,14 +1201,14 @@ class SquareServiceTest extends TestCase
             // Make sure every reference_type is set to square
             $this->assertNotEmpty(
                 $product->square_catalog_object_id,
-                'Catalog Object ID not synced for product: ' . $product->toJson()
+                'Catalog Object ID not synced for product: '.$product->toJson()
             );
 
             // Make sure every product has a price
-            $this->assertNotNull($product->price, 'Product has no price. Product: ' . $product->toJson());
+            $this->assertNotNull($product->price, 'Product has no price. Product: '.$product->toJson());
 
             // Make sure every product has a name
-            $this->assertNotNull($product->name, 'Product has no name. Product: ' . $product->toJson());
+            $this->assertNotNull($product->name, 'Product has no name. Product: '.$product->toJson());
         }
     }
 
@@ -1258,13 +1254,13 @@ class SquareServiceTest extends TestCase
             // Make sure every reference_type is set to square
             $this->assertNotEmpty(
                 $tax->square_catalog_object_id,
-                'Catalog Object ID not synced for product: ' . $tax->toJson()
+                'Catalog Object ID not synced for product: '.$tax->toJson()
             );
 
             // Make sure every product has a percentage or amount
             $this->assertNotNull(
                 $tax->percentage || $tax->amount,
-                'Discount has no percentage or amount. Discount: ' . $taxes->toJson()
+                'Discount has no percentage or amount. Discount: '.$taxes->toJson()
             );
         }
     }
@@ -1310,19 +1306,19 @@ class SquareServiceTest extends TestCase
     {
         $products = [
             [
-                'name' => 'Shirt',
+                'name'           => 'Shirt',
                 'variation_name' => 'Large white',
-                'note' => 'This note can have maximum of 50 characters.',
-                'price' => 440.99,
-                'quantity' => 2,
-                'reference_id' => '5', //An optional ID to associate the product with an entity ID in your own table
+                'note'           => 'This note can have maximum of 50 characters.',
+                'price'          => 440.99,
+                'quantity'       => 2,
+                'reference_id'   => '5', //An optional ID to associate the product with an entity ID in your own table
             ],
             [
-                'name' => 'Shirt',
+                'name'           => 'Shirt',
                 'variation_name' => 'Mid-size yellow',
-                'note' => 'This note can have maximum of 50 characters.',
-                'quantity' => 1,
-                'price' => 118.02,
+                'note'           => 'This note can have maximum of 50 characters.',
+                'quantity'       => 1,
+                'price'          => 118.02,
             ],
         ];
 
@@ -1361,9 +1357,9 @@ class SquareServiceTest extends TestCase
     /**
      * Save and charge an order through facade.
      *
-     * @return void
-     *
      * @throws \Nikolag\Core\Exceptions\Exception
+     *
+     * @return void
      */
     public function test_square_order_facade_save_and_charge(): void
     {
@@ -1391,9 +1387,9 @@ class SquareServiceTest extends TestCase
      * Test we throw proper exception and message
      * when the customer has invalid phone number.
      *
-     * @return void
-     *
      * @throws \Nikolag\Core\Exceptions\Exception
+     *
+     * @return void
      */
     public function test_square_invalid_customer_phone_number(): void
     {
@@ -1413,9 +1409,9 @@ class SquareServiceTest extends TestCase
      * Test we throw proper exception and message
      * when the customer has invalid email address.
      *
-     * @return void
-     *
      * @throws \Nikolag\Core\Exceptions\Exception
+     *
+     * @return void
      */
     public function test_square_invalid_customer_email_address(): void
     {
@@ -1486,10 +1482,10 @@ class SquareServiceTest extends TestCase
     /**
      * Test all in one as models.
      *
-     * @return void
-     *
      * @throws InvalidSquareOrderException
      * @throws MissingPropertyException
+     *
+     * @return void
      */
     public function test_square_total_calculation(): void
     {
@@ -1528,8 +1524,8 @@ class SquareServiceTest extends TestCase
 
         $transaction = Square::setMerchant($this->data->merchant)->setCustomer($this->data->customer)->setOrder($orderArr, env('SQUARE_LOCATION'))->addProduct($productArr)
             ->charge([
-                'amount' => 935,
-                'source_id' => 'cnon:card-nonce-ok',
+                'amount'      => 935,
+                'source_id'   => 'cnon:card-nonce-ok',
                 'location_id' => env('SQUARE_LOCATION'),
             ]);
 
@@ -1538,12 +1534,21 @@ class SquareServiceTest extends TestCase
         $this->assertEquals(User::find(1), $transaction->merchant, 'Merchant is not the same as in order.');
         $this->assertEquals(Customer::find(1), $transaction->customer, 'Customer is not the same as in order.');
         $this->assertContains(Product::find(1)->id, $transaction->order->products->pluck('id'), 'Product is not part of the order.');
-        $this->assertEquals(Constants::DEDUCTIBLE_SCOPE_PRODUCT,
-            $transaction->order->discounts->where('name', $productDiscount->name)->first()->pivot->scope, 'Discount scope is not \'LINE_ITEM\'');
-        $this->assertEquals(Constants::DEDUCTIBLE_SCOPE_PRODUCT,
-            $transaction->order->taxes->where('name', $taxAdditive->name)->first()->pivot->scope, 'Tax scope is not \'LINE_ITEM\'');
-        $this->assertEquals(Constants::DEDUCTIBLE_SCOPE_ORDER,
-            $transaction->order->discounts->where('name', $orderDiscount->name)->first()->pivot->scope, 'Discount scope is not \'ORDER\'');
+        $this->assertEquals(
+            Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+            $transaction->order->discounts->where('name', $productDiscount->name)->first()->pivot->scope,
+            'Discount scope is not \'LINE_ITEM\''
+        );
+        $this->assertEquals(
+            Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+            $transaction->order->taxes->where('name', $taxAdditive->name)->first()->pivot->scope,
+            'Tax scope is not \'LINE_ITEM\''
+        );
+        $this->assertEquals(
+            Constants::DEDUCTIBLE_SCOPE_ORDER,
+            $transaction->order->discounts->where('name', $orderDiscount->name)->first()->pivot->scope,
+            'Discount scope is not \'ORDER\''
+        );
     }
 
     /**
@@ -1605,12 +1610,12 @@ class SquareServiceTest extends TestCase
 
         // Mock successful retrieve order response
         $this->mockRetrieveOrderSuccess([
-            'id' => $orderId,
+            'id'         => $orderId,
             'locationId' => $locationId,
-            'state' => 'OPEN',
-            'version' => 1,
-            'createdAt' => '2023-10-18T10:00:00Z',
-            'updatedAt' => '2023-10-18T10:00:00Z'
+            'state'      => 'OPEN',
+            'version'    => 1,
+            'createdAt'  => '2023-10-18T10:00:00Z',
+            'updatedAt'  => '2023-10-18T10:00:00Z',
         ]);
 
         $retrievedOrder = Square::retrieveOrder($orderId);
@@ -1651,24 +1656,24 @@ class SquareServiceTest extends TestCase
         // Create order without payment_service_id
         $order = Order::create([
             'payment_service_type' => 'square',
-            'location_id' => $locationId,
+            'location_id'          => $locationId,
         ]);
 
         // Create a product
         $product = Product::create([
-            'name' => 'Test Product',
-            'price' => 1000,
+            'name'     => 'Test Product',
+            'price'    => 1000,
             'quantity' => 1,
         ]);
 
         // Mock successful createOrder response
         $this->mockCreateOrderSuccess([
-            'id' => 'SQUARE_ORDER_123',
+            'id'         => 'SQUARE_ORDER_123',
             'locationId' => $locationId,
-            'state' => 'OPEN',
-            'version' => 1,
-            'createdAt' => now()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'state'      => 'OPEN',
+            'version'    => 1,
+            'createdAt'  => now()->toISOString(),
+            'updatedAt'  => now()->toISOString(),
         ]);
 
         // Call saveToSquare
@@ -1693,16 +1698,16 @@ class SquareServiceTest extends TestCase
 
         // Create order with payment_service_id and version
         $order = Order::create([
-            'payment_service_type' => 'square',
-            'payment_service_id' => 'SQUARE_ORDER_123',
+            'payment_service_type'    => 'square',
+            'payment_service_id'      => 'SQUARE_ORDER_123',
             'payment_service_version' => 1,
-            'location_id' => $locationId,
+            'location_id'             => $locationId,
         ]);
 
         // Create a product
         $product = Product::create([
-            'name' => 'Test Product',
-            'price' => 1000,
+            'name'     => 'Test Product',
+            'price'    => 1000,
             'quantity' => 1,
         ]);
 
@@ -1719,12 +1724,12 @@ class SquareServiceTest extends TestCase
 
         // Mock successful updateOrder response
         $this->mockUpdateOrderSuccess([
-            'id' => 'SQUARE_ORDER_123',
+            'id'         => 'SQUARE_ORDER_123',
             'locationId' => $locationId,
-            'state' => 'OPEN',
-            'version' => 2,
-            'createdAt' => now()->subHour()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'state'      => 'OPEN',
+            'version'    => 2,
+            'createdAt'  => now()->subHour()->toISOString(),
+            'updatedAt'  => now()->toISOString(),
         ]);
 
         // Call saveToSquare (should update, not create)
@@ -1748,16 +1753,16 @@ class SquareServiceTest extends TestCase
 
         // Create order with payment_service_id but NULL version
         $order = Order::create([
-            'payment_service_type' => 'square',
-            'payment_service_id' => 'SQUARE_ORDER_123',
+            'payment_service_type'    => 'square',
+            'payment_service_id'      => 'SQUARE_ORDER_123',
             'payment_service_version' => null,
-            'location_id' => $locationId,
+            'location_id'             => $locationId,
         ]);
 
         // Create a product
         $product = Product::create([
-            'name' => 'Test Product',
-            'price' => 1000,
+            'name'     => 'Test Product',
+            'price'    => 1000,
             'quantity' => 1,
         ]);
 
@@ -1782,16 +1787,16 @@ class SquareServiceTest extends TestCase
 
         // Create order with outdated version
         $order = Order::create([
-            'payment_service_type' => 'square',
-            'payment_service_id' => 'SQUARE_ORDER_123',
+            'payment_service_type'    => 'square',
+            'payment_service_id'      => 'SQUARE_ORDER_123',
             'payment_service_version' => 1,
-            'location_id' => $locationId,
+            'location_id'             => $locationId,
         ]);
 
         // Create a product
         $product = Product::create([
-            'name' => 'Test Product',
-            'price' => 1000,
+            'name'     => 'Test Product',
+            'price'    => 1000,
             'quantity' => 1,
         ]);
 
@@ -1816,25 +1821,25 @@ class SquareServiceTest extends TestCase
     public function test_build_update_order_request(): void
     {
         $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
-        $squareUid = 'test-square-uid-' . uniqid();
+        $squareUid = 'test-square-uid-'.uniqid();
 
         // Create order with products
         $order = Order::create([
-            'payment_service_type' => 'square',
-            'payment_service_id' => 'SQUARE_ORDER_123',
+            'payment_service_type'    => 'square',
+            'payment_service_id'      => 'SQUARE_ORDER_123',
             'payment_service_version' => 1,
-            'location_id' => $locationId,
+            'location_id'             => $locationId,
         ]);
 
         // Create a product and attach to order with square_uid
         $product = Product::create([
-            'name' => 'Test Product',
-            'price' => 1000,
+            'name'     => 'Test Product',
+            'price'    => 1000,
             'quantity' => 1,
         ]);
         $order->products()->attach($product->id, [
-            'quantity' => 1,
-            'square_uid' => $squareUid,
+            'quantity'         => 1,
+            'square_uid'       => $squareUid,
             'order_product_id' => uniqid(),
         ]);
         $order->refresh();
@@ -1881,44 +1886,44 @@ class SquareServiceTest extends TestCase
     public function test_build_create_order_request(): void
     {
         $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
-        $squareUid = 'test-square-uid-' . uniqid();
+        $squareUid = 'test-square-uid-'.uniqid();
 
         // Create order WITHOUT payment_service_id (simulates new order)
         $order = Order::create([
             'payment_service_type' => 'square',
-            'location_id' => $locationId,
+            'location_id'          => $locationId,
         ]);
 
         // Create a product and attach to order with square_uid
         $product = Product::create([
-            'name' => 'Test Product for Create',
-            'price' => 1500,
+            'name'     => 'Test Product for Create',
+            'price'    => 1500,
             'quantity' => 1,
         ]);
         $order->products()->attach($product->id, [
-            'quantity' => 2,
-            'square_uid' => $squareUid,
+            'quantity'         => 2,
+            'square_uid'       => $squareUid,
             'order_product_id' => uniqid(),
         ]);
 
         // Create a discount to test comprehensive building
         $discount = factory(Discount::class)->create([
-            'name' => 'Test Discount',
+            'name'       => 'Test Discount',
             'percentage' => 10.0,
         ]);
         $order->discounts()->attach($discount->id, [
             'deductible_type' => Constants::DISCOUNT_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         // Create a tax to test comprehensive building
         $tax = factory(Tax::class)->create([
-            'name' => 'Test Tax',
+            'name'       => 'Test Tax',
             'percentage' => 8.5,
         ]);
         $order->taxes()->attach($tax->id, [
             'deductible_type' => Constants::TAX_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $order->refresh();

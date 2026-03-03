@@ -86,13 +86,15 @@ class TestDataHolder
         return $recipient;
     }
 
-    public function modify(string $prodFac = 'create',
-                           string $prodDiscFac = 'create',
-                           string $orderDisFac = 'create',
-                           string $orderDiscFixFac = 'create',
-                           string $taxAddFac = 'create',
-                           string $taxIncFac = 'create',
-                            string $addressFac = 'create')
+    public function modify(
+        string $prodFac = 'create',
+        string $prodDiscFac = 'create',
+        string $orderDisFac = 'create',
+        string $orderDiscFixFac = 'create',
+        string $taxAddFac = 'create',
+        string $taxIncFac = 'create',
+        string $addressFac = 'create'
+    )
     {
         $product = factory(Product::class)->{$prodFac}([
             'price' => 1000,
@@ -126,20 +128,18 @@ class TestDataHolder
     public static function buildRecipientArray(): array
     {
         return [
-            'display_name' => 'John Doe',
+            'display_name'  => 'John Doe',
             'email_address' => 'johndoe@test.com',
-            'phone_number' => '1234567890',
-            'address' => [
-                'address_line_1' => '123 Main St',
-                'locality' => 'San Francisco',
+            'phone_number'  => '1234567890',
+            'address'       => [
+                'address_line_1'                  => '123 Main St',
+                'locality'                        => 'San Francisco',
                 'administrative_district_level_1' => 'CA',
-                'postal_code' => '94114',
-                'country' => 'US',
+                'postal_code'                     => '94114',
+                'country'                         => 'US',
             ],
         ];
     }
-
-
 
     /**
      * Builds a reusable mock OrderReturn model from square for testing.
@@ -194,18 +194,18 @@ class TestDataHolder
         $lineItem2Money->setAmount(3_00); // $3.00 USD
         $lineItems = [
             [
-                'uid' => 'line-item-1',
+                'uid'                  => 'line-item-1',
                 'source_line_item_uid' => 'source-line-item-1',
-                'name' => 'Test Item 1',
-                'quantity' => 1,
-                'total_money' => $lineItem1Money,
+                'name'                 => 'Test Item 1',
+                'quantity'             => 1,
+                'total_money'          => $lineItem1Money,
             ],
             [
-                'uid' => 'line-item-2',
+                'uid'                  => 'line-item-2',
                 'source_line_item_uid' => 'source-line-item-2',
-                'name' => 'Test Item 2',
-                'quantity' => 2,
-                'total_money' => $lineItem2Money,
+                'name'                 => 'Test Item 2',
+                'quantity'             => 2,
+                'total_money'          => $lineItem2Money,
             ],
         ];
 

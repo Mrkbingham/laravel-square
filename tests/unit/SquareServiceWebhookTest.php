@@ -24,7 +24,9 @@ use Square\Models\WebhookSubscription as SquareWebhookSubscription;
 
 class SquareServiceWebhookTest extends TestCase
 {
-    use RefreshDatabase, MocksSquareConfigDependency, CreatesWebhookSubscription;
+    use RefreshDatabase;
+    use MocksSquareConfigDependency;
+    use CreatesWebhookSubscription;
 
     private string $testWebhookUrl = 'https://example.com/webhook';
     private array $testEventTypes = ['order.created', 'payment.updated'];
@@ -36,13 +38,13 @@ class SquareServiceWebhookTest extends TestCase
     {
         // Mock the create webhook API call
         $this->mockCreateWebhookSuccess([
-            'id' => 'wh_test_123',
-            'name' => 'Test Webhook',
+            'id'              => 'wh_test_123',
+            'name'            => 'Test Webhook',
             'notificationUrl' => $this->testWebhookUrl,
-            'eventTypes' => $this->testEventTypes,
-            'apiVersion' => '2023-10-11',
-            'signatureKey' => 'test_signature_key',
-            'enabled' => true,
+            'eventTypes'      => $this->testEventTypes,
+            'apiVersion'      => '2023-10-11',
+            'signatureKey'    => 'test_signature_key',
+            'enabled'         => true,
         ]);
 
         $builder = Square::webhookBuilder()
@@ -62,7 +64,7 @@ class SquareServiceWebhookTest extends TestCase
 
         // Verify it's stored in the database
         $this->assertDatabaseHas('nikolag_webhook_subscriptions', [
-            'name' => 'Test Webhook',
+            'name'             => 'Test Webhook',
             'notification_url' => $this->testWebhookUrl,
         ]);
     }
@@ -93,13 +95,13 @@ class SquareServiceWebhookTest extends TestCase
     {
         // Create a webhook first so we have one to delete
         $this->mockCreateWebhookSuccess([
-            'id' => 'wh_to_delete_123',
-            'name' => 'Webhook to Delete',
+            'id'              => 'wh_to_delete_123',
+            'name'            => 'Webhook to Delete',
             'notificationUrl' => $this->testWebhookUrl,
-            'eventTypes' => $this->testEventTypes,
-            'apiVersion' => '2023-10-11',
-            'signatureKey' => 'test_signature_key',
-            'enabled' => true,
+            'eventTypes'      => $this->testEventTypes,
+            'apiVersion'      => '2023-10-11',
+            'signatureKey'    => 'test_signature_key',
+            'enabled'         => true,
         ]);
 
         $builder = Square::webhookBuilder()
@@ -147,13 +149,13 @@ class SquareServiceWebhookTest extends TestCase
     {
         // Using the fluent API from the trait
         $this->mockRetrieveWebhookSuccess([
-            'id' => 'webhook_to_fetch_123',
-            'name' => 'Fetched Webhook',
+            'id'              => 'webhook_to_fetch_123',
+            'name'            => 'Fetched Webhook',
             'notificationUrl' => $this->testWebhookUrl,
-            'eventTypes' => $this->testEventTypes,
-            'apiVersion' => '2023-10-11',
-            'signatureKey' => 'test_signature_key',
-            'enabled' => true,
+            'eventTypes'      => $this->testEventTypes,
+            'apiVersion'      => '2023-10-11',
+            'signatureKey'    => 'test_signature_key',
+            'enabled'         => true,
         ]);
 
         $webhookSubscription = Square::retrieveWebhookSubscription('webhook_to_fetch_123');
@@ -173,13 +175,13 @@ class SquareServiceWebhookTest extends TestCase
     {
         // Using the fluent API from the trait
         $this->mockCreateWebhookSuccess([
-            'id' => 'wh_to_update_123',
-            'name' => 'Test Webhook',
+            'id'              => 'wh_to_update_123',
+            'name'            => 'Test Webhook',
             'notificationUrl' => $this->testWebhookUrl,
-            'eventTypes' => $this->testEventTypes,
-            'apiVersion' => '2023-10-11',
-            'signatureKey' => 'test_signature_key',
-            'enabled' => true,
+            'eventTypes'      => $this->testEventTypes,
+            'apiVersion'      => '2023-10-11',
+            'signatureKey'    => 'test_signature_key',
+            'enabled'         => true,
         ]);
 
         $builder = Square::webhookBuilder()
@@ -192,12 +194,12 @@ class SquareServiceWebhookTest extends TestCase
 
         // Now mock the update operation - same structure, different endpoint
         $this->mockUpdateWebhookSuccess([
-            'id' => 'wh_to_update_123',
-            'name' => 'Updated Webhook Name',
+            'id'              => 'wh_to_update_123',
+            'name'            => 'Updated Webhook Name',
             'notificationUrl' => $this->testWebhookUrl,
-            'eventTypes' => $this->testEventTypes,
-            'apiVersion' => '2023-10-11',
-            'enabled' => true,
+            'eventTypes'      => $this->testEventTypes,
+            'apiVersion'      => '2023-10-11',
+            'enabled'         => true,
         ]);
 
         // Get the subscription builder and update the name
@@ -215,7 +217,7 @@ class SquareServiceWebhookTest extends TestCase
 
         // Verify it's stored in the database
         $this->assertDatabaseHas('nikolag_webhook_subscriptions', [
-            'name' => 'Updated Webhook Name',
+            'name'             => 'Updated Webhook Name',
             'notification_url' => $this->testWebhookUrl,
         ]);
     }
@@ -237,13 +239,13 @@ class SquareServiceWebhookTest extends TestCase
         $signatureKey = 'original_signature_key';
         // Step 1: Mock and create webhook via Square API
         $this->mockCreateWebhookSuccess([
-            'id' => 'wh_recreate_test_789',
-            'name' => 'Webhook for Recreate Test',
+            'id'              => 'wh_recreate_test_789',
+            'name'            => 'Webhook for Recreate Test',
             'notificationUrl' => $this->testWebhookUrl,
-            'eventTypes' => $this->testEventTypes,
-            'apiVersion' => '2023-10-11',
-            'signatureKey' => $signatureKey,
-            'enabled' => true,
+            'eventTypes'      => $this->testEventTypes,
+            'apiVersion'      => '2023-10-11',
+            'signatureKey'    => $signatureKey,
+            'enabled'         => true,
         ]);
 
         $builder = Square::webhookBuilder()
@@ -264,8 +266,8 @@ class SquareServiceWebhookTest extends TestCase
         $this->assertNotEquals($encryptedKey, $webhookSubscription->signature_key);
 
         $this->assertDatabaseHas('nikolag_webhook_subscriptions', [
-            'square_id' => $webhookSubscription->square_id,
-            'name' => 'Webhook for Recreate Test',
+            'square_id'     => $webhookSubscription->square_id,
+            'name'          => 'Webhook for Recreate Test',
             'signature_key' => $encryptedKey,
         ]);
 
@@ -281,13 +283,13 @@ class SquareServiceWebhookTest extends TestCase
         // Step 3: Mock update webhook response (note: no signature_key in update response)
         $newName = 'Updated Recreated Webhook';
         $mockUpdateWebhookData = $mockRetrieveWebhookData = [
-            'id' => $webhookSubscription->square_id,
-            'name' => $newName,
+            'id'              => $webhookSubscription->square_id,
+            'name'            => $newName,
             'notificationUrl' => 'https://updated.example.com/webhook',
-            'eventTypes' => ['order.created'],
-            'apiVersion' => '2023-10-11',
-            'enabled' => true,
-            'signatureKey' => $signatureKey, // Original signature key
+            'eventTypes'      => ['order.created'],
+            'apiVersion'      => '2023-10-11',
+            'enabled'         => true,
+            'signatureKey'    => $signatureKey, // Original signature key
         ];
         // Remove the signatureKey to simulate update response
         unset($mockUpdateWebhookData['signatureKey']);
@@ -313,16 +315,16 @@ class SquareServiceWebhookTest extends TestCase
         // Verify the signature_key field is handled gracefully (should be null or default)
         // since updateWebhookSubscription response doesn't include it
         $this->assertTrue(
-            is_null($updatedWebhook->signature_key) || ! empty($updatedWebhook->signature_key),
+            is_null($updatedWebhook->signature_key) || !empty($updatedWebhook->signature_key),
             'signature_key should be handled gracefully when missing from update response'
         );
 
         // Step 6: Verify the model was recreated in the database
         $this->assertDatabaseHas('nikolag_webhook_subscriptions', [
-            'square_id' => $webhookSubscription->square_id,
-            'name' => $newName,
+            'square_id'        => $webhookSubscription->square_id,
+            'name'             => $newName,
             'notification_url' => 'https://updated.example.com/webhook',
-            'is_enabled' => true,
+            'is_enabled'       => true,
         ]);
 
         // Verify only one record exists (not duplicated)
@@ -338,13 +340,13 @@ class SquareServiceWebhookTest extends TestCase
         // Step 1: Mock and create webhook via Square API
         $this->mockListWebhookSuccess([
             [
-                'id' => 'wh_recreate_test_789',
-                'name' => 'Webhook for Recreate Test',
+                'id'              => 'wh_recreate_test_789',
+                'name'            => 'Webhook for Recreate Test',
                 'notificationUrl' => $this->testWebhookUrl,
-                'eventTypes' => $this->testEventTypes,
-                'apiVersion' => '2023-10-11',
-                'signatureKey' => 'fake-key',
-                'enabled' => true,
+                'eventTypes'      => $this->testEventTypes,
+                'apiVersion'      => '2023-10-11',
+                'signatureKey'    => 'fake-key',
+                'enabled'         => true,
             ],
         ]);
 
@@ -427,13 +429,13 @@ class SquareServiceWebhookTest extends TestCase
 
         // Create a webhook subscription first so we have one to update
         $subscription = WebhookSubscription::create([
-            'square_id' => $subscriptionId,
-            'name' => 'Test Webhook for Signature Update',
+            'square_id'        => $subscriptionId,
+            'name'             => 'Test Webhook for Signature Update',
             'notification_url' => $this->testWebhookUrl,
-            'event_types' => $this->testEventTypes,
-            'api_version' => '2023-10-18',
-            'signature_key' => 'old_signature_key',
-            'is_enabled' => true,
+            'event_types'      => $this->testEventTypes,
+            'api_version'      => '2023-10-18',
+            'signature_key'    => 'old_signature_key',
+            'is_enabled'       => true,
         ]);
 
         // Mock successful signature key update response
@@ -502,9 +504,9 @@ class SquareServiceWebhookTest extends TestCase
 
         // Verify it was stored in the database
         $this->assertDatabaseHas('nikolag_webhook_events', [
-            'square_event_id' => $payloadData['event_id'],
-            'event_type' => 'order.created',
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => $payloadData['event_id'],
+            'event_type'              => 'order.created',
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => $subscription->id,
         ]);
     }
@@ -542,9 +544,9 @@ class SquareServiceWebhookTest extends TestCase
 
         // Verify it was stored in the database
         $this->assertDatabaseHas('nikolag_webhook_events', [
-            'square_event_id' => $payloadData['event_id'],
-            'event_type' => 'payment.created',
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => $payloadData['event_id'],
+            'event_type'              => 'payment.created',
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => $subscription->id,
         ]);
 
@@ -568,8 +570,8 @@ class SquareServiceWebhookTest extends TestCase
         ]);
 
         $retryData = [
-            'reason' => 'http_failure',
-            'number' => 1,
+            'reason'                   => 'http_failure',
+            'number'                   => 1,
             'initialDeliveryTimestamp' => now()->subSeconds(10)->toIso8601String(),
         ];
 
@@ -607,12 +609,12 @@ class SquareServiceWebhookTest extends TestCase
 
         // Verify it was stored in the database with retry data
         $this->assertDatabaseHas('nikolag_webhook_events', [
-            'square_event_id' => $payloadData['event_id'],
-            'event_type' => 'payment.created',
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => $payloadData['event_id'],
+            'event_type'              => 'payment.created',
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => $subscription->id,
-            'retry_reason' => $retryData['reason'],
-            'retry_number' => $retryData['number'],
+            'retry_reason'            => $retryData['reason'],
+            'retry_number'            => $retryData['number'],
         ]);
     }
 
@@ -623,8 +625,8 @@ class SquareServiceWebhookTest extends TestCase
     {
         $request = Request::create('/webhook', 'POST', [], [], [], [], json_encode([
             'event_id' => 'test-event-id',
-            'type' => 'order.created',
-            'data' => ['test' => 'data'],
+            'type'     => 'order.created',
+            'data'     => ['test' => 'data'],
         ]));
 
         // No square-subscription-id header set
@@ -642,8 +644,8 @@ class SquareServiceWebhookTest extends TestCase
     {
         $request = Request::create('/webhook', 'POST', [], [], [], [], json_encode([
             'event_id' => 'test-event-id',
-            'type' => 'order.created',
-            'data' => ['test' => 'data'],
+            'type'     => 'order.created',
+            'data'     => ['test' => 'data'],
         ]));
 
         $request->headers->set('square-subscription-id', 'non-existent-subscription-id');
@@ -664,10 +666,10 @@ class SquareServiceWebhookTest extends TestCase
         ]);
 
         $request = Request::create('/webhook', 'POST', [], [], [], [], json_encode([
-            'event_id' => 'test-event-id',
-            'type' => 'order.created',
+            'event_id'   => 'test-event-id',
+            'type'       => 'order.created',
             'created_at' => now()->toISOString(),
-            'data' => ['test' => 'data'],
+            'data'       => ['test' => 'data'],
         ]));
 
         $request->headers->set('square-subscription-id', $subscription->square_id);
@@ -689,10 +691,10 @@ class SquareServiceWebhookTest extends TestCase
         ]);
 
         $request = Request::create('/webhook', 'POST', [], [], [], [], json_encode([
-            'event_id' => 'test-event-id',
-            'type' => 'order.created',
+            'event_id'   => 'test-event-id',
+            'type'       => 'order.created',
             'created_at' => now()->toISOString(),
-            'data' => ['test' => 'data'],
+            'data'       => ['test' => 'data'],
         ]));
 
         $request->headers->set('square-subscription-id', $subscription->square_id);
@@ -780,11 +782,11 @@ class SquareServiceWebhookTest extends TestCase
 
         // Create a webhook event
         $event = WebhookEvent::create([
-            'square_event_id' => 'event_123',
-            'event_type' => 'order.created',
-            'event_time' => now(),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => 'event_123',
+            'event_type'              => 'order.created',
+            'event_time'              => now(),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => $subscription->id,
         ]);
 
@@ -809,11 +811,11 @@ class SquareServiceWebhookTest extends TestCase
 
         // Create a webhook event
         $event = WebhookEvent::create([
-            'square_event_id' => 'event_123',
-            'event_type' => 'order.created',
-            'event_time' => now(),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => 'event_123',
+            'event_type'              => 'order.created',
+            'event_time'              => now(),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => $subscription->id,
         ]);
 
@@ -853,44 +855,44 @@ class SquareServiceWebhookTest extends TestCase
 
         // Create test webhook events with different ages
         $oldEvent1 = new WebhookEvent([
-            'square_event_id' => 'old_event_1',
-            'event_type' => 'order.created',
-            'event_time' => now()->subDays(45),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_PROCESSED,
+            'square_event_id'         => 'old_event_1',
+            'event_type'              => 'order.created',
+            'event_time'              => now()->subDays(45),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_PROCESSED,
             'webhook_subscription_id' => $subscription->id,
         ]);
         $oldEvent1->created_at = now()->subDays(45);
         $oldEvent1->save();
 
         $oldEvent2 = new WebhookEvent([
-            'square_event_id' => 'old_event_2',
-            'event_type' => 'order.updated',
-            'event_time' => now()->subDays(35),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_FAILED,
+            'square_event_id'         => 'old_event_2',
+            'event_type'              => 'order.updated',
+            'event_time'              => now()->subDays(35),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_FAILED,
             'webhook_subscription_id' => $subscription->id,
         ]);
         $oldEvent2->created_at = now()->subDays(35);
         $oldEvent2->save();
 
         $oldPendingEvent = new WebhookEvent([
-            'square_event_id' => 'old_pending_event',
-            'event_type' => 'order.created',
-            'event_time' => now()->subDays(40),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => 'old_pending_event',
+            'event_type'              => 'order.created',
+            'event_time'              => now()->subDays(40),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => $subscription->id,
         ]);
         $oldPendingEvent->created_at = now()->subDays(40);
         $oldPendingEvent->save();
 
         $recentEvent = new WebhookEvent([
-            'square_event_id' => 'recent_event',
-            'event_type' => 'order.created',
-            'event_time' => now()->subDays(10),
-            'event_data' => ['test' => 'data'],
-            'status' => WebhookEvent::STATUS_PROCESSED,
+            'square_event_id'         => 'recent_event',
+            'event_type'              => 'order.created',
+            'event_time'              => now()->subDays(10),
+            'event_data'              => ['test' => 'data'],
+            'status'                  => WebhookEvent::STATUS_PROCESSED,
             'webhook_subscription_id' => $subscription->id,
         ]);
         $recentEvent->created_at = now()->subDays(10);

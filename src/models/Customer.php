@@ -47,13 +47,13 @@ class Customer extends CoreCustomer
      * @var array
      */
     protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'birthday' => 'date',
+        'created_at'  => 'datetime',
+        'updated_at'  => 'datetime',
+        'birthday'    => 'date',
         'preferences' => 'array',
-        'group_ids' => 'array',
+        'group_ids'   => 'array',
         'segment_ids' => 'array',
-        'tax_ids' => 'array',
+        'tax_ids'     => 'array',
     ];
 
     /**
@@ -90,7 +90,8 @@ class Customer extends CoreCustomer
     /**
      * Initiate this customer.
      *
-     * @param  array  $data
+     * @param array $data
+     *
      * @return \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Model|null
      */
     public function initiateOrSave(array $data)
@@ -105,7 +106,8 @@ class Customer extends CoreCustomer
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

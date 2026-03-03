@@ -14,24 +14,25 @@ class WebhookProcessor
     /**
      * Verify and process a webhook payload.
      *
-     * @param  array  $headers  The webhook headers
-     * @param  string  $payload  The raw webhook payload
-     * @param  WebhookSubscription  $subscription  The webhook subscription
-     * @return WebhookEvent The created webhook event model
+     * @param array               $headers      The webhook headers
+     * @param string              $payload      The raw webhook payload
+     * @param WebhookSubscription $subscription The webhook subscription
      *
      * @throws InvalidSquareSignatureException
+     *
+     * @return WebhookEvent The created webhook event model
      */
     public static function verifyAndProcess(array $headers, string $payload, WebhookSubscription $subscription): WebhookEvent
     {
         // Get the signature header
         $signature = $headers['x-square-hmacsha256-signature'][0] ?? $headers['X-Square-HmacSha256-Signature'][0] ?? null;
 
-        if (! $signature) {
+        if (!$signature) {
             throw new InvalidSquareSignatureException('Missing webhook signature header');
         }
 
         // Verify the signature
-        if (! WebhooksHelper::isValidWebhookEventSignature($payload, $signature, $subscription->signature_key, $subscription->notification_url)) {
+        if (!WebhooksHelper::isValidWebhookEventSignature($payload, $signature, $subscription->signature_key, $subscription->notification_url)) {
             throw new InvalidSquareSignatureException('Invalid webhook signature');
         }
 
@@ -47,17 +48,17 @@ class WebhookProcessor
         $eventType = $eventData['type'] ?? null;
         $eventTime = $eventData['created_at'] ?? null;
 
-        if (! $eventId || ! $eventType || ! $eventTime) {
+        if (!$eventId || !$eventType || !$eventTime) {
             throw new InvalidSquareSignatureException('Missing required event fields');
         }
 
         // Prepare webhook event data
         $webhookEventData = [
-            'square_event_id' => $eventId,
-            'event_type' => $eventType,
-            'event_data' => $eventData,
-            'event_time' => $eventTime,
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => $eventId,
+            'event_type'              => $eventType,
+            'event_data'              => $eventData,
+            'event_time'              => $eventTime,
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => $subscription->id,
         ];
 
@@ -84,7 +85,8 @@ class WebhookProcessor
     /**
      * Extract retry data from webhook headers.
      *
-     * @param  array  $headers  The webhook headers
+     * @param array $headers The webhook headers
+     *
      * @return array|null
      */
     private static function extractRetryData(array $headers): ?array
@@ -95,7 +97,7 @@ class WebhookProcessor
         $initialDeliveryTimestamp = $headers['square-initial-delivery-timestamp'][0] ?? $headers['Square-Initial-Delivery-Timestamp'][0] ?? null;
 
         // If no retry headers are present, this is not a retry
-        if (! $retryReason || ! $retryNumber || ! $initialDeliveryTimestamp) {
+        if (!$retryReason || !$retryNumber || !$initialDeliveryTimestamp) {
             return null;
         }
 
@@ -107,8 +109,8 @@ class WebhookProcessor
         }
 
         return [
-            'retry_reason' => $retryReason,
-            'retry_number' => (int) $retryNumber,
+            'retry_reason'               => $retryReason,
+            'retry_number'               => (int) $retryNumber,
             'initial_delivery_timestamp' => $parsedTimestamp,
         ];
     }
@@ -117,9 +119,10 @@ class WebhookProcessor
      * Test webhook signature verification with sample data.
      * Generates signatures compatible with Square's WebhooksHelper::isValidWebhookEventSignature method.
      *
-     * @param  string  $signatureKey  The webhook signature key.
-     * @param  string  $notificationUrl  The webhook notification URL.
-     * @param  string  $requestBody  The raw JSON payload to sign.
+     * @param string $signatureKey    The webhook signature key.
+     * @param string $notificationUrl The webhook notification URL.
+     * @param string $requestBody     The raw JSON payload to sign.
+     *
      * @return string
      */
     public static function generateTestSignature(string $signatureKey, string $notificationUrl, ?string $requestBody = null): string
@@ -128,12 +131,12 @@ class WebhookProcessor
         if ($requestBody === null) {
             $testPayload = [
                 'merchant_id' => 'test-merchant',
-                'type' => 'test.webhook',
-                'event_id' => 'test-event-'.uniqid(),
-                'created_at' => now()->toISOString(),
-                'data' => [
-                    'type' => 'test',
-                    'id' => 'test-object-id',
+                'type'        => 'test.webhook',
+                'event_id'    => 'test-event-'.uniqid(),
+                'created_at'  => now()->toISOString(),
+                'data'        => [
+                    'type'   => 'test',
+                    'id'     => 'test-object-id',
                     'object' => [
                         'test' => true,
                     ],
@@ -158,14 +161,15 @@ class WebhookProcessor
     /**
      * Validate that the webhook payload contains required fields for order events.
      *
-     * @param  array  $eventData  The parsed webhook event data
+     * @param array $eventData The parsed webhook event data
+     *
      * @return bool
      */
     public static function isValidOrderEvent(array $eventData): bool
     {
         $eventType = $eventData['type'] ?? '';
 
-        if (! str_starts_with($eventType, 'order.')) {
+        if (!str_starts_with($eventType, 'order.')) {
             return false;
         }
 
@@ -177,7 +181,7 @@ class WebhookProcessor
         ];
 
         foreach ($requiredFields as $field) {
-            if (! self::hasNestedKey($eventData, $field)) {
+            if (!self::hasNestedKey($eventData, $field)) {
                 return false;
             }
         }
@@ -188,8 +192,9 @@ class WebhookProcessor
     /**
      * Check if a nested key exists in an array.
      *
-     * @param  array  $array  The array to search
-     * @param  string  $key  The dot-notation key to find
+     * @param array  $array The array to search
+     * @param string $key   The dot-notation key to find
+     *
      * @return bool
      */
     private static function hasNestedKey(array $array, string $key): bool
@@ -197,7 +202,7 @@ class WebhookProcessor
         $keys = explode('.', $key);
 
         foreach ($keys as $k) {
-            if (! is_array($array) || ! array_key_exists($k, $array)) {
+            if (!is_array($array) || !array_key_exists($k, $array)) {
                 return false;
             }
             $array = $array[$k];
@@ -209,7 +214,8 @@ class WebhookProcessor
     /**
      * Extract order ID from webhook event data.
      *
-     * @param  array  $eventData  The parsed webhook event data
+     * @param array $eventData The parsed webhook event data
+     *
      * @return string|null
      */
     public static function extractOrderId(array $eventData): ?string
@@ -220,7 +226,8 @@ class WebhookProcessor
     /**
      * Extract merchant ID from webhook event data.
      *
-     * @param  array  $eventData  The parsed webhook event data
+     * @param array $eventData The parsed webhook event data
+     *
      * @return string|null
      */
     public static function extractMerchantId(array $eventData): ?string
@@ -231,7 +238,8 @@ class WebhookProcessor
     /**
      * Extract location ID from webhook event data.
      *
-     * @param  array  $eventData  The parsed webhook event data
+     * @param array $eventData The parsed webhook event data
+     *
      * @return string|null
      */
     public static function extractLocationId(array $eventData): ?string

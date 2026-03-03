@@ -48,17 +48,17 @@ class PickupDetails extends Model
      * @var array
      */
     protected $casts = [
-        'expires_at' => 'datetime',
-        'pickup_at' => 'datetime',
-        'placed_at' => 'datetime',
-        'accepted_at' => 'datetime',
-        'rejected_at' => 'datetime',
-        'ready_at' => 'datetime',
-        'expired_at' => 'datetime',
-        'picked_up_at' => 'datetime',
-        'canceled_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'expires_at'              => 'datetime',
+        'pickup_at'               => 'datetime',
+        'placed_at'               => 'datetime',
+        'accepted_at'             => 'datetime',
+        'rejected_at'             => 'datetime',
+        'ready_at'                => 'datetime',
+        'expired_at'              => 'datetime',
+        'picked_up_at'            => 'datetime',
+        'canceled_at'             => 'datetime',
+        'created_at'              => 'datetime',
+        'updated_at'              => 'datetime',
         'curbside_pickup_details' => 'object',
     ];
 
@@ -87,7 +87,8 @@ class PickupDetails extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

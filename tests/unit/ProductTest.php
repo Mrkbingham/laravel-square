@@ -33,6 +33,7 @@ class ProductTest extends TestCase
         parent::setUp();
         $this->data = TestDataHolder::make();
     }
+
     /**
      * Product creation.
      *
@@ -70,21 +71,21 @@ class ProductTest extends TestCase
      */
     public function test_product_create_with_orders(): void
     {
-        $name = 'Test Product ' . uniqid();
-        $variation = 'Test Variation ' . uniqid();
+        $name = 'Test Product '.uniqid();
+        $variation = 'Test Variation '.uniqid();
         $order1 = factory(Order::class)->create();
         $order2 = factory(Order::class)->create();
 
         $product = factory(Product::class)->create([
-            'name' => $name,
+            'name'           => $name,
             'variation_name' => $variation,
-            'price' => 10_00,
+            'price'          => 10_00,
         ]);
 
         // Create order product pivots directly to have more control
         $orderProduct1 = new OrderProductPivot([
             'price_money_amount' => 10_00,
-            'quantity' => 1
+            'quantity'           => 1,
         ]);
         $orderProduct1->order()->associate($order1);
         $orderProduct1->product()->associate($product);
@@ -92,7 +93,7 @@ class ProductTest extends TestCase
 
         $orderProduct2 = new OrderProductPivot([
             'price_money_amount' => 10_00,
-            'quantity' => 1
+            'quantity'           => 1,
         ]);
         $orderProduct2->order()->associate($order2);
         $orderProduct2->product()->associate($product);
@@ -169,7 +170,7 @@ class ProductTest extends TestCase
     }
 
     /**
-     * Test variable item pricing when adding a product to an order
+     * Test variable item pricing when adding a product to an order.
      *
      * @return void
      */
@@ -178,9 +179,9 @@ class ProductTest extends TestCase
         // Create a product with a base price (we'll override in the order)
         $uniqueId = uniqid();
         $variablePriceProduct = factory(Product::class)->create([
-            'price' => 1000, // Base price in product record
-            'name' => 'Variable Price Product ' . $uniqueId,
-            'variation_name' => 'Test Variation ' . $uniqueId,
+            'price'          => 1000, // Base price in product record
+            'name'           => 'Variable Price Product '.$uniqueId,
+            'variation_name' => 'Test Variation '.$uniqueId,
         ]);
 
         // Create an order
@@ -189,7 +190,7 @@ class ProductTest extends TestCase
         // Create OrderProductPivot with variable pricing directly
         $orderProduct = new OrderProductPivot([
             'base_price_money_amount' => 800, // Different price in the order than in the product
-            'quantity' => 2  // Quantity is 2
+            'quantity'                => 2,  // Quantity is 2
         ]);
         $orderProduct->order()->associate($order);
         $orderProduct->product()->associate($variablePriceProduct);

@@ -2,15 +2,8 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
-use Exception;
-use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Modifier;
-use Nikolag\Square\Models\ModifierOption;
-use Nikolag\Square\Models\ModifierOptionLocationPivot;
-use Nikolag\Square\Models\OrderProductModifierPivot;
-use Nikolag\Square\Models\OrderProductPivot;
 use Nikolag\Square\Models\Product;
-use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
 
 class ModifierTest extends TestCase

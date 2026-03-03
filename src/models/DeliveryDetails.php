@@ -50,17 +50,17 @@ class DeliveryDetails extends Model
      * @var array
      */
     protected $casts = [
-        'placed_at' => 'datetime',
-        'deliver_at' => 'datetime',
-        'completed_at' => 'datetime',
-        'in_progress_at' => 'datetime',
-        'rejected_at' => 'datetime',
-        'ready_at' => 'datetime',
-        'delivered_at' => 'datetime',
-        'canceled_at' => 'datetime',
+        'placed_at'         => 'datetime',
+        'deliver_at'        => 'datetime',
+        'completed_at'      => 'datetime',
+        'in_progress_at'    => 'datetime',
+        'rejected_at'       => 'datetime',
+        'ready_at'          => 'datetime',
+        'delivered_at'      => 'datetime',
+        'canceled_at'       => 'datetime',
         'courier_pickup_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
     ];
 
     /**
@@ -88,7 +88,8 @@ class DeliveryDetails extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

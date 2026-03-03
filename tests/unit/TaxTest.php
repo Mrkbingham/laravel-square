@@ -96,26 +96,26 @@ class TaxTest extends TestCase
     {
         $tax = factory(Tax::class)->create(
             [
-                'name' => 'Sales Tax',
-                'percentage' => 8.25,
-                'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
-                'inclusion_type' => TaxInclusionType::ADDITIVE,
+                'name'                      => 'Sales Tax',
+                'percentage'                => 8.25,
+                'calculation_phase'         => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
+                'inclusion_type'            => TaxInclusionType::ADDITIVE,
                 'applies_to_custom_amounts' => true,
-                'enabled' => true,
-                'square_catalog_object_id' => 'TAX_OBJECT_123'
+                'enabled'                   => true,
+                'square_catalog_object_id'  => 'TAX_OBJECT_123',
             ]
         );
 
         $this->assertDatabaseHas(
             'nikolag_taxes',
             [
-                'name' => 'Sales Tax',
-                'percentage' => 8.25,
-                'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
-                'inclusion_type' => TaxInclusionType::ADDITIVE,
+                'name'                      => 'Sales Tax',
+                'percentage'                => 8.25,
+                'calculation_phase'         => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
+                'inclusion_type'            => TaxInclusionType::ADDITIVE,
                 'applies_to_custom_amounts' => true,
-                'enabled' => true,
-                'square_catalog_object_id' => 'TAX_OBJECT_123'
+                'enabled'                   => true,
+                'square_catalog_object_id'  => 'TAX_OBJECT_123',
             ]
         );
     }
@@ -129,14 +129,14 @@ class TaxTest extends TestCase
     {
         $tax = factory(Tax::class)->create(
             [
-                'name' => 'Complete Tax',
-                'type' => 'STATE',
-                'percentage' => 10.0,
-                'calculation_phase' => TaxCalculationPhase::TAX_TOTAL_PHASE,
-                'inclusion_type' => TaxInclusionType::INCLUSIVE,
+                'name'                      => 'Complete Tax',
+                'type'                      => 'STATE',
+                'percentage'                => 10.0,
+                'calculation_phase'         => TaxCalculationPhase::TAX_TOTAL_PHASE,
+                'inclusion_type'            => TaxInclusionType::INCLUSIVE,
                 'applies_to_custom_amounts' => false,
-                'enabled' => true,
-                'square_catalog_object_id' => 'TAX_CAT_OBJ_789'
+                'enabled'                   => true,
+                'square_catalog_object_id'  => 'TAX_CAT_OBJ_789',
             ]
         );
 
@@ -164,7 +164,7 @@ class TaxTest extends TestCase
 
         factory(Tax::class)->create([
             'amount_money' => null,
-            'percentage' => null,
+            'percentage'   => null,
         ]);
     }
 
@@ -180,7 +180,7 @@ class TaxTest extends TestCase
 
         factory(Tax::class)->create([
             'amount_money' => 100,
-            'percentage' => 5.0,
+            'percentage'   => 5.0,
         ]);
 
         $this->expectException(ValidationException::class);
@@ -188,7 +188,7 @@ class TaxTest extends TestCase
 
         factory(Tax::class)->create([
             'amount_money' => 100,
-            'percentage' => 5.0,
+            'percentage'   => 5.0,
         ]);
     }
 

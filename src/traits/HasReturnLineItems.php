@@ -16,7 +16,8 @@ trait HasReturnLineItems
     /**
      * Check existence of an attribute in model.
      *
-     * @param  string  $attribute
+     * @param string $attribute
+     *
      * @return bool
      */
     public function hasColumn(string $attribute): bool
@@ -27,7 +28,8 @@ trait HasReturnLineItems
     /**
      * Does an order return have a discount on its line items.
      *
-     * @param  mixed  $discount
+     * @param mixed $discount
+     *
      * @return bool
      */
     public function hasDiscount(mixed $discount): bool
@@ -54,7 +56,8 @@ trait HasReturnLineItems
     /**
      * Does an order return have a tax on its line items.
      *
-     * @param  mixed  $tax
+     * @param mixed $tax
+     *
      * @return bool
      */
     public function hasTax(mixed $tax): bool
@@ -81,7 +84,8 @@ trait HasReturnLineItems
     /**
      * Does an order return have a service charge on its line items.
      *
-     * @param  mixed  $serviceCharge
+     * @param mixed $serviceCharge
+     *
      * @return bool
      */
     public function hasServiceCharge(mixed $serviceCharge): bool
@@ -108,7 +112,8 @@ trait HasReturnLineItems
     /**
      * Does an order return have a product.
      *
-     * @param  mixed  $product
+     * @param mixed $product
+     *
      * @return bool
      */
     public function hasProduct(mixed $product): bool
@@ -131,6 +136,7 @@ trait HasReturnLineItems
      *
      * @param mixed $product
      * @param array $attributes
+     *
      * @return OrderReturnLineItem
      */
     public function attachReturnLineItem($product, array $attributes = []): OrderReturnLineItem
@@ -139,10 +145,10 @@ trait HasReturnLineItems
 
         // Merge default attributes with provided ones
         $lineItemData = array_merge([
-            'order_return_id' => $this->id,
-            'product_id' => $productModel->id,
-            'quantity' => 1,
-            'base_price_money_amount' => $productModel->price ?? 0,
+            'order_return_id'           => $this->id,
+            'product_id'                => $productModel->id,
+            'quantity'                  => 1,
+            'base_price_money_amount'   => $productModel->price ?? 0,
             'base_price_money_currency' => 'USD',
         ], $attributes);
 
@@ -152,7 +158,8 @@ trait HasReturnLineItems
     /**
      * Does an order return have a specific return line item.
      *
-     * @param  mixed  $lineItem
+     * @param mixed $lineItem
+     *
      * @return bool
      */
     public function hasReturnLineItem(mixed $lineItem): bool

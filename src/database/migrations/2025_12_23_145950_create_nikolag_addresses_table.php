@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Create nikolag_addresses table for polymorphic address storage.
  */
-return new class extends Migration
-{
+return new class() extends Migration {
     /**
      * Run the migrations.
      *

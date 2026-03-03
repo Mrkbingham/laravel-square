@@ -6,8 +6,7 @@ use Illuminate\Support\Facades\Schema;
 use Square\Models\FulfillmentState;
 use Square\Models\FulfillmentType;
 
-return new class extends Migration
-{
+return new class() extends Migration {
     /**
      * Run the migrations.
      *
@@ -28,7 +27,7 @@ return new class extends Migration
                 FulfillmentState::PREPARED,
                 FulfillmentState::COMPLETED,
                 FulfillmentState::CANCELED,
-                FulfillmentState::FAILED
+                FulfillmentState::FAILED,
             ])->nullable();
 
             // Adds fulfillment_details_id, fulfillment_details_type columns and index

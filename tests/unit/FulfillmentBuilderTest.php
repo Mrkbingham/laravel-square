@@ -135,22 +135,22 @@ class FulfillmentBuilderTest extends TestCase
     public function test_create_fulfillment_from_array_with_delivery(): void
     {
         $fulfillmentArray = [
-            'type' => FulfillmentType::DELIVERY,
+            'type'             => FulfillmentType::DELIVERY,
             'delivery_details' => [
                 'schedule_type' => 'ASAP',
-                'placed_at' => now()->toDateTimeString(),
-                'deliver_at' => now()->addHour()->toDateTimeString(),
-                'note' => 'Test delivery note',
-                'recipient' => [
-                    'display_name' => 'John Doe',
+                'placed_at'     => now()->toDateTimeString(),
+                'deliver_at'    => now()->addHour()->toDateTimeString(),
+                'note'          => 'Test delivery note',
+                'recipient'     => [
+                    'display_name'  => 'John Doe',
                     'email_address' => 'john@example.com',
-                    'phone_number' => '+1234567890',
-                    'address' => [
-                        'address_line_1' => '123 Main St',
-                        'locality' => 'Anytown',
+                    'phone_number'  => '+1234567890',
+                    'address'       => [
+                        'address_line_1'                  => '123 Main St',
+                        'locality'                        => 'Anytown',
                         'administrative_district_level_1' => 'CA',
-                        'postal_code' => '12345',
-                        'country' => 'US',
+                        'postal_code'                     => '12345',
+                        'country'                         => 'US',
                     ],
                 ],
             ],
@@ -174,23 +174,23 @@ class FulfillmentBuilderTest extends TestCase
     public function test_create_fulfillment_from_array_with_pickup(): void
     {
         $fulfillmentArray = [
-            'type' => FulfillmentType::PICKUP,
+            'type'           => FulfillmentType::PICKUP,
             'pickup_details' => [
-                'expires_at' => now()->addDay()->toDateTimeString(),
+                'expires_at'    => now()->addDay()->toDateTimeString(),
                 'schedule_type' => 'ASAP',
-                'pickup_at' => now()->toDateTimeString(),
-                'note' => 'Test pickup note',
-                'placed_at' => now()->toDateTimeString(),
-                'recipient' => [
-                    'display_name' => 'Jane Doe',
+                'pickup_at'     => now()->toDateTimeString(),
+                'note'          => 'Test pickup note',
+                'placed_at'     => now()->toDateTimeString(),
+                'recipient'     => [
+                    'display_name'  => 'Jane Doe',
                     'email_address' => 'jane@example.com',
-                    'phone_number' => '+1234567891',
-                    'address' => [
-                        'address_line_1' => '456 Oak Ave',
-                        'locality' => 'Somewhere',
+                    'phone_number'  => '+1234567891',
+                    'address'       => [
+                        'address_line_1'                  => '456 Oak Ave',
+                        'locality'                        => 'Somewhere',
                         'administrative_district_level_1' => 'NY',
-                        'postal_code' => '67890',
-                        'country' => 'US',
+                        'postal_code'                     => '67890',
+                        'country'                         => 'US',
                     ],
                 ],
             ],
@@ -214,24 +214,24 @@ class FulfillmentBuilderTest extends TestCase
     public function test_create_fulfillment_from_array_with_shipment(): void
     {
         $fulfillmentArray = [
-            'type' => FulfillmentType::SHIPMENT,
+            'type'             => FulfillmentType::SHIPMENT,
             'shipment_details' => [
-                'carrier' => 'FedEx',
-                'placed_at' => now()->toDateTimeString(),
-                'shipping_note' => 'Test shipment note',
-                'shipping_type' => 'Express',
+                'carrier'         => 'FedEx',
+                'placed_at'       => now()->toDateTimeString(),
+                'shipping_note'   => 'Test shipment note',
+                'shipping_type'   => 'Express',
                 'tracking_number' => '123456789',
-                'tracking_url' => 'https://tracking.example.com/123456789',
-                'recipient' => [
-                    'display_name' => 'Bob Smith',
+                'tracking_url'    => 'https://tracking.example.com/123456789',
+                'recipient'       => [
+                    'display_name'  => 'Bob Smith',
                     'email_address' => 'bob@example.com',
-                    'phone_number' => '+1234567892',
-                    'address' => [
-                        'address_line_1' => '789 Pine St',
-                        'locality' => 'Elsewhere',
+                    'phone_number'  => '+1234567892',
+                    'address'       => [
+                        'address_line_1'                  => '789 Pine St',
+                        'locality'                        => 'Elsewhere',
                         'administrative_district_level_1' => 'TX',
-                        'postal_code' => '11111',
-                        'country' => 'US',
+                        'postal_code'                     => '11111',
+                        'country'                         => 'US',
                     ],
                 ],
             ],
@@ -257,9 +257,9 @@ class FulfillmentBuilderTest extends TestCase
         $fulfillmentArray = [
             'delivery_details' => [
                 'schedule_type' => 'ASAP',
-                'placed_at' => now()->toDateTimeString(),
-                'deliver_at' => now()->addHour()->toDateTimeString(),
-                'note' => 'Test delivery note',
+                'placed_at'     => now()->toDateTimeString(),
+                'deliver_at'    => now()->addHour()->toDateTimeString(),
+                'note'          => 'Test delivery note',
             ],
         ];
 
@@ -277,12 +277,12 @@ class FulfillmentBuilderTest extends TestCase
     public function test_create_fulfillment_from_array_with_invalid_type(): void
     {
         $fulfillmentArray = [
-            'type' => 'INVALID_TYPE',
+            'type'             => 'INVALID_TYPE',
             'delivery_details' => [
                 'schedule_type' => 'ASAP',
-                'placed_at' => now()->toDateTimeString(),
-                'deliver_at' => now()->addHour()->toDateTimeString(),
-                'note' => 'Test delivery note',
+                'placed_at'     => now()->toDateTimeString(),
+                'deliver_at'    => now()->addHour()->toDateTimeString(),
+                'note'          => 'Test delivery note',
             ],
         ];
 
@@ -351,13 +351,13 @@ class FulfillmentBuilderTest extends TestCase
     public function test_create_fulfillment_from_array_with_customer_id_recipient(): void
     {
         $fulfillmentArray = [
-            'type' => FulfillmentType::DELIVERY,
+            'type'             => FulfillmentType::DELIVERY,
             'delivery_details' => [
                 'schedule_type' => 'ASAP',
-                'placed_at' => now()->toDateTimeString(),
-                'deliver_at' => now()->addHour()->toDateTimeString(),
-                'note' => 'Test delivery note',
-                'recipient' => [
+                'placed_at'     => now()->toDateTimeString(),
+                'deliver_at'    => now()->addHour()->toDateTimeString(),
+                'note'          => 'Test delivery note',
+                'recipient'     => [
                     'customer_id' => $this->data->customer->id,
                 ],
             ],
@@ -404,12 +404,12 @@ class FulfillmentBuilderTest extends TestCase
     public function test_create_fulfillment_from_array_without_recipient(): void
     {
         $fulfillmentArray = [
-            'type' => FulfillmentType::DELIVERY,
+            'type'             => FulfillmentType::DELIVERY,
             'delivery_details' => [
                 'schedule_type' => 'ASAP',
-                'placed_at' => now()->toDateTimeString(),
-                'deliver_at' => now()->addHour()->toDateTimeString(),
-                'note' => 'Test delivery note',
+                'placed_at'     => now()->toDateTimeString(),
+                'deliver_at'    => now()->addHour()->toDateTimeString(),
+                'note'          => 'Test delivery note',
             ],
         ];
 
@@ -429,22 +429,22 @@ class FulfillmentBuilderTest extends TestCase
     public function test_recipient_fulfillment_relationship(): void
     {
         $fulfillmentArray = [
-            'type' => FulfillmentType::DELIVERY,
+            'type'             => FulfillmentType::DELIVERY,
             'delivery_details' => [
                 'schedule_type' => 'ASAP',
-                'placed_at' => now()->toDateTimeString(),
-                'deliver_at' => now()->addHour()->toDateTimeString(),
-                'note' => 'Test delivery note',
-                'recipient' => [
-                    'display_name' => 'John Doe',
+                'placed_at'     => now()->toDateTimeString(),
+                'deliver_at'    => now()->addHour()->toDateTimeString(),
+                'note'          => 'Test delivery note',
+                'recipient'     => [
+                    'display_name'  => 'John Doe',
                     'email_address' => 'john@example.com',
-                    'phone_number' => '+1234567890',
-                    'address' => [
-                        'address_line_1' => '123 Main St',
-                        'locality' => 'Anytown',
+                    'phone_number'  => '+1234567890',
+                    'address'       => [
+                        'address_line_1'                  => '123 Main St',
+                        'locality'                        => 'Anytown',
                         'administrative_district_level_1' => 'CA',
-                        'postal_code' => '12345',
-                        'country' => 'US',
+                        'postal_code'                     => '12345',
+                        'country'                         => 'US',
                     ],
                 ],
             ],

@@ -216,7 +216,7 @@ class FulfillmentTest extends TestCase
     {
         $fulfillmentDetails = [
             'delivery_details' => $this->data->fulfillmentWithDeliveryDetails,
-            'pickup_details' => $this->data->fulfillmentWithPickupDetails,
+            'pickup_details'   => $this->data->fulfillmentWithPickupDetails,
             'shipment_details' => $this->data->fulfillmentWithShipmentDetails,
         ];
         foreach ($fulfillmentDetails as $fulfillmentType => $fulfillment) {

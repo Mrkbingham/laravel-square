@@ -34,7 +34,7 @@ class ServiceCharge extends Model
         'reference_id',
         'square_catalog_object_id',
         'square_created_at',
-        'square_updated_at'
+        'square_updated_at',
     ];
 
     /**
@@ -43,13 +43,13 @@ class ServiceCharge extends Model
      * @var array
      */
     protected $casts = [
-        'amount_money' => 'integer',
-        'percentage' => 'float',
-        'taxable' => 'boolean',
+        'amount_money'      => 'integer',
+        'percentage'        => 'float',
+        'taxable'           => 'boolean',
         'square_created_at' => 'datetime',
         'square_updated_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
     ];
 
     /**
@@ -80,13 +80,14 @@ class ServiceCharge extends Model
      * Set the percentage attribute and clear amount_money.
      *
      * @param mixed $value
+     *
      * @return void
      */
     public function setPercentageAttribute($value)
     {
         if (!is_null($this->amount_money) && !is_null($value)) {
             throw ValidationException::withMessages([
-                'service_charge' => 'Service charge cannot have percentage while amount_money is set.'
+                'service_charge' => 'Service charge cannot have percentage while amount_money is set.',
             ]);
         }
 
@@ -97,13 +98,14 @@ class ServiceCharge extends Model
      * Set the amount_money attribute and clear percentage.
      *
      * @param mixed $value
+     *
      * @return void
      */
     public function setAmountMoneyAttribute($value)
     {
         if (!is_null($this->amount_money) && !is_null($value)) {
             throw ValidationException::withMessages([
-                'service_charge' => 'Service charge cannot have amount_money while percentage is set.'
+                'service_charge' => 'Service charge cannot have amount_money while percentage is set.',
             ]);
         }
 
@@ -171,7 +173,8 @@ class ServiceCharge extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)
@@ -186,8 +189,9 @@ class ServiceCharge extends Model
     /**
      * Validate that only one of percentage or amount_money is set.
      *
-     * @return void
      * @throws ValidationException
+     *
+     * @return void
      */
     protected function validateServiceChargeType()
     {
@@ -196,13 +200,13 @@ class ServiceCharge extends Model
 
         if ($hasPercentage && $hasAmount) {
             throw ValidationException::withMessages([
-                'service_charge' => 'Service charge cannot have both percentage and amount_money set. Please specify only one.'
+                'service_charge' => 'Service charge cannot have both percentage and amount_money set. Please specify only one.',
             ]);
         }
 
         if (!$hasPercentage && !$hasAmount) {
             throw ValidationException::withMessages([
-                'service_charge' => 'Service charge must have either percentage or amount_money set.'
+                'service_charge' => 'Service charge must have either percentage or amount_money set.',
             ]);
         }
     }
@@ -210,8 +214,9 @@ class ServiceCharge extends Model
     /**
      * Validate calculation phase constraints according to Square API limitations.
      *
-     * @return void
      * @throws ValidationException
+     *
+     * @return void
      */
     protected function validateCalculationPhaseConstraints()
     {
@@ -232,13 +237,13 @@ class ServiceCharge extends Model
             // Cannot be taxable
             if ($this->taxable) {
                 throw ValidationException::withMessages([
-                    'calculation_phase' => 'Total phase service charges cannot be taxable.'
+                    'calculation_phase' => 'Total phase service charges cannot be taxable.',
                 ]);
             }
             // Cannot be applied at the order line-item level
             if ($treatmentType === OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT) {
                 throw ValidationException::withMessages([
-                    'calculation_phase' => 'Total phase service charges cannot be applied at the product (line-item) level. Use order level instead.'
+                    'calculation_phase' => 'Total phase service charges cannot be applied at the product (line-item) level. Use order level instead.',
                 ]);
             }
         }
@@ -248,14 +253,14 @@ class ServiceCharge extends Model
             // Cannot be used with LINE_ITEM_TREATMENT
             if ($treatmentType === OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT) {
                 throw ValidationException::withMessages([
-                    'calculation_phase' => 'Apportioned amount phase cannot be used with line item treatment. Use apportioned treatment instead.'
+                    'calculation_phase' => 'Apportioned amount phase cannot be used with line item treatment. Use apportioned treatment instead.',
                 ]);
             }
 
             // Must have amount, not percentage
             if ($hasPercentage && !$hasAmount) {
                 throw ValidationException::withMessages([
-                    'calculation_phase' => 'Apportioned amount phase service charges must have a dollar amount, not a percentage.'
+                    'calculation_phase' => 'Apportioned amount phase service charges must have a dollar amount, not a percentage.',
                 ]);
             }
         }
@@ -265,14 +270,14 @@ class ServiceCharge extends Model
             // Cannot be used with LINE_ITEM_TREATMENT
             if ($treatmentType === OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT) {
                 throw ValidationException::withMessages([
-                    'calculation_phase' => 'Apportioned percentage phase cannot be used with line item treatment. Use apportioned treatment instead.'
+                    'calculation_phase' => 'Apportioned percentage phase cannot be used with line item treatment. Use apportioned treatment instead.',
                 ]);
             }
 
             // Must have percentage, not amount
             if ($hasAmount && !$hasPercentage) {
                 throw ValidationException::withMessages([
-                    'calculation_phase' => 'Apportioned percentage phase service charges must have a percentage, not a dollar amount.'
+                    'calculation_phase' => 'Apportioned percentage phase service charges must have a percentage, not a dollar amount.',
                 ]);
             }
         }
@@ -281,8 +286,9 @@ class ServiceCharge extends Model
     /**
      * Validate that a service charge can be applied at the product (line-item) level.
      *
-     * @return void
      * @throws ValidationException
+     *
+     * @return void
      */
     public function validateProductLevelApplication()
     {
@@ -291,14 +297,14 @@ class ServiceCharge extends Model
         // Subtotal phase service charges cannot be applied at the order line-item level
         if ($phase === OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE) {
             throw ValidationException::withMessages([
-                'scope' => 'Subtotal phase service charges cannot be applied at the product (line-item) level. Use order level instead.'
+                'scope' => 'Subtotal phase service charges cannot be applied at the product (line-item) level. Use order level instead.',
             ]);
         }
 
         // Total phase service charges cannot be applied at the order line-item level
         if ($phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE) {
             throw ValidationException::withMessages([
-                'scope' => 'Total phase service charges cannot be applied at the product (line-item) level. Use order level instead.'
+                'scope' => 'Total phase service charges cannot be applied at the product (line-item) level. Use order level instead.',
             ]);
         }
     }
@@ -307,8 +313,10 @@ class ServiceCharge extends Model
      * Static method to validate service charge before product attachment.
      *
      * @param ServiceCharge $serviceCharge
-     * @return void
+     *
      * @throws ValidationException
+     *
+     * @return void
      */
     public static function validateBeforeProductAttachment(ServiceCharge $serviceCharge)
     {
@@ -327,7 +335,7 @@ class ServiceCharge extends Model
         // Only apportioned phases can be applied to products
         return in_array($phase, [
             OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
-            OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE
+            OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
         ]);
     }
 
