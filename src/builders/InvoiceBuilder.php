@@ -233,6 +233,11 @@ class InvoiceBuilder
         $builder = SquareInvoiceRecipientBuilder::init();
 
         if ($recipient->customer_id) {
+            if (!$recipient->customer || empty($recipient->customer->payment_service_id)) {
+                throw new MissingPropertyException(
+                    'Recipient customer is missing or does not have a payment_service_id required by Square.'
+                );
+            }
             $builder->customerId($recipient->customer->payment_service_id);
         }
 
