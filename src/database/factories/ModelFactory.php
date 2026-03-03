@@ -64,7 +64,7 @@ $factory->define(Location::class, function (Faker\Generator $faker) {
             'locality' => $faker->city,
             'administrative_district_level_1' => $faker->state,
             'postal_code' => $faker->postcode,
-            'country' => $faker->country,
+            'country' => $faker->countryCode,
         ]),
         'timezone' => $faker->timezone,
         'capabilities' => ['CREDIT_CARD_PROCESSING', 'IN_STORE_PICKUP'],
@@ -415,7 +415,7 @@ $factory->state(Fulfillment::class, FulfillmentType::SHIPMENT, function () {
 $factory->define(Order::class, function (Faker\Generator $faker) {
     return [
         'payment_service_type' => 'square',
-        'payment_service_id'   => 'order_' . $faker->uuid,
+        'payment_service_id'   => null,
         'location_id'          => env('SQUARE_LOCATION'),
     ];
 });
