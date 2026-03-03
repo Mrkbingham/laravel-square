@@ -25,7 +25,7 @@ class CreateNikolagInvoicePaymentRequestsTable extends Migration
                 InvoiceRequestType::DEPOSIT,
                 InvoiceRequestType::INSTALLMENT,
             ])->nullable();
-            $table->dateTime('due_date')->nullable();
+            $table->date('due_date')->nullable();
             $table->bigInteger('fixed_amount_requested_money_amount')->nullable();
             $table->string('fixed_amount_requested_money_currency', 3)->nullable();
             $table->string('percentage_requested')->nullable();
