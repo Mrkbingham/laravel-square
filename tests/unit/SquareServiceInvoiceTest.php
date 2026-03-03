@@ -28,7 +28,7 @@ class SquareServiceInvoiceTest extends TestCase
      */
     public function test_save_invoice_creates_new_invoice(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
         $customer = factory(Constants::CUSTOMER_NAMESPACE)->create([
             'payment_service_id' => 'CUST_' . uniqid(),
@@ -99,7 +99,7 @@ class SquareServiceInvoiceTest extends TestCase
      */
     public function test_save_invoice_updates_existing_invoice(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         // Create an invoice that already exists in Square
@@ -159,7 +159,7 @@ class SquareServiceInvoiceTest extends TestCase
         $this->expectException(InvalidInvoiceStateException::class);
         $this->expectExceptionMessage('Cannot update invoice in PAID status');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = factory(Constants::INVOICE_NAMESPACE)->states(InvoiceStatus::PAID)->create([
@@ -183,7 +183,7 @@ class SquareServiceInvoiceTest extends TestCase
         $this->expectException(InvalidInvoiceStateException::class);
         $this->expectExceptionMessage('Cannot update invoice in CANCELED status');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = factory(Constants::INVOICE_NAMESPACE)->states(InvoiceStatus::CANCELED)->create([
@@ -207,7 +207,7 @@ class SquareServiceInvoiceTest extends TestCase
         $this->expectException(InvalidSquareVersionException::class);
         $this->expectExceptionMessage('Cannot update invoice: version is missing');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         // Create invoice with Square ID but no version
@@ -231,7 +231,7 @@ class SquareServiceInvoiceTest extends TestCase
      */
     public function test_publish_invoice_success(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = factory(Constants::INVOICE_NAMESPACE)->states(InvoiceStatus::DRAFT)->create([
@@ -273,7 +273,7 @@ class SquareServiceInvoiceTest extends TestCase
         $this->expectException(InvalidInvoiceStateException::class);
         $this->expectExceptionMessage('Only DRAFT invoices can be published');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = factory(Constants::INVOICE_NAMESPACE)->states(InvoiceStatus::UNPAID)->create([
@@ -297,7 +297,7 @@ class SquareServiceInvoiceTest extends TestCase
         $this->expectException(InvalidSquareVersionException::class);
         $this->expectExceptionMessage('Cannot publish invoice: version is missing');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = factory(Constants::INVOICE_NAMESPACE)->states(InvoiceStatus::DRAFT)->create([
@@ -364,7 +364,7 @@ class SquareServiceInvoiceTest extends TestCase
      */
     public function test_save_invoice_with_all_relationships(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
         $customer = factory(Constants::CUSTOMER_NAMESPACE)->create([
             'payment_service_id' => 'CUST_' . uniqid(),
@@ -468,7 +468,7 @@ class SquareServiceInvoiceTest extends TestCase
         $this->expectException(InvalidSquareVersionException::class);
         $this->expectExceptionMessage('Version mismatch');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = factory(Constants::INVOICE_NAMESPACE)->create([
@@ -511,7 +511,7 @@ class SquareServiceInvoiceTest extends TestCase
     {
         $this->expectException(\Nikolag\Square\Exception::class);
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
         $customer = factory(Constants::CUSTOMER_NAMESPACE)->create([
             'payment_service_id' => 'CUST_' . uniqid(),
@@ -560,7 +560,7 @@ class SquareServiceInvoiceTest extends TestCase
     {
         $this->expectException(\Nikolag\Square\Exception::class);
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = factory(Constants::INVOICE_NAMESPACE)->states(InvoiceStatus::DRAFT)->create([
