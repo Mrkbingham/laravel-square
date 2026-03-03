@@ -16,7 +16,7 @@ class CreateNikolagInvoiceRecipientsTable extends Migration
         Schema::create('nikolag_invoice_recipients', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('invoice_id')->unique();
-            $table->unsignedBigInteger('customer_id')->nullable();
+            $table->unsignedInteger('customer_id')->nullable();
             $table->string('given_name')->nullable();
             $table->string('family_name')->nullable();
             $table->string('email_address')->nullable();
