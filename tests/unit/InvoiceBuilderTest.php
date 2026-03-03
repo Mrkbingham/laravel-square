@@ -38,7 +38,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_build_create_invoice_request_minimal(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -75,7 +75,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_build_create_invoice_request_with_all_fields(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -120,7 +120,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_build_create_invoice_request_with_recipient(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
         $customer = factory(Constants::CUSTOMER_NAMESPACE)->create([
             'payment_service_id' => 'CUST_' . uniqid(),
@@ -175,7 +175,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_build_create_invoice_request_with_recipient_address(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
         $customer = factory(Constants::CUSTOMER_NAMESPACE)->create([
             'payment_service_id' => 'CUST_' . uniqid(),
@@ -227,7 +227,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_build_create_invoice_request_with_payment_requests(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -275,7 +275,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_build_create_invoice_request_with_fixed_amount_payment_request(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -315,7 +315,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_build_create_invoice_request_with_accepted_payment_methods(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -358,7 +358,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_build_create_invoice_request_with_custom_fields(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -412,7 +412,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_build_update_invoice_request_with_version(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = factory(Constants::INVOICE_NAMESPACE)->create([
@@ -454,7 +454,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_build_update_invoice_request_with_all_fields(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
         $customer = factory(Constants::CUSTOMER_NAMESPACE)->create([
             'payment_service_id' => 'CUST_' . uniqid(),
@@ -531,7 +531,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_sync_from_square_response_updates_local_invoice(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -582,7 +582,7 @@ class InvoiceBuilderTest extends TestCase
      */
     public function test_sync_from_square_response_handles_null_fields(): void
     {
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -730,7 +730,7 @@ class InvoiceBuilderTest extends TestCase
         $this->expectException(MissingPropertyException::class);
         $this->expectExceptionMessage('Cannot create invoice without at least one payment request');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         // Create an invoice without payment requests
@@ -754,7 +754,7 @@ class InvoiceBuilderTest extends TestCase
         $this->expectException(MissingPropertyException::class);
         $this->expectExceptionMessage('Payment request is missing required field: request_type');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -783,7 +783,7 @@ class InvoiceBuilderTest extends TestCase
         $this->expectException(MissingPropertyException::class);
         $this->expectExceptionMessage('Payment request is missing required field: due_date');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -812,7 +812,7 @@ class InvoiceBuilderTest extends TestCase
         $this->expectException(MissingPropertyException::class);
         $this->expectExceptionMessage('Cannot create invoice without at least one payment request');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         // Create an invoice without payment requests
@@ -838,7 +838,7 @@ class InvoiceBuilderTest extends TestCase
         $this->expectException(MissingPropertyException::class);
         $this->expectExceptionMessage('Payment request is missing required field: request_type');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -869,7 +869,7 @@ class InvoiceBuilderTest extends TestCase
         $this->expectException(MissingPropertyException::class);
         $this->expectExceptionMessage('Payment request is missing required field: due_date');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -900,7 +900,7 @@ class InvoiceBuilderTest extends TestCase
         $this->expectException(MissingPropertyException::class);
         $this->expectExceptionMessage('Cannot create invoice without accepted payment methods');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
@@ -929,7 +929,7 @@ class InvoiceBuilderTest extends TestCase
         $this->expectException(MissingPropertyException::class);
         $this->expectExceptionMessage('Cannot create invoice without accepted payment methods');
 
-        $order = factory(Order::class)->create();
+        $order = factory(Order::class)->create(['payment_service_id' => 'order_test_' . uniqid(), 'payment_service_type' => 'square']);
         $location = factory(Location::class)->create();
 
         $invoice = Invoice::create([
