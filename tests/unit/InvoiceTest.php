@@ -71,12 +71,12 @@ class InvoiceTest extends TestCase
             'order_id' => $order->id,
         ]);
 
-        $paymentRequest1 = factory(Constants::INVOICE_PAYMENT_REQUEST_NAMESPACE)->create([
+        factory(Constants::INVOICE_PAYMENT_REQUEST_NAMESPACE)->create([
             'invoice_id' => $invoice->id,
             'request_type' => 'BALANCE',
         ]);
 
-        $paymentRequest2 = factory(Constants::INVOICE_PAYMENT_REQUEST_NAMESPACE)->create([
+        factory(Constants::INVOICE_PAYMENT_REQUEST_NAMESPACE)->create([
             'invoice_id' => $invoice->id,
             'request_type' => 'INSTALLMENT',
         ]);
@@ -120,13 +120,13 @@ class InvoiceTest extends TestCase
             'order_id' => $order->id,
         ]);
 
-        $customField1 = factory(Constants::INVOICE_CUSTOM_FIELD_NAMESPACE)->create([
+        factory(Constants::INVOICE_CUSTOM_FIELD_NAMESPACE)->create([
             'invoice_id' => $invoice->id,
             'label' => 'PO Number',
             'value' => 'PO-12345',
         ]);
 
-        $customField2 = factory(Constants::INVOICE_CUSTOM_FIELD_NAMESPACE)->create([
+        factory(Constants::INVOICE_CUSTOM_FIELD_NAMESPACE)->create([
             'invoice_id' => $invoice->id,
             'label' => 'Project Code',
             'value' => 'PROJ-ABC',
