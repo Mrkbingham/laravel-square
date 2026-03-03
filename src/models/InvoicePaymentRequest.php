@@ -33,7 +33,6 @@ class InvoicePaymentRequest extends Model
         'total_completed_amount_money_currency',
         'rounding_adjustment_amount',
         'rounding_adjustment_currency',
-        'request_method',
         'fixed_amount_requested_money_amount',
         'fixed_amount_requested_money_currency',
         'percentage_requested',
