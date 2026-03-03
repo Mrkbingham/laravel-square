@@ -13,10 +13,11 @@ class RecipientBuilder
     /**
      * Find or create a recipient.
      *
-     * @param  array  $data
-     * @return Recipient $temp
+     * @param array $data
      *
      * @throws MissingPropertyException
+     *
+     * @return Recipient $temp
      */
     public function load(array $recipientData): Recipient
     {
@@ -45,23 +46,24 @@ class RecipientBuilder
     /**
      * Validate the recipient data.
      *
-     * @param  array  $data
-     * @return bool
+     * @param array $data
      *
      * @throws ValidationException
+     *
+     * @return bool
      */
     public function validate(array $recipientData): bool
     {
         $individualFieldsRules = [
-            'display_name' => 'required',
+            'display_name'  => 'required',
             'email_address' => 'required',
-            'phone_number' => 'required',
-            'address' => 'required',
+            'phone_number'  => 'required',
+            'address'       => 'required',
         ];
 
         $hasCustomerID = Arr::has($recipientData, 'customer_id') && $recipientData['customer_id'] != null;
 
-        if (! $hasCustomerID) {
+        if (!$hasCustomerID) {
             Validator::make($recipientData, $individualFieldsRules)->validate();
         }
 

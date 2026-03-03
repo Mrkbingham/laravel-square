@@ -50,15 +50,15 @@ class Location extends Model
      * @var array
      */
     protected $casts = [
-        'capabilities' => 'array',
-        'coordinates' => 'json',
+        'capabilities'      => 'array',
+        'coordinates'       => 'json',
         'square_created_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
     ];
 
     /**
-     * Processes the location data during sync
+     * Processes the location data during sync.
      *
      * @param array $locationData The json serialized location data from the REST API.
      *

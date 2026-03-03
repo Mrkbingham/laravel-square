@@ -10,14 +10,14 @@ use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Tests\Models\User;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\Traits\MocksSquareConfigDependency;
-use Square\Models\Address as SquareAddress;
 use Square\Models\Builders\AddressBuilder;
 use Square\Models\Builders\CustomerPreferencesBuilder;
 use Square\Models\CustomerCreationSource;
 
 class SquareServiceCustomerTest extends TestCase
 {
-    use RefreshDatabase, MocksSquareConfigDependency;
+    use RefreshDatabase;
+    use MocksSquareConfigDependency;
 
     private User $merchant;
 
@@ -37,19 +37,19 @@ class SquareServiceCustomerTest extends TestCase
     {
         $customer = factory(Customer::class)->create([
             'first_name' => 'John',
-            'last_name' => 'Doe',
-            'email' => 'john.doe@example.com',
+            'last_name'  => 'Doe',
+            'email'      => 'john.doe@example.com',
         ]);
 
         // Mock the create customer API call
         $this->mockCreateCustomerSuccess([
-            'id' => 'CUSTOMER_TEST_123',
-            'givenName' => 'John',
-            'familyName' => 'Doe',
+            'id'           => 'CUSTOMER_TEST_123',
+            'givenName'    => 'John',
+            'familyName'   => 'Doe',
             'emailAddress' => 'john.doe@example.com',
-            'version' => 1,
-            'createdAt' => now()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'version'      => 1,
+            'createdAt'    => now()->toISOString(),
+            'updatedAt'    => now()->toISOString(),
         ]);
 
         // Save customer via Square facade
@@ -67,9 +67,9 @@ class SquareServiceCustomerTest extends TestCase
 
         // Verify customer is saved to database
         $this->assertDatabaseHas('nikolag_customers', [
-            'payment_service_id' => 'CUSTOMER_TEST_123',
+            'payment_service_id'      => 'CUSTOMER_TEST_123',
             'payment_service_version' => 1,
-            'email' => 'john.doe@example.com',
+            'email'                   => 'john.doe@example.com',
         ]);
     }
 
@@ -80,20 +80,20 @@ class SquareServiceCustomerTest extends TestCase
     {
         $customer = factory(Customer::class)->create([
             'first_name' => 'Jane',
-            'last_name' => 'Smith',
-            'email' => 'jane.smith@example.com',
+            'last_name'  => 'Smith',
+            'email'      => 'jane.smith@example.com',
         ]);
 
         // Mock the create customer API call with creation_source
         $this->mockCreateCustomerSuccess([
-            'id' => 'CUSTOMER_TEST_456',
-            'givenName' => 'Jane',
-            'familyName' => 'Smith',
-            'emailAddress' => 'jane.smith@example.com',
-            'version' => 1,
+            'id'             => 'CUSTOMER_TEST_456',
+            'givenName'      => 'Jane',
+            'familyName'     => 'Smith',
+            'emailAddress'   => 'jane.smith@example.com',
+            'version'        => 1,
             'creationSource' => CustomerCreationSource::THIRD_PARTY,
-            'createdAt' => now()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'createdAt'      => now()->toISOString(),
+            'updatedAt'      => now()->toISOString(),
         ]);
 
         // Save customer
@@ -109,7 +109,7 @@ class SquareServiceCustomerTest extends TestCase
 
         $this->assertDatabaseHas('nikolag_customers', [
             'payment_service_id' => 'CUSTOMER_TEST_456',
-            'creation_source' => CustomerCreationSource::THIRD_PARTY,
+            'creation_source'    => CustomerCreationSource::THIRD_PARTY,
         ]);
     }
 
@@ -120,8 +120,8 @@ class SquareServiceCustomerTest extends TestCase
     {
         $customer = factory(Customer::class)->create([
             'first_name' => 'Bob',
-            'last_name' => 'Johnson',
-            'email' => 'bob.johnson@example.com',
+            'last_name'  => 'Johnson',
+            'email'      => 'bob.johnson@example.com',
         ]);
 
         // Build Square address
@@ -136,14 +136,14 @@ class SquareServiceCustomerTest extends TestCase
 
         // Mock the create customer API call with address
         $this->mockCreateCustomerSuccess([
-            'id' => 'CUSTOMER_TEST_789',
-            'givenName' => 'Bob',
-            'familyName' => 'Johnson',
+            'id'           => 'CUSTOMER_TEST_789',
+            'givenName'    => 'Bob',
+            'familyName'   => 'Johnson',
             'emailAddress' => 'bob.johnson@example.com',
-            'version' => 1,
-            'address' => $squareAddress,
-            'createdAt' => now()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'version'      => 1,
+            'address'      => $squareAddress,
+            'createdAt'    => now()->toISOString(),
+            'updatedAt'    => now()->toISOString(),
         ]);
 
         // Save customer
@@ -166,9 +166,9 @@ class SquareServiceCustomerTest extends TestCase
         // Verify address is in database
         $this->assertDatabaseHas('nikolag_addresses', [
             'addressable_type' => Customer::class,
-            'addressable_id' => $customer->id,
-            'address_line_1' => '123 Main St',
-            'locality' => 'Chicago',
+            'addressable_id'   => $customer->id,
+            'address_line_1'   => '123 Main St',
+            'locality'         => 'Chicago',
         ]);
     }
 
@@ -179,8 +179,8 @@ class SquareServiceCustomerTest extends TestCase
     {
         $customer = factory(Customer::class)->create([
             'first_name' => 'Alice',
-            'last_name' => 'Williams',
-            'email' => 'alice.williams@example.com',
+            'last_name'  => 'Williams',
+            'email'      => 'alice.williams@example.com',
         ]);
 
         // Build preferences
@@ -190,14 +190,14 @@ class SquareServiceCustomerTest extends TestCase
 
         // Mock the create customer API call with preferences
         $this->mockCreateCustomerSuccess([
-            'id' => 'CUSTOMER_TEST_101',
-            'givenName' => 'Alice',
-            'familyName' => 'Williams',
+            'id'           => 'CUSTOMER_TEST_101',
+            'givenName'    => 'Alice',
+            'familyName'   => 'Williams',
             'emailAddress' => 'alice.williams@example.com',
-            'version' => 1,
-            'preferences' => $preferences,
-            'createdAt' => now()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'version'      => 1,
+            'preferences'  => $preferences,
+            'createdAt'    => now()->toISOString(),
+            'updatedAt'    => now()->toISOString(),
         ]);
 
         // Save customer
@@ -228,8 +228,8 @@ class SquareServiceCustomerTest extends TestCase
     {
         $customer = factory(Customer::class)->create([
             'first_name' => 'Charlie',
-            'last_name' => 'Brown',
-            'email' => 'charlie.brown@example.com',
+            'last_name'  => 'Brown',
+            'email'      => 'charlie.brown@example.com',
         ]);
 
         $groupIds = ['GROUP_1', 'GROUP_2'];
@@ -237,15 +237,15 @@ class SquareServiceCustomerTest extends TestCase
 
         // Mock the create customer API call with groups and segments
         $this->mockCreateCustomerSuccess([
-            'id' => 'CUSTOMER_TEST_202',
-            'givenName' => 'Charlie',
-            'familyName' => 'Brown',
+            'id'           => 'CUSTOMER_TEST_202',
+            'givenName'    => 'Charlie',
+            'familyName'   => 'Brown',
             'emailAddress' => 'charlie.brown@example.com',
-            'version' => 1,
-            'groupIds' => $groupIds,
-            'segmentIds' => $segmentIds,
-            'createdAt' => now()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'version'      => 1,
+            'groupIds'     => $groupIds,
+            'segmentIds'   => $segmentIds,
+            'createdAt'    => now()->toISOString(),
+            'updatedAt'    => now()->toISOString(),
         ]);
 
         // Save customer
@@ -273,8 +273,8 @@ class SquareServiceCustomerTest extends TestCase
     {
         $customer = factory(Customer::class)->create([
             'first_name' => 'Error',
-            'last_name' => 'Test',
-            'email' => 'error@example.com',
+            'last_name'  => 'Test',
+            'email'      => 'error@example.com',
         ]);
 
         // Mock API error
@@ -296,8 +296,8 @@ class SquareServiceCustomerTest extends TestCase
         // Create customer with existing payment_service_id
         $customer = factory(Customer::class)->create([
             'first_name' => 'David',
-            'last_name' => 'Miller',
-            'email' => 'david.miller@example.com',
+            'last_name'  => 'Miller',
+            'email'      => 'david.miller@example.com',
         ]);
 
         // Manually set guarded fields (bypassing mass assignment protection)
@@ -312,13 +312,13 @@ class SquareServiceCustomerTest extends TestCase
 
         // Mock the update customer API call
         $this->mockUpdateCustomerSuccess([
-            'id' => 'EXISTING_CUSTOMER_123',
-            'givenName' => 'David',
-            'familyName' => 'Miller',
+            'id'           => 'EXISTING_CUSTOMER_123',
+            'givenName'    => 'David',
+            'familyName'   => 'Miller',
             'emailAddress' => 'david.miller@example.com', // Keep original email
-            'version' => 2, // Version incremented
-            'createdAt' => now()->subDay()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'version'      => 2, // Version incremented
+            'createdAt'    => now()->subDay()->toISOString(),
+            'updatedAt'    => now()->toISOString(),
         ]);
 
         // Save customer (DO NOT change email before setCustomer - customerBuilder queries by email!)
@@ -331,9 +331,9 @@ class SquareServiceCustomerTest extends TestCase
         $this->assertEquals(2, $customer->payment_service_version);
 
         $this->assertDatabaseHas('nikolag_customers', [
-            'payment_service_id' => 'EXISTING_CUSTOMER_123',
+            'payment_service_id'      => 'EXISTING_CUSTOMER_123',
             'payment_service_version' => 2,
-            'email' => 'david.miller@example.com',
+            'email'                   => 'david.miller@example.com',
         ]);
     }
 
@@ -345,8 +345,8 @@ class SquareServiceCustomerTest extends TestCase
         // Create customer with existing address
         $customer = factory(Customer::class)->create([
             'first_name' => 'Emma',
-            'last_name' => 'Davis',
-            'email' => 'emma.davis@example.com',
+            'last_name'  => 'Davis',
+            'email'      => 'emma.davis@example.com',
         ]);
 
         // Manually set guarded fields (bypassing mass assignment protection)
@@ -356,7 +356,7 @@ class SquareServiceCustomerTest extends TestCase
 
         $oldAddress = factory(Address::class)->create([
             'address_line_1' => 'Old Address St',
-            'locality' => 'Old City',
+            'locality'       => 'Old City',
         ]);
         $customer->address()->save($oldAddress);
 
@@ -373,14 +373,14 @@ class SquareServiceCustomerTest extends TestCase
         // Mock the update customer API call with new address
         // NOTE: Keep email same as original - CustomerBuilder queries by email!
         $this->mockUpdateCustomerSuccess([
-            'id' => 'EXISTING_CUSTOMER_456',
-            'givenName' => 'Emma',
-            'familyName' => 'Davis',
+            'id'           => 'EXISTING_CUSTOMER_456',
+            'givenName'    => 'Emma',
+            'familyName'   => 'Davis',
             'emailAddress' => 'emma.davis@example.com', // Keep original email
-            'version' => 2,
-            'address' => $updatedSquareAddress,
-            'createdAt' => now()->subDay()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'version'      => 2,
+            'address'      => $updatedSquareAddress,
+            'createdAt'    => now()->subDay()->toISOString(),
+            'updatedAt'    => now()->toISOString(),
         ]);
 
         // Save customer (triggers update)
@@ -408,8 +408,8 @@ class SquareServiceCustomerTest extends TestCase
         // Create customer
         $customer = factory(Customer::class)->create([
             'first_name' => 'Frank',
-            'last_name' => 'Wilson',
-            'email' => 'frank.wilson@example.com',
+            'last_name'  => 'Wilson',
+            'email'      => 'frank.wilson@example.com',
         ]);
 
         // Manually set guarded fields (bypassing mass assignment protection)
@@ -427,16 +427,16 @@ class SquareServiceCustomerTest extends TestCase
 
         // Mock the update customer API call
         $this->mockUpdateCustomerSuccess([
-            'id' => 'EXISTING_CUSTOMER_789',
-            'givenName' => 'Frank',
-            'familyName' => 'Wilson',
+            'id'           => 'EXISTING_CUSTOMER_789',
+            'givenName'    => 'Frank',
+            'familyName'   => 'Wilson',
             'emailAddress' => 'frank.wilson@example.com',
-            'version' => 2,
-            'preferences' => $preferences,
-            'groupIds' => $updatedGroupIds,
-            'segmentIds' => $updatedSegmentIds,
-            'createdAt' => now()->subDay()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'version'      => 2,
+            'preferences'  => $preferences,
+            'groupIds'     => $updatedGroupIds,
+            'segmentIds'   => $updatedSegmentIds,
+            'createdAt'    => now()->subDay()->toISOString(),
+            'updatedAt'    => now()->toISOString(),
         ]);
 
         // Save customer
@@ -463,8 +463,8 @@ class SquareServiceCustomerTest extends TestCase
     {
         $customer = factory(Customer::class)->create([
             'first_name' => 'Error',
-            'last_name' => 'Update',
-            'email' => 'error.update@example.com',
+            'last_name'  => 'Update',
+            'email'      => 'error.update@example.com',
         ]);
 
         // Manually set guarded fields (bypassing mass assignment protection)
@@ -490,21 +490,21 @@ class SquareServiceCustomerTest extends TestCase
     {
         $customer = factory(Customer::class)->create([
             'first_name' => 'Birthday',
-            'last_name' => 'Test',
-            'email' => 'birthday@example.com',
-            'birthday' => '1990-05-15',
+            'last_name'  => 'Test',
+            'email'      => 'birthday@example.com',
+            'birthday'   => '1990-05-15',
         ]);
 
         // Mock the create customer API call with birthday
         $this->mockCreateCustomerSuccess([
-            'id' => 'CUSTOMER_BIRTHDAY_123',
-            'givenName' => 'Birthday',
-            'familyName' => 'Test',
+            'id'           => 'CUSTOMER_BIRTHDAY_123',
+            'givenName'    => 'Birthday',
+            'familyName'   => 'Test',
             'emailAddress' => 'birthday@example.com',
-            'birthday' => '1990-05-15',
-            'version' => 1,
-            'createdAt' => now()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'birthday'     => '1990-05-15',
+            'version'      => 1,
+            'createdAt'    => now()->toISOString(),
+            'updatedAt'    => now()->toISOString(),
         ]);
 
         // Save customer
@@ -526,22 +526,22 @@ class SquareServiceCustomerTest extends TestCase
     public function test_create_customer_with_reference_id(): void
     {
         $customer = factory(Customer::class)->create([
-            'first_name' => 'Reference',
-            'last_name' => 'Test',
-            'email' => 'reference@example.com',
+            'first_name'   => 'Reference',
+            'last_name'    => 'Test',
+            'email'        => 'reference@example.com',
             'reference_id' => 'EXTERNAL_REF_123',
         ]);
 
         // Mock the create customer API call with reference_id
         $this->mockCreateCustomerSuccess([
-            'id' => 'CUSTOMER_REF_123',
-            'givenName' => 'Reference',
-            'familyName' => 'Test',
+            'id'           => 'CUSTOMER_REF_123',
+            'givenName'    => 'Reference',
+            'familyName'   => 'Test',
             'emailAddress' => 'reference@example.com',
-            'referenceId' => 'EXTERNAL_REF_123',
-            'version' => 1,
-            'createdAt' => now()->toISOString(),
-            'updatedAt' => now()->toISOString(),
+            'referenceId'  => 'EXTERNAL_REF_123',
+            'version'      => 1,
+            'createdAt'    => now()->toISOString(),
+            'updatedAt'    => now()->toISOString(),
         ]);
 
         // Save customer
@@ -554,7 +554,7 @@ class SquareServiceCustomerTest extends TestCase
 
         $this->assertDatabaseHas('nikolag_customers', [
             'payment_service_id' => 'CUSTOMER_REF_123',
-            'reference_id' => 'EXTERNAL_REF_123',
+            'reference_id'       => 'EXTERNAL_REF_123',
         ]);
     }
 }

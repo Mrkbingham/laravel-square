@@ -3,10 +3,8 @@
 namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
-use Nikolag\Square\Utils\Constants;
 
 class OrderProductModifierPivot extends Pivot
 {
@@ -53,7 +51,8 @@ class OrderProductModifierPivot extends Pivot
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

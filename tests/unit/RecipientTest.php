@@ -46,12 +46,12 @@ class RecipientTest extends TestCase
 
         // Create an address for the recipient using the polymorphic relationship
         $address = factory(Address::class)->create([
-            'address_line_1' => '123 Main St',
-            'address_line_2' => 'Suite 100',
-            'locality' => 'Chicago',
+            'address_line_1'                  => '123 Main St',
+            'address_line_2'                  => 'Suite 100',
+            'locality'                        => 'Chicago',
             'administrative_district_level_1' => 'IL',
-            'postal_code' => '60601',
-            'country' => 'US',
+            'postal_code'                     => '60601',
+            'country'                         => 'US',
         ]);
         $recipient->address()->save($address);
 

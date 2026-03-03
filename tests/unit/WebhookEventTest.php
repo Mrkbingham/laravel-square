@@ -38,9 +38,9 @@ class WebhookEventTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('nikolag_webhook_events', [
-            'square_event_id' => $event->square_event_id,
-            'event_type' => 'order.created',
-            'status' => WebhookEvent::STATUS_PENDING,
+            'square_event_id'         => $event->square_event_id,
+            'event_type'              => 'order.created',
+            'status'                  => WebhookEvent::STATUS_PENDING,
             'webhook_subscription_id' => $subscription->id,
         ]);
 
@@ -57,13 +57,13 @@ class WebhookEventTest extends TestCase
         $subscription = factory(WebhookSubscription::class)->create();
 
         $data = [
-            'square_event_id' => 'event-123',
-            'event_type' => 'order.created',
-            'event_data' => ['test' => 'data'],
-            'event_time' => now(),
-            'status' => WebhookEvent::STATUS_PENDING,
-            'processed_at' => now(),
-            'error_message' => 'Test error',
+            'square_event_id'         => 'event-123',
+            'event_type'              => 'order.created',
+            'event_data'              => ['test' => 'data'],
+            'event_time'              => now(),
+            'status'                  => WebhookEvent::STATUS_PENDING,
+            'processed_at'            => now(),
+            'error_message'           => 'Test error',
             'webhook_subscription_id' => $subscription->id,
         ];
 
@@ -86,8 +86,8 @@ class WebhookEventTest extends TestCase
     public function test_webhook_event_casts_work_correctly()
     {
         $event = factory(WebhookEvent::class)->create([
-            'event_data' => ['test' => 'data', 'nested' => ['key' => 'value']],
-            'event_time' => '2024-06-24 10:00:00',
+            'event_data'   => ['test' => 'data', 'nested' => ['key' => 'value']],
+            'event_time'   => '2024-06-24 10:00:00',
             'processed_at' => '2024-06-24 11:00:00',
         ]);
 
@@ -294,7 +294,7 @@ class WebhookEventTest extends TestCase
     {
         $eventData = [
             'merchant_id' => 'merchant-123',
-            'type' => 'order.created',
+            'type'        => 'order.created',
         ];
 
         $event = factory(WebhookEvent::class)->create([
@@ -336,8 +336,8 @@ class WebhookEventTest extends TestCase
     public function test_webhook_event_mark_as_processed_method()
     {
         $event = factory(WebhookEvent::class)->create([
-            'status' => WebhookEvent::STATUS_PENDING,
-            'processed_at' => null,
+            'status'        => WebhookEvent::STATUS_PENDING,
+            'processed_at'  => null,
             'error_message' => 'Previous error',
         ]);
 
@@ -363,8 +363,8 @@ class WebhookEventTest extends TestCase
     public function test_webhook_event_mark_as_failed_method()
     {
         $event = factory(WebhookEvent::class)->create([
-            'status' => WebhookEvent::STATUS_PENDING,
-            'processed_at' => null,
+            'status'        => WebhookEvent::STATUS_PENDING,
+            'processed_at'  => null,
             'error_message' => null,
         ]);
 
@@ -455,17 +455,17 @@ class WebhookEventTest extends TestCase
     public function test_webhook_event_multiple_scopes_can_be_chained()
     {
         factory(WebhookEvent::class)->create([
-            'status' => WebhookEvent::STATUS_PENDING,
+            'status'     => WebhookEvent::STATUS_PENDING,
             'event_type' => 'order.created',
         ]);
 
         factory(WebhookEvent::class)->create([
-            'status' => WebhookEvent::STATUS_PROCESSED,
+            'status'     => WebhookEvent::STATUS_PROCESSED,
             'event_type' => 'order.created',
         ]);
 
         factory(WebhookEvent::class)->create([
-            'status' => WebhookEvent::STATUS_PENDING,
+            'status'     => WebhookEvent::STATUS_PENDING,
             'event_type' => 'payment.created',
         ]);
 

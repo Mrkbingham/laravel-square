@@ -19,16 +19,17 @@ trait HasProducts
     /**
      * Charge an order.
      *
-     * @param  float  $amount
-     * @param  string  $nonce
-     * @param  string  $location_id
-     * @param  mixed  $merchant
-     * @param  array  $options
-     * @param  mixed|null  $customer
-     * @param  string  $currency
-     * @return Transaction
+     * @param float      $amount
+     * @param string     $nonce
+     * @param string     $location_id
+     * @param mixed      $merchant
+     * @param array      $options
+     * @param mixed|null $customer
+     * @param string     $currency
      *
      * @throws Exception
+     *
+     * @return Transaction
      */
     public function charge(float $amount, string $nonce, string $location_id, mixed $merchant, array $options = [], mixed $customer = null, string $currency = 'USD'): Transaction
     {
@@ -40,7 +41,8 @@ trait HasProducts
     /**
      * Check existence of an attribute in model.
      *
-     * @param  string  $attribute
+     * @param string $attribute
+     *
      * @return bool
      */
     public function hasColumn(string $attribute): bool
@@ -51,7 +53,8 @@ trait HasProducts
     /**
      * Does an order have a discount.
      *
-     * @param  mixed  $discount
+     * @param mixed $discount
+     *
      * @return bool
      */
     public function hasDiscount(mixed $discount): bool
@@ -64,7 +67,8 @@ trait HasProducts
     /**
      * Does an order have a tax.
      *
-     * @param  mixed  $tax
+     * @param mixed $tax
+     *
      * @return bool
      */
     public function hasTax(mixed $tax): bool
@@ -77,7 +81,8 @@ trait HasProducts
     /**
      * Does an order have a service charge.
      *
-     * @param  mixed  $serviceCharge
+     * @param mixed $serviceCharge
+     *
      * @return bool
      */
     public function hasServiceCharge(mixed $serviceCharge): bool
@@ -90,7 +95,8 @@ trait HasProducts
     /**
      * Does an order have a product.
      *
-     * @param  mixed  $product
+     * @param mixed $product
+     *
      * @return bool
      */
     public function hasProduct(mixed $product): bool
@@ -105,6 +111,7 @@ trait HasProducts
      *
      * @param mixed $product
      * @param array $attributes
+     *
      * @return void
      */
     public function attachProduct($product, array $attributes = [])
@@ -113,7 +120,7 @@ trait HasProducts
 
         // Merge the product's current price into the pivot attributes
         $pivotData = array_merge($attributes, [
-            'base_price_money_amount' => $productModel->price
+            'base_price_money_amount' => $productModel->price,
         ]);
 
         $this->products()->attach($product, $pivotData);

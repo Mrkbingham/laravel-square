@@ -38,16 +38,17 @@ class FulfillmentBuilder
     /**
      * Checks if the fulfillment details are already set.
      *
-     * @param  mixed  $fulfillmentModel
-     * @return void
+     * @param mixed $fulfillmentModel
      *
      * @throws InvalidSquareOrderException
+     *
+     * @return void
      */
     private function checkFulfillmentDetails(mixed $fulfillmentModel): void
     {
         // If this fulfillment already has details, throw an error - only one fulfillment details per fulfillment
         // is currently supported
-        if (! empty($fulfillmentModel->fulfillmentDetails)) {
+        if (!empty($fulfillmentModel->fulfillmentDetails)) {
             throw new InvalidSquareOrderException('Fulfillment already has details', 500);
         }
     }
@@ -55,11 +56,12 @@ class FulfillmentBuilder
     /**
      * Add a fulfillment to the order from model as source.
      *
-     * @param  Model  $fulfillment
-     * @param  Model  $order
-     * @return Fulfillment|stdClass
+     * @param Model $fulfillment
+     * @param Model $order
      *
      * @throws InvalidSquareOrderException
+     *
+     * @return Fulfillment|stdClass
      */
     public function createFulfillmentFromModel(Model $fulfillment, Model $order): Fulfillment|stdClass
     {
@@ -67,7 +69,7 @@ class FulfillmentBuilder
 
         // Check if the order is present and if it already has this fulfillment
         // or if fulfillment doesn't have property $id then create new Fulfillment object
-        if (($order && ! $order->hasFulfillment($fulfillment)) && ! Arr::has($fulfillment->toArray(), 'id')) {
+        if (($order && !$order->hasFulfillment($fulfillment)) && !Arr::has($fulfillment->toArray(), 'id')) {
             $fulfillmentObj = new Fulfillment($fulfillment->toArray());
         } else {
             $fulfillmentObj = Fulfillment::find($fulfillment->id);
@@ -78,17 +80,17 @@ class FulfillmentBuilder
         // should already be a model associated with the fulfillment at this point
         if (
             $fulfillment->type == FulfillmentType::DELIVERY
-            && ! $fulfillment->fulfillmentDetails instanceof DeliveryDetails
+            && !$fulfillment->fulfillmentDetails instanceof DeliveryDetails
         ) {
             throw new InvalidSquareOrderException('Fulfillment type does not match details', 500);
         } elseif (
             $fulfillment->type == FulfillmentType::PICKUP
-            && ! $fulfillment->fulfillmentDetails instanceof PickupDetails
+            && !$fulfillment->fulfillmentDetails instanceof PickupDetails
         ) {
             throw new InvalidSquareOrderException('Fulfillment type does not match details', 500);
         } elseif (
             $fulfillment->type == FulfillmentType::SHIPMENT
-            && ! $fulfillment->fulfillmentDetails instanceof ShipmentDetails
+            && !$fulfillment->fulfillmentDetails instanceof ShipmentDetails
         ) {
             throw new InvalidSquareOrderException('Fulfillment type does not match details', 500);
         }
@@ -106,27 +108,28 @@ class FulfillmentBuilder
     /**
      * Add a fulfillment to the order from array as source.
      *
-     * @param  array  $fulfillment
-     * @param  Model  $order
-     * @return Fulfillment|stdClass
+     * @param array $fulfillment
+     * @param Model $order
      *
      * @throws MissingPropertyException
      * @throws InvalidSquareOrderException
+     *
+     * @return Fulfillment|stdClass
      */
     public function createFulfillmentFromArray(
         array $fulfillment,
-        Model $order = null
+        ?Model $order = null
     ): Model|stdClass {
         $fulfillmentObj = new stdClass();
 
         // If fulfillment doesn't have a type in the array throw new exception - every fulfillment should have a type.
-        if (! Arr::has($fulfillment, 'type') || $fulfillment['type'] == null) {
+        if (!Arr::has($fulfillment, 'type') || $fulfillment['type'] == null) {
             throw new MissingPropertyException('"type" property for object Fulfillment is missing', 500);
         }
 
         // Check if the order is present and if it already has this fulfillment
         // or if fulfillment doesn't have property $id then create new Fulfillment object
-        if (($order && ! $order->hasFulfillment($fulfillment)) || ! Arr::has($fulfillment, 'id')) {
+        if (($order && !$order->hasFulfillment($fulfillment)) || !Arr::has($fulfillment, 'id')) {
             $tempFulfillment = new Fulfillment($fulfillment);
         } else {
             $tempFulfillment = Fulfillment::find($fulfillment['id']);
@@ -161,11 +164,12 @@ class FulfillmentBuilder
     /**
      * Create delivery details from array.
      *
-     * @param  array  $fulfillment
-     * @param  Model  $order
-     * @return DeliveryDetails
+     * @param array $fulfillment
+     * @param Model $order
      *
      * @throws MissingPropertyException
+     *
+     * @return DeliveryDetails
      */
     public function createDeliveryDetailsFromArray(array $fulfillment, mixed $fulfillmentModel): DeliveryDetails
     {
@@ -174,7 +178,7 @@ class FulfillmentBuilder
 
         // Get the details
         $deliveryData = Arr::get($fulfillment, $this->deliveryDetailsKey);
-        if (! $deliveryData) {
+        if (!$deliveryData) {
             throw new MissingPropertyException(
                 $this->deliveryDetailsKey.' property for object Fulfillment is missing',
                 500
@@ -187,11 +191,12 @@ class FulfillmentBuilder
     /**
      * Create pickup details from array.
      *
-     * @param  array  $fulfillment
-     * @param  Model  $order
-     * @return PickupDetails
+     * @param array $fulfillment
+     * @param Model $order
      *
      * @throws MissingPropertyException
+     *
+     * @return PickupDetails
      */
     public function createPickupDetailsFromArray(array $fulfillment, mixed $fulfillmentModel): PickupDetails
     {
@@ -200,7 +205,7 @@ class FulfillmentBuilder
 
         // Get the details
         $pickupData = Arr::get($fulfillment, $this->pickupDetailsKey);
-        if (! $pickupData) {
+        if (!$pickupData) {
             throw new MissingPropertyException(
                 $this->pickupDetailsKey.' property for object Fulfillment is missing',
                 500
@@ -213,11 +218,12 @@ class FulfillmentBuilder
     /**
      * Create shipment details from array.
      *
-     * @param  array  $fulfillment
-     * @param  Model  $order
-     * @return ShipmentDetails
+     * @param array $fulfillment
+     * @param Model $order
      *
      * @throws MissingPropertyException
+     *
+     * @return ShipmentDetails
      */
     public function createShipmentDetailsFromArray(array $fulfillment, mixed $fulfillmentModel): ShipmentDetails
     {
@@ -226,7 +232,7 @@ class FulfillmentBuilder
 
         // Get the details
         $shipmentData = Arr::get($fulfillment, $this->shipmentDetailsKey);
-        if (! $shipmentData) {
+        if (!$shipmentData) {
             throw new MissingPropertyException(
                 $this->shipmentDetailsKey.' property for object Fulfillment is missing',
                 500
@@ -239,11 +245,12 @@ class FulfillmentBuilder
     /**
      * Get recipient data from fulfillment.
      *
-     * @param  array  $fulfillment  The fulfillment data.
-     * @param  string  $type  The type of the fulfillment.
+     * @param array  $fulfillment The fulfillment data.
+     * @param string $type        The type of the fulfillment.
+     *
      * @return Recipient|null
      */
-    private function getRecipientFromFulfillmentArray(array $fulfillment, string $type): Recipient|null
+    private function getRecipientFromFulfillmentArray(array $fulfillment, string $type): ?Recipient
     {
         if ($type == FulfillmentType::DELIVERY) {
             $fulfillmentDetails = Arr::get($fulfillment, $this->deliveryDetailsKey);

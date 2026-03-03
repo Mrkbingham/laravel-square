@@ -45,15 +45,15 @@ class ShipmentDetails extends Model
      * @var array
      */
     protected $casts = [
-        'placed_at' => 'datetime',
-        'in_progress_at' => 'datetime',
-        'packaged_at' => 'datetime',
+        'placed_at'           => 'datetime',
+        'in_progress_at'      => 'datetime',
+        'packaged_at'         => 'datetime',
         'expected_shipped_at' => 'datetime',
-        'shipped_at' => 'datetime',
-        'canceled_at' => 'datetime',
-        'failed_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'shipped_at'          => 'datetime',
+        'canceled_at'         => 'datetime',
+        'failed_at'           => 'datetime',
+        'created_at'          => 'datetime',
+        'updated_at'          => 'datetime',
     ];
 
     /**
@@ -81,7 +81,8 @@ class ShipmentDetails extends Model
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)

@@ -17,12 +17,14 @@ class Util
     /**
      * Calculates order total based on orderCopy (stdClass of Model).
      *
-     * @param  stdClass  $orderCopy
+     * @param stdClass $orderCopy
+     *
      * @return float|int
      */
     public static function calculateTotalOrderCost(stdClass $orderCopy): float|int
     {
         $allServiceCharges = self::collectServiceCharges($orderCopy);
+
         return self::_calculateTotalCost($orderCopy->discounts, $orderCopy->taxes, $allServiceCharges, $orderCopy->products);
     }
 
@@ -30,9 +32,10 @@ class Util
      * Calculate all discounts on order level no matter
      * their scope.
      *
-     * @param  Collection  $discounts
-     * @param  float  $noDeductiblesCost
-     * @param  Collection  $products
+     * @param Collection $discounts
+     * @param float      $noDeductiblesCost
+     * @param Collection $products
+     *
      * @return float|int
      */
     private static function _calculateDiscounts(Collection $discounts, float $noDeductiblesCost, Collection $products): float|int
@@ -46,8 +49,8 @@ class Util
 
             return match ($scope) {
                 Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::_calculateProductDiscounts($products, $discount),
-                Constants::DEDUCTIBLE_SCOPE_ORDER => self::_calculateOrderDiscounts($discount, $noDeductiblesCost),
-                default => 0
+                Constants::DEDUCTIBLE_SCOPE_ORDER   => self::_calculateOrderDiscounts($discount, $noDeductiblesCost),
+                default                             => 0
             };
         });
     }
@@ -55,8 +58,9 @@ class Util
     /**
      * Function which calculates the net price by removing any additive taxes to the entire order.
      *
-     * @param  float  $discountCount
-     * @param  Collection  $inclusiveTaxes
+     * @param float      $discountCount
+     * @param Collection $inclusiveTaxes
+     *
      * @return float|int
      */
     private static function _calculateNetPrice(float $discountCost, Collection $inclusiveTaxes): float|int
@@ -80,8 +84,9 @@ class Util
      * Function which calculates discounts on order level and where percentage
      * takes over precedence over flat amount.
      *
-     * @param  $discount
-     * @param  float  $noDeductiblesCost
+     * @param       $discount
+     * @param float $noDeductiblesCost
+     *
      * @return float|int
      */
     private static function _calculateOrderDiscounts($discount, float $noDeductiblesCost): float|int
@@ -94,8 +99,9 @@ class Util
      * Function which calculates discounts on product level and where percentage
      * takes over precedence over flat amount.
      *
-     * @param  $products
-     * @param  $discount
+     * @param $products
+     * @param $discount
+     *
      * @return float|int
      */
     private static function _calculateProductDiscounts($products, $discount): float|int
@@ -105,7 +111,7 @@ class Util
         });
 
         if ($product) {
-            return ($discount->percentage) ? ($product->pivot->base_price_money_amount * $product->pivot->quantity * $discount->percentage / 100):
+            return ($discount->percentage) ? ($product->pivot->base_price_money_amount * $product->pivot->quantity * $discount->percentage / 100) :
                 $discount->amount;
         } else {
             return 0;
@@ -115,10 +121,11 @@ class Util
     /**
      * Function which calculates taxes on product level.
      *
-     * @param  $products
-     * @param  $tax
-     * @param  Collection  $inclusiveTaxes
-     * @param  Collection  $discounts
+     * @param            $products
+     * @param            $tax
+     * @param Collection $inclusiveTaxes
+     * @param Collection $discounts
+     *
      * @return float|int
      */
     private static function _calculateProductTaxes($products, $tax, Collection $inclusiveTaxes, Collection $discounts): float|int
@@ -148,9 +155,10 @@ class Util
     /**
      * Function which calculates taxes on order level.
      *
-     * @param  float  $discountCost
-     * @param  $tax
-     * @param  Collection  $inclusiveTaxes
+     * @param float      $discountCost
+     * @param            $tax
+     * @param Collection $inclusiveTaxes
+     *
      * @return float|int
      */
     private static function _calculateOrderTaxes(float $discountCost, $tax, Collection $inclusiveTaxes): float|int
@@ -168,8 +176,9 @@ class Util
      * Function which calculates service charges on order level and where percentage
      * takes over precedence over flat amount.
      *
-     * @param  $serviceCharge
-     * @param  float  $amount
+     * @param       $serviceCharge
+     * @param float $amount
+     *
      * @return float|int
      */
     private static function _calculateOrderServiceCharges($serviceCharge, float $amount): float|int
@@ -182,8 +191,9 @@ class Util
      * Function which calculates service charges on product level and where percentage
      * takes over precedence over flat amount.
      *
-     * @param  $products
-     * @param  $serviceCharge
+     * @param $products
+     * @param $serviceCharge
+     *
      * @return float|int
      */
     private static function _calculateProductServiceCharges($products, $serviceCharge): float|int
@@ -196,6 +206,7 @@ class Util
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
             // Apply fixed amount per line item quantity
             $totalQuantity = $products->sum('pivot.quantity');
+
             return $serviceCharge->amount_money * $totalQuantity;
         }
 
@@ -204,6 +215,7 @@ class Util
             $totalValue = $products->sum(function ($product) {
                 return $product->pivot->base_price_money_amount * $product->pivot->quantity;
             });
+
             return $totalValue * $serviceCharge->percentage / 100;
         }
 
@@ -217,6 +229,7 @@ class Util
         }
 
         $pivot = $targetProduct->pivot;
+
         return $serviceCharge->percentage ?
             ($pivot->base_price_money_amount * $pivot->quantity * $serviceCharge->percentage / 100) :
             $serviceCharge->amount_money;
@@ -226,9 +239,10 @@ class Util
      * Calculate all service charges on order level no matter
      * their scope.
      *
-     * @param  Collection  $serviceCharges
-     * @param  float  $baseAmount
-     * @param  Collection  $products
+     * @param Collection $serviceCharges
+     * @param float      $baseAmount
+     * @param Collection $products
+     *
      * @return float|int
      */
     private static function _calculateServiceCharges(Collection $serviceCharges, float $baseAmount, Collection $products): float|int
@@ -242,8 +256,8 @@ class Util
 
             return match ($scope) {
                 Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::_calculateProductServiceCharges($products, $serviceCharge),
-                Constants::DEDUCTIBLE_SCOPE_ORDER => self::_calculateOrderServiceCharges($serviceCharge, $baseAmount),
-                default => 0
+                Constants::DEDUCTIBLE_SCOPE_ORDER   => self::_calculateOrderServiceCharges($serviceCharge, $baseAmount),
+                default                             => 0
             };
         });
     }
@@ -251,8 +265,9 @@ class Util
     /**
      * Calculate taxes on service charges based on their treatment type.
      *
-     * @param  Collection  $serviceCharges
-     * @param  Collection  $products
+     * @param Collection $serviceCharges
+     * @param Collection $products
+     *
      * @return float|int
      */
     private static function _calculateServiceChargeTaxes(Collection $serviceCharges, Collection $products): float|int
@@ -280,7 +295,7 @@ class Util
             $scope = $serviceCharge->pivot ? $serviceCharge->pivot->scope : $serviceCharge->scope;
             $serviceChargeAmount = match ($scope) {
                 Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::_calculateProductServiceCharges($products, $serviceCharge),
-                Constants::DEDUCTIBLE_SCOPE_ORDER => $serviceCharge->percentage ?
+                Constants::DEDUCTIBLE_SCOPE_ORDER   => $serviceCharge->percentage ?
                     round($serviceCharge->percentage / 100 * self::_getOrderBaseAmount($products)) :
                     $serviceCharge->amount_money,
                 default => 0
@@ -324,7 +339,8 @@ class Util
     /**
      * Get the base order amount for service charge calculations.
      *
-     * @param  Collection  $products
+     * @param Collection $products
+     *
      * @return float|int
      */
     private static function _getOrderBaseAmount(Collection $products): float|int
@@ -348,9 +364,10 @@ class Util
      * Calculate all additive taxes on order level.
      * Inclusive taxes are not added to the cost as they're already included in the price.
      *
-     * @param  Collection  $taxes
-     * @param  float  $discountCost
-     * @param  Collection  $products
+     * @param Collection $taxes
+     * @param float      $discountCost
+     * @param Collection $products
+     *
      * @return float|int
      */
     private static function _calculateAdditiveTaxes(Collection $taxes, float $discountCost, Collection $products, Collection $discounts): float|int
@@ -360,8 +377,8 @@ class Util
         }
 
         // Pre-filter taxes for efficiency
-        $additiveTaxes = $taxes->filter(fn($tax) => $tax->type === Constants::TAX_ADDITIVE);
-        $inclusiveTaxes = $taxes->filter(fn($tax) => $tax->type === Constants::TAX_INCLUSIVE);
+        $additiveTaxes = $taxes->filter(fn ($tax) => $tax->type === Constants::TAX_ADDITIVE);
+        $inclusiveTaxes = $taxes->filter(fn ($tax) => $tax->type === Constants::TAX_INCLUSIVE);
 
         if ($additiveTaxes->isEmpty()) {
             return 0;
@@ -372,8 +389,8 @@ class Util
 
             return match ($scope) {
                 Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::_calculateProductTaxes($products, $tax, $inclusiveTaxes, $discounts),
-                Constants::DEDUCTIBLE_SCOPE_ORDER => self::_calculateOrderTaxes($discountCost, $tax, $inclusiveTaxes),
-                default => 0
+                Constants::DEDUCTIBLE_SCOPE_ORDER   => self::_calculateOrderTaxes($discountCost, $tax, $inclusiveTaxes),
+                default                             => 0
             };
         });
     }
@@ -381,10 +398,11 @@ class Util
     /**
      * Calculate total order cost.
      *
-     * @param  Collection  $discounts
-     * @param  Collection  $taxes
-     * @param  Collection  $serviceCharges
-     * @param  Collection  $products
+     * @param Collection $discounts
+     * @param Collection $taxes
+     * @param Collection $serviceCharges
+     * @param Collection $products
+     *
      * @return float|int
      */
     private static function _calculateTotalCost(Collection $discounts, Collection $taxes, Collection $serviceCharges, Collection $products): float|int
@@ -411,9 +429,9 @@ class Util
         // Separate service charges by calculation phase
         $subtotalServiceCharges = $allServiceCharges->filter(function ($serviceCharge) {
             return in_array($serviceCharge->calculation_phase, [
-                    OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
-                    OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
-                    OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE
+                OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
+                OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
+                OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
             ]);
         });
 
@@ -451,6 +469,7 @@ class Util
      * Efficiently merge collections by scope to avoid multiple filter operations.
      *
      * @param Collection $collection
+     *
      * @return Collection
      */
     private static function _mergeCollectionsByScope(Collection $collection): Collection
@@ -461,6 +480,7 @@ class Util
 
         return $collection->filter(function ($obj) {
             $scope = $obj->pivot ? $obj->pivot->scope : $obj->scope;
+
             return in_array($scope, [Constants::DEDUCTIBLE_SCOPE_ORDER, Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
         });
     }
@@ -469,6 +489,7 @@ class Util
      * Calculate product totals once and cache for reuse.
      *
      * @param Collection $products
+     *
      * @return array
      */
     private static function _calculateProductTotals(Collection $products): array
@@ -493,37 +514,40 @@ class Util
 
             $baseCost += $lineTotal;
             $productDetails[] = [
-                'product' => $product,
-                'basePrice' => $productPrice,
+                'product'      => $product,
+                'basePrice'    => $productPrice,
                 'modifierCost' => $modifierCost,
-                'totalPrice' => $totalProductPrice,
-                'quantity' => $pivot->quantity,
-                'lineTotal' => $lineTotal
+                'totalPrice'   => $totalProductPrice,
+                'quantity'     => $pivot->quantity,
+                'lineTotal'    => $lineTotal,
             ];
         }
 
         return [
-            'baseCost' => $baseCost,
-            'productDetails' => $productDetails
+            'baseCost'       => $baseCost,
+            'productDetails' => $productDetails,
         ];
     }
 
     /**
      * Calculates order total based on Model.
      *
-     * @param  Model  $order
+     * @param Model $order
+     *
      * @return float|int
      */
     public static function calculateTotalOrderCostByModel(Model $order): float|int
     {
         $allServiceCharges = self::collectServiceCharges($order);
+
         return self::_calculateTotalCost($order->discounts, $order->taxes, $allServiceCharges, $order->products);
     }
 
     /**
      * Check if source has fulfillment.
      *
-     * @param  stdClass  $order
+     * @param stdClass $order
+     *
      * @return bool
      */
     public static function hasFulfillment(
@@ -549,8 +573,9 @@ class Util
     /**
      * Check if source has product.
      *
-     * @param  \Illuminate\Database\Eloquent\Collection|Collection  $source
-     * @param  int|array|Product|null  $product
+     * @param \Illuminate\Database\Eloquent\Collection|Collection $source
+     * @param int|array|Product|null                              $product
+     *
      * @return bool
      */
     public static function hasProduct(\Illuminate\Database\Eloquent\Collection|Collection $source, Product|int|array|null $product): bool
@@ -574,10 +599,11 @@ class Util
     /**
      * Generate random alphanumeric string of supplied length or 30 by default.
      *
-     * @param  int  $length
-     * @return string
+     * @param int $length
      *
      * @throws \Exception
+     *
+     * @return string
      */
     public static function uid(int $length = 30): string
     {

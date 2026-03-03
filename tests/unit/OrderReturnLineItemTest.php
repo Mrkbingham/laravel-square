@@ -41,7 +41,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -51,10 +51,10 @@ class OrderReturnLineItemTest extends TestCase
 
         /** @var OrderReturnLineItem */
         $lineItem = factory(OrderReturnLineItem::class)->create([
-            'order_return_id' => $orderReturn->id,
-            'product_id' => $product->id,
-            'quantity' => 2,
-            'base_price_money_amount' => 15_00,
+            'order_return_id'           => $orderReturn->id,
+            'product_id'                => $product->id,
+            'quantity'                  => 2,
+            'base_price_money_amount'   => 15_00,
             'gross_return_money_amount' => 30_00,
         ]);
 
@@ -82,7 +82,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -91,7 +91,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturnLineItem */
         $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
-            'product_id' => $product->id,
+            'product_id'      => $product->id,
         ]);
 
         $this->assertInstanceOf(OrderReturn::class, $lineItem->orderReturn);
@@ -113,7 +113,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -122,7 +122,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturnLineItem */
         $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
-            'product_id' => $product->id,
+            'product_id'      => $product->id,
         ]);
 
         $this->assertInstanceOf(Product::class, $lineItem->product);
@@ -144,7 +144,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -153,7 +153,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturnLineItem */
         $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
-            'product_id' => $product->id,
+            'product_id'      => $product->id,
         ]);
 
         /** @var Tax */
@@ -162,7 +162,7 @@ class OrderReturnLineItemTest extends TestCase
         $lineItem->taxes()->attach($tax->id, [
             'featurable_type' => Constants::ORDER_RETURN_LINE_ITEM_NAMESPACE,
             'deductible_type' => Constants::TAX_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $this->assertNotNull($lineItem->taxes);
@@ -185,7 +185,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -194,7 +194,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturnLineItem */
         $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
-            'product_id' => $product->id,
+            'product_id'      => $product->id,
         ]);
 
         /** @var Discount */
@@ -203,7 +203,7 @@ class OrderReturnLineItemTest extends TestCase
         $lineItem->discounts()->attach($discount->id, [
             'featurable_type' => Constants::ORDER_RETURN_LINE_ITEM_NAMESPACE,
             'deductible_type' => Constants::DISCOUNT_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $this->assertNotNull($lineItem->discounts);
@@ -226,7 +226,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -235,7 +235,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturnLineItem */
         $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
-            'product_id' => $product->id,
+            'product_id'      => $product->id,
         ]);
 
         /** @var ServiceCharge */
@@ -244,7 +244,7 @@ class OrderReturnLineItemTest extends TestCase
         $lineItem->serviceCharges()->attach($serviceCharge->id, [
             'featurable_type' => Constants::ORDER_RETURN_LINE_ITEM_NAMESPACE,
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $this->assertNotNull($lineItem->serviceCharges);
@@ -267,7 +267,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -276,7 +276,7 @@ class OrderReturnLineItemTest extends TestCase
         /** @var OrderReturnLineItem */
         $lineItem = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
-            'product_id' => $product->id,
+            'product_id'      => $product->id,
         ]);
 
         $this->assertTrue($lineItem->hasProduct($product));
@@ -293,19 +293,19 @@ class OrderReturnLineItemTest extends TestCase
     {
         /** @var OrderReturnLineItem */
         $lineItem = factory(OrderReturnLineItem::class)->create([
-            'quantity' => 3,
-            'square_uid' => 'test-square-uid',
-            'source_line_item_uid' => 'test-source-line-item-uid',
-            'catalog_object_id' => 'test-catalog-object-id',
-            'catalog_version' => 5,
-            'variation_name' => 'Large Size',
-            'item_type' => 'ITEM',
-            'note' => 'Special return instructions',
-            'base_price_money_amount' => 20_00,
+            'quantity'                           => 3,
+            'square_uid'                         => 'test-square-uid',
+            'source_line_item_uid'               => 'test-source-line-item-uid',
+            'catalog_object_id'                  => 'test-catalog-object-id',
+            'catalog_version'                    => 5,
+            'variation_name'                     => 'Large Size',
+            'item_type'                          => 'ITEM',
+            'note'                               => 'Special return instructions',
+            'base_price_money_amount'            => 20_00,
             'variation_total_price_money_amount' => 60_00,
-            'gross_return_money_amount' => 60_00,
-            'total_discount_money_amount' => 5_00,
-            'total_service_charge_money_amount' => 2_00,
+            'gross_return_money_amount'          => 60_00,
+            'total_discount_money_amount'        => 5_00,
+            'total_service_charge_money_amount'  => 2_00,
         ]);
 
         $this->assertNotNull($lineItem);

@@ -9,10 +9,11 @@ interface SquareServiceContract extends PaymentServiceContract
     /**
      * Add a product to the order.
      *
-     * @param  mixed  $product
-     * @param  int  $quantity
-     * @param  string  $currency
-     * @param  array  $modifiers
+     * @param mixed  $product
+     * @param int    $quantity
+     * @param string $currency
+     * @param array  $modifiers
+     *
      * @return self
      */
     public function addProduct(mixed $product, int $quantity = 1, string $currency = 'USD', array $modifiers = []): SquareServiceContract;
@@ -32,7 +33,8 @@ interface SquareServiceContract extends PaymentServiceContract
     /**
      * Getter for fulfillment recipient.
      *
-     * @param  mixed  $recipient
+     * @param mixed $recipient
+     *
      * @return self
      */
     public function getFulfillmentRecipient(): mixed;
@@ -40,7 +42,8 @@ interface SquareServiceContract extends PaymentServiceContract
     /**
      * Sets the fulfillment for the order.
      *
-     * @param  mixed  $fulfillment
+     * @param mixed $fulfillment
+     *
      * @return self
      */
     public function setFulfillment(mixed $fulfillment): SquareServiceContract;
@@ -48,7 +51,8 @@ interface SquareServiceContract extends PaymentServiceContract
     /**
      * Add a fulfillment recipient to the order.
      *
-     * @param  mixed  $recipient
+     * @param mixed $recipient
+     *
      * @return self
      */
     public function setFulfillmentRecipient(mixed $recipient): SquareServiceContract;
@@ -56,9 +60,10 @@ interface SquareServiceContract extends PaymentServiceContract
     /**
      * Setter for order.
      *
-     * @param  mixed  $order
-     * @param  string  $locationId
-     * @param  string  $currency
+     * @param mixed  $order
+     * @param string $locationId
+     * @param string $currency
+     *
      * @return self
      */
     public function setOrder(mixed $order, string $locationId, string $currency = 'USD'): SquareServiceContract;

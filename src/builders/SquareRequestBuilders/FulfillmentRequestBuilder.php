@@ -11,12 +11,12 @@ use Nikolag\Square\Models\PickupDetails;
 use Nikolag\Square\Models\ShipmentDetails;
 use Nikolag\Square\Utils\Constants;
 use Square\Models\Fulfillment as SquareFulfillment;
-use Square\Models\FulfillmentType;
 use Square\Models\FulfillmentDeliveryDetails;
 use Square\Models\FulfillmentPickupDetails;
 use Square\Models\FulfillmentPickupDetailsCurbsidePickupDetails;
 use Square\Models\FulfillmentRecipient;
 use Square\Models\FulfillmentShipmentDetails;
+use Square\Models\FulfillmentType;
 
 class FulfillmentRequestBuilder
 {
@@ -25,6 +25,7 @@ class FulfillmentRequestBuilder
      *
      * @param FulfillmentPickupDetails $fulfillmentPickupDetails The Square fulfillment pickup details object.
      * @param PickupDetails            $pickupDetails            The pickup details model.
+     *
      * @return void
      */
     public function addCurbsidePickupDetails(
@@ -32,7 +33,7 @@ class FulfillmentRequestBuilder
         PickupDetails $pickupDetails
     ): void {
         // Check if it's a curbside pickup
-        if (! $pickupDetails->is_curbside_pickup) {
+        if (!$pickupDetails->is_curbside_pickup) {
             return;
         }
 
@@ -52,10 +53,11 @@ class FulfillmentRequestBuilder
      * Builds and returns array of \Square\Models\Fulfillment for order.
      *
      * @param Collection $fulfillments Collection of fulfillment models.
-     * @return array<\Square\Models\Fulfillment>
      *
      * @throws InvalidSquareOrderException When fulfillment configuration is invalid.
      * @throws MissingPropertyException    When required fulfillment properties are missing.
+     *
+     * @return array<\Square\Models\Fulfillment>
      */
     public function buildFulfillments(Collection $fulfillments): array
     {
@@ -109,10 +111,11 @@ class FulfillmentRequestBuilder
      * Builds the fulfillment details for delivery fulfillment types.
      *
      * @param Fulfillment $fulfillment The fulfillment model.
-     * @return FulfillmentDeliveryDetails
      *
      * @throws InvalidSquareOrderException When delivery configuration is invalid.
      * @throws MissingPropertyException    When required delivery properties are missing.
+     *
+     * @return FulfillmentDeliveryDetails
      */
     public function buildDeliveryDetails(Fulfillment $fulfillment): FulfillmentDeliveryDetails
     {
@@ -172,10 +175,11 @@ class FulfillmentRequestBuilder
      * Builds the fulfillment details for pickup fulfillment types.
      *
      * @param Fulfillment $fulfillment The fulfillment model.
-     * @return FulfillmentPickupDetails
      *
      * @throws InvalidSquareOrderException When pickup configuration is invalid.
      * @throws MissingPropertyException    When required pickup properties are missing.
+     *
+     * @return FulfillmentPickupDetails
      */
     public function buildPickupDetails(Fulfillment $fulfillment): FulfillmentPickupDetails
     {
@@ -231,10 +235,11 @@ class FulfillmentRequestBuilder
      * Builds the fulfillment details for shipment fulfillment types.
      *
      * @param Fulfillment $fulfillment The fulfillment model.
-     * @return FulfillmentShipmentDetails
      *
      * @throws InvalidSquareOrderException When shipment configuration is invalid.
      * @throws MissingPropertyException    When required shipment properties are missing.
+     *
+     * @return FulfillmentShipmentDetails
      */
     public function buildShipmentDetails(Fulfillment $fulfillment): FulfillmentShipmentDetails
     {

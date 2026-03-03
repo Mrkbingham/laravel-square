@@ -217,7 +217,7 @@ class UtilTest extends TestCase
     }
 
     /**
-     * Test variable pricing support - product with null price but price in order
+     * Test variable pricing support - product with null price but price in order.
      *
      * @return void
      */
@@ -246,7 +246,7 @@ class UtilTest extends TestCase
     }
 
     /**
-     * Test variable pricing support - product with null price but price in order
+     * Test variable pricing support - product with null price but price in order.
      *
      * @return void
      */
@@ -387,18 +387,18 @@ class UtilTest extends TestCase
 
         // Create a service charge with apportioned amount calculation
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Apportioned amount service charge',
-            'amount_money' => 10_00, // 10.00 USD
+            'name'              => 'Apportioned amount service charge',
+            'amount_money'      => 10_00, // 10.00 USD
             'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
-            'taxable' => true,
-            'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+            'taxable'           => true,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
         ]);
 
         // Add the service charge to the order
         $this->data->order->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
@@ -418,18 +418,18 @@ class UtilTest extends TestCase
 
         // Create a service charge with apportioned amount calculation
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Apportioned percentage service charge',
-            'percentage' => 10.0, // 10%
+            'name'              => 'Apportioned percentage service charge',
+            'percentage'        => 10.0, // 10%
             'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
-            'taxable' => true,
-            'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+            'taxable'           => true,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
         ]);
 
         // Add the service charge to the order
         $this->data->order->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
@@ -447,16 +447,16 @@ class UtilTest extends TestCase
     {
         $tax = factory(Tax::class)->create([
             'percentage' => 10.0,
-            'type' => Constants::TAX_ADDITIVE,
+            'type'       => Constants::TAX_ADDITIVE,
         ]);
 
         $discount = factory(Discount::class)->create([
             'percentage' => 10.0,
-            'amount' => null,
+            'amount'     => null,
         ]);
 
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'percentage' => 5.0,
+            'percentage'   => 5.0,
             'amount_money' => null,
         ]);
 
@@ -469,17 +469,17 @@ class UtilTest extends TestCase
         $this->data->order->taxes()->attach($tax->id, [
             'deductible_type' => Constants::TAX_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
         $this->data->order->discounts()->attach($discount->id, [
             'deductible_type' => Constants::DISCOUNT_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
         $this->data->order->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
         $this->data->order->attachProduct($this->data->product);
 
@@ -501,30 +501,30 @@ class UtilTest extends TestCase
         // Create a new tax of 8%
         $tax = factory(Tax::class)->create([
             'percentage' => 8.0,
-            'type' => Constants::TAX_ADDITIVE,
+            'type'       => Constants::TAX_ADDITIVE,
         ]);
 
         // Create a service charge with apportioned amount calculation
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Fixed amount service charge',
-            'amount_money' => 10_00, // 10.00 USD
+            'name'              => 'Fixed amount service charge',
+            'amount_money'      => 10_00, // 10.00 USD
             'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
-            'taxable' => true,
-            'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+            'taxable'           => true,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
         ]);
 
         // Apply the tax to the service charge
         $serviceCharge->taxes()->attach($tax->id, [
             'deductible_type' => Constants::TAX_NAMESPACE,
             'featurable_type' => Constants::SERVICE_CHARGE_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         // Add the service charge to the order
         $this->data->order->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
@@ -545,29 +545,29 @@ class UtilTest extends TestCase
         // Create a new tax of 8%
         $tax = factory(Tax::class)->create([
             'percentage' => 8.0,
-            'type' => Constants::TAX_ADDITIVE,
+            'type'       => Constants::TAX_ADDITIVE,
         ]);
 
         // Create a percentage-based service charge with a subtotal calculation phase
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Service charge with taxes',
-            'amount_money' => 10_00, // 10.00 USD
+            'name'              => 'Service charge with taxes',
+            'amount_money'      => 10_00, // 10.00 USD
             'calculation_phase' => OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
-            'taxable' => true,
-            'treatment_type' => OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT,
+            'taxable'           => true,
+            'treatment_type'    => OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT,
         ]);
 
         // Apply the tax to the service charge
         $serviceCharge->taxes()->attach($tax->id, [
             'deductible_type' => Constants::TAX_NAMESPACE,
             'featurable_type' => Constants::SERVICE_CHARGE_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_SERVICE_CHARGE
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_SERVICE_CHARGE,
         ]);
 
         $this->data->order->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
@@ -587,14 +587,14 @@ class UtilTest extends TestCase
 
         // Create a percentage-based service charge with a subtotal calculation phase
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'percentage' => 1.5,
+            'percentage'        => 1.5,
             'calculation_phase' => OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
         ]);
 
         $this->data->order->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
@@ -611,9 +611,9 @@ class UtilTest extends TestCase
     public function test_service_charge_fixed_amount_calculation(): void
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'amount_money' => 200,
+            'amount_money'    => 200,
             'amount_currency' => 'USD',
-            'percentage' => null,
+            'percentage'      => null,
         ]);
 
         $this->data->order->save();
@@ -625,7 +625,7 @@ class UtilTest extends TestCase
         $this->data->order->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
         $this->data->order->attachProduct($this->data->product);
 
@@ -643,10 +643,10 @@ class UtilTest extends TestCase
     public function test_product_service_charge_calculation(): void
     {
         $serviceCharge = factory(ServiceCharge::class)->create([
-            'percentage' => 15.0,
+            'percentage'        => 15.0,
             'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE,
-            'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
-            'taxable' => false,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+            'taxable'           => false,
         ]);
 
         $this->data->order->save();
@@ -661,7 +661,7 @@ class UtilTest extends TestCase
         $this->data->order->products->first()->pivot->serviceCharges()->attach($serviceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
@@ -705,9 +705,9 @@ class UtilTest extends TestCase
     {
         // Create a subtotal phase tax
         $subtotalTax = factory(Tax::class)->create([
-            'name' => 'Sales Tax (Subtotal)',
-            'percentage' => 10,
-            'type' => Constants::TAX_ADDITIVE,
+            'name'              => 'Sales Tax (Subtotal)',
+            'percentage'        => 10,
+            'type'              => Constants::TAX_ADDITIVE,
             'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
         ]);
 
@@ -719,7 +719,7 @@ class UtilTest extends TestCase
         $this->data->order->taxes()->attach($subtotalTax->id, [
             'deductible_type' => Constants::TAX_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $this->data->order->attachProduct($this->data->product);
@@ -743,9 +743,9 @@ class UtilTest extends TestCase
     {
         // Create a tax without calculation_phase (should default to subtotal behavior)
         $totalTax = factory(Tax::class)->create([
-            'name' => 'Legacy Tax',
+            'name'       => 'Legacy Tax',
             'percentage' => 7.0,
-            'type' => Constants::TAX_ADDITIVE,
+            'type'       => Constants::TAX_ADDITIVE,
             // No calculation_phase specified
         ]);
 
@@ -757,7 +757,7 @@ class UtilTest extends TestCase
         $this->data->order->taxes()->attach($totalTax->id, [
             'deductible_type' => Constants::TAX_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $this->data->order->attachProduct($this->data->product);
@@ -781,33 +781,33 @@ class UtilTest extends TestCase
     {
         // Create both subtotal and total phase taxes
         $subtotalTax = factory(Tax::class)->create([
-            'name' => 'State Tax (Subtotal)',
-            'percentage' => 5.0,
-            'type' => Constants::TAX_ADDITIVE,
+            'name'              => 'State Tax (Subtotal)',
+            'percentage'        => 5.0,
+            'type'              => Constants::TAX_ADDITIVE,
             'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
         ]);
 
         $totalTax = factory(Tax::class)->create([
-            'name' => 'City Tax (Total)',
-            'percentage' => 3.0,
-            'type' => Constants::TAX_ADDITIVE,
+            'name'              => 'City Tax (Total)',
+            'percentage'        => 3.0,
+            'type'              => Constants::TAX_ADDITIVE,
             'calculation_phase' => TaxCalculationPhase::TAX_TOTAL_PHASE,
         ]);
 
         // Create service charges for both phases
         $subtotalServiceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Processing Fee',
-            'amount_money' => 5_00, // $5.00
+            'name'              => 'Processing Fee',
+            'amount_money'      => 5_00, // $5.00
             'calculation_phase' => OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
-            'taxable' => false,
+            'taxable'           => false,
         ]);
 
         $totalServiceCharge = factory(ServiceCharge::class)->create([
-            'name' => 'Convenience Fee',
-            'percentage' => 2.0,
+            'name'              => 'Convenience Fee',
+            'percentage'        => 2.0,
             'calculation_phase' => OrderServiceChargeCalculationPhase::TOTAL_PHASE,
-            'treatment_type' => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
-            'taxable' => false,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+            'taxable'           => false,
         ]);
 
         $this->data->order->save();
@@ -818,24 +818,24 @@ class UtilTest extends TestCase
         $this->data->order->taxes()->attach($subtotalTax->id, [
             'deductible_type' => Constants::TAX_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
         $this->data->order->taxes()->attach($totalTax->id, [
             'deductible_type' => Constants::TAX_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         // Attach both service charges
         $this->data->order->serviceCharges()->attach($subtotalServiceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
         $this->data->order->serviceCharges()->attach($totalServiceCharge->id, [
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
             'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope' => Constants::DEDUCTIBLE_SCOPE_ORDER
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
         $this->data->order->attachProduct($this->data->product);
@@ -850,9 +850,11 @@ class UtilTest extends TestCase
         $expectedTotal = 115_83;
         $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
 
-        $this->assertEquals($expectedTotal, $actualTotal,
-            'Tax calculation phases did not produce expected result. ' .
-            'Expected: $115.83, Actual: $' . number_format($actualTotal / 100, 2)
+        $this->assertEquals(
+            $expectedTotal,
+            $actualTotal,
+            'Tax calculation phases did not produce expected result. '.
+            'Expected: $115.83, Actual: $'.number_format($actualTotal / 100, 2)
         );
     }
 }

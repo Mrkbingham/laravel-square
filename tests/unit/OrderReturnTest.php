@@ -41,8 +41,8 @@ class OrderReturnTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->make([
             'source_order_id' => $testUUID,
-            'uid' => 'test-return-uid-123',
-            'data' => $this->data->squareOrderReturn,
+            'uid'             => 'test-return-uid-123',
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         $this->assertNotNull($orderReturn);
@@ -75,7 +75,7 @@ class OrderReturnTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         $this->assertInstanceOf(Order::class, $orderReturn->order);
@@ -97,7 +97,7 @@ class OrderReturnTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -106,14 +106,14 @@ class OrderReturnTest extends TestCase
 
         $lineItem1 = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
-            'product_id' => $product1->id,
-            'quantity' => 1,
+            'product_id'      => $product1->id,
+            'quantity'        => 1,
         ]);
 
         $lineItem2 = factory(OrderReturnLineItem::class)->create([
             'order_return_id' => $orderReturn->id,
-            'product_id' => $product2->id,
-            'quantity' => 2,
+            'product_id'      => $product2->id,
+            'quantity'        => 2,
         ]);
 
         $this->assertCount(2, $orderReturn->returnLineItems);
@@ -135,7 +135,7 @@ class OrderReturnTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -143,7 +143,7 @@ class OrderReturnTest extends TestCase
 
         $lineItem = $orderReturn->attachReturnLineItem($product, [
             'quantity' => 3,
-            'note' => 'Test return line item',
+            'note'     => 'Test return line item',
         ]);
 
         $this->assertInstanceOf(OrderReturnLineItem::class, $lineItem);
@@ -169,7 +169,7 @@ class OrderReturnTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -196,7 +196,7 @@ class OrderReturnTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -226,7 +226,7 @@ class OrderReturnTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -253,7 +253,7 @@ class OrderReturnTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -267,7 +267,7 @@ class OrderReturnTest extends TestCase
         $lineItem->taxes()->attach($tax->id, [
             'featurable_type' => Constants::ORDER_RETURN_LINE_ITEM_NAMESPACE,
             'deductible_type' => Constants::TAX_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $this->assertTrue($orderReturn->hasTax($tax));
@@ -289,7 +289,7 @@ class OrderReturnTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -303,7 +303,7 @@ class OrderReturnTest extends TestCase
         $lineItem->discounts()->attach($discount->id, [
             'featurable_type' => Constants::ORDER_RETURN_LINE_ITEM_NAMESPACE,
             'deductible_type' => Constants::DISCOUNT_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $this->assertTrue($orderReturn->hasDiscount($discount));
@@ -325,7 +325,7 @@ class OrderReturnTest extends TestCase
         /** @var OrderReturn */
         $orderReturn = factory(OrderReturn::class)->create([
             'source_order_id' => $testUUID,
-            'data' => $this->data->squareOrderReturn,
+            'data'            => $this->data->squareOrderReturn,
         ]);
 
         /** @var Product */
@@ -339,7 +339,7 @@ class OrderReturnTest extends TestCase
         $lineItem->serviceCharges()->attach($serviceCharge->id, [
             'featurable_type' => Constants::ORDER_RETURN_LINE_ITEM_NAMESPACE,
             'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
-            'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
         $this->assertTrue($orderReturn->hasServiceCharge($serviceCharge));

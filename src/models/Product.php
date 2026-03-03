@@ -15,7 +15,7 @@ class Product extends CoreProduct
      * @var array
      */
     protected $fillable = [
-        'name', 'price', 'variation_name', 'note', 'reference_id', 'square_catalog_object_id'
+        'name', 'price', 'variation_name', 'note', 'reference_id', 'square_catalog_object_id',
     ];
 
     /**
@@ -38,11 +38,11 @@ class Product extends CoreProduct
         return $this->belongsToMany(Modifier::class, 'nikolag_modifier_product_pivot', 'product_id', 'modifier_id');
     }
 
-
     /**
      * Prepare a date for array / JSON serialization.
      *
-     * @param  \DateTimeInterface  $date
+     * @param \DateTimeInterface $date
+     *
      * @return string
      */
     protected function serializeDate(DateTimeInterface $date)
