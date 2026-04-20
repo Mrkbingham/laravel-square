@@ -4,6 +4,7 @@ namespace Nikolag\Square\Models;
 
 use DateTime;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Square\Models\Location as SquareLocation;
 
 class Location extends Model
@@ -22,7 +23,6 @@ class Location extends Model
      */
     protected $fillable = [
         'name',
-        'address',
         'timezone',
         'capabilities',
         'status',
@@ -58,6 +58,14 @@ class Location extends Model
     ];
 
     /**
+     * Get the address for this location.
+     */
+    public function address(): MorphOne
+    {
+        return $this->morphOne(Address::class, 'addressable');
+    }
+
+    /**
      * Processes the location data during sync.
      *
      * @param array $locationData The json serialized location data from the REST API.
@@ -72,8 +80,11 @@ class Location extends Model
         $locationData['square_id'] = $locationData['id'];
         unset($locationData['id']);
 
-        // Update columns that are stores as more complex objects
-        $locationData['address'] = json_encode($location->getAddress()?->jsonSerialize());
+        // Store raw address data for syncing to the address relationship
+        $locationData['_address_data'] = $location->getAddress()?->jsonSerialize();
+        unset($locationData['address']);
+
+        // Update columns that are stored as more complex objects
         $locationData['capabilities'] = json_encode($location->getCapabilities());
         $locationData['business_hours'] = json_encode($location->getBusinessHours()?->jsonSerialize());
 
