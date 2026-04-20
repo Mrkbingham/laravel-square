@@ -5,6 +5,7 @@ namespace Nikolag\Square\Models;
 use DateTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Square\Models\Location as SquareLocation;
 
 class Location extends Model
