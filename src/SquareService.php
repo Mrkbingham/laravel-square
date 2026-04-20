@@ -363,10 +363,32 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         })->toArray();
 
         foreach ($allLocationData as $locationData) {
+            // Extract address data before persisting (not a database column)
+            $addressData = $locationData['_address_data'] ?? null;
+            unset($locationData['_address_data']);
+
             // Create or update the location
-            Location::updateOrCreate([
+            $location = Location::updateOrCreate([
                 'square_id' => $locationData['square_id'],
             ], $locationData);
+
+            // Sync the address relationship
+            if (is_array($addressData) && !empty(array_filter($addressData))) {
+                $location->address()->updateOrCreate([], [
+                    'address_line_1'                  => $addressData['address_line_1'] ?? null,
+                    'address_line_2'                  => $addressData['address_line_2'] ?? null,
+                    'address_line_3'                  => $addressData['address_line_3'] ?? null,
+                    'locality'                        => $addressData['locality'] ?? null,
+                    'administrative_district_level_1' => $addressData['administrative_district_level_1'] ?? null,
+                    'administrative_district_level_2' => $addressData['administrative_district_level_2'] ?? null,
+                    'administrative_district_level_3' => $addressData['administrative_district_level_3'] ?? null,
+                    'sublocality'                     => $addressData['sublocality'] ?? null,
+                    'sublocality_2'                   => $addressData['sublocality_2'] ?? null,
+                    'sublocality_3'                   => $addressData['sublocality_3'] ?? null,
+                    'postal_code'                     => $addressData['postal_code'] ?? null,
+                    'country'                         => $addressData['country'] ?? null,
+                ]);
+            }
         }
     }
 

@@ -1077,8 +1077,8 @@ class SquareServiceTest extends TestCase
             // Make sure every location has a name
             $this->assertNotNull($location->name, 'Location has no name. Location: '.$location->toJson());
 
-            // Make sure every location has a name
-            $this->assertNotNull($location->address, 'Location has no address. Location: '.$location->toJson());
+            // Make sure every location has an address record
+            $this->assertNotNull($location->address, 'Location has no address record. Location: '.$location->toJson());
         }
     }
 
