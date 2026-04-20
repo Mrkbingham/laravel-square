@@ -59,6 +59,8 @@ class Location extends Model
 
     /**
      * Get the address for this location.
+     *
+     * @return MorphOne<Address, $this>
      */
     public function address(): MorphOne
     {

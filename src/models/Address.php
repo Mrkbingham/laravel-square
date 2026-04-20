@@ -129,4 +129,25 @@ class Address extends Model
             'country'                         => $squareAddress->getCountry(),
         ]);
     }
+
+    /**
+     * Format the address as a single-line display string.
+     *
+     * Example: "1170 Ludlow Street, Philadelphia, PA, 19107"
+     */
+    public function getFormattedAddress(): ?string
+    {
+        $cityState = implode(', ', array_filter([
+            $this->locality,
+            $this->administrative_district_level_1,
+        ]));
+
+        $parts = array_filter([
+            $this->address_line_1,
+            $cityState ?: null,
+            $this->postal_code,
+        ]);
+
+        return $parts ? implode(', ', $parts) : null;
+    }
 }
