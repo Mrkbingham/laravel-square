@@ -57,14 +57,6 @@ $factory->state(Constants::TAX_NAMESPACE, 'INCLUSIVE', [
 $factory->define(Location::class, function (Faker\Generator $faker) {
     return [
         'name'    => $faker->company,
-        'address' => json_encode([
-            'address_line_1'                  => $faker->streetAddress,
-            'address_line_2'                  => $faker->secondaryAddress,
-            'locality'                        => $faker->city,
-            'administrative_district_level_1' => $faker->state,
-            'postal_code'                     => $faker->postcode,
-            'country'                         => $faker->countryCode,
-        ]),
         'timezone'           => $faker->timezone,
         'capabilities'       => ['CREDIT_CARD_PROCESSING', 'IN_STORE_PICKUP'],
         'status'             => Arr::random(['ACTIVE', 'INACTIVE']),
@@ -85,6 +77,10 @@ $factory->define(Location::class, function (Faker\Generator $faker) {
         'mcc'                => $faker->numberBetween(1000, 9999),
         'square_id'          => 'location_'.$faker->uuid,
     ];
+});
+
+$factory->afterCreating(Location::class, function ($location, $faker) {
+    $location->address()->save(factory(Address::class)->make());
 });
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
