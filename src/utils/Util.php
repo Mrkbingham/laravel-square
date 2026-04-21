@@ -746,7 +746,7 @@ class Util
      *
      * @param Collection $discounts
      * @param float|int  $lineItemBaseCost
-     * @param float      $ratio Apportionment ratio for ORDER-scoped fixed amounts
+     * @param float      $ratio            Apportionment ratio for ORDER-scoped fixed amounts
      *
      * @return float|int Total discount amount
      */
@@ -825,9 +825,9 @@ class Util
      * LINE_ITEM-scoped charges apply directly.
      *
      * @param Collection        $serviceCharges
-     * @param float|int         $baseAmount Current line item subtotal
+     * @param float|int         $baseAmount     Current line item subtotal
      * @param OrderProductPivot $lineItem
-     * @param float             $ratio Apportionment ratio
+     * @param float             $ratio          Apportionment ratio
      *
      * @return float|int Total service charge amount
      */
@@ -858,7 +858,7 @@ class Util
      *
      * @param Collection        $serviceCharges
      * @param OrderProductPivot $lineItem
-     * @param float             $ratio Apportionment ratio
+     * @param float             $ratio          Apportionment ratio
      *
      * @return float|int
      */
