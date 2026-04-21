@@ -6,6 +6,7 @@ use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Nikolag\Square\Models\Fulfillment;
+use Nikolag\Square\Models\OrderProductPivot;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Models\Tax;
 use Square\Models\OrderServiceChargeCalculationPhase;
@@ -146,7 +147,7 @@ class Util
             // Calculate and round the product taxes
             $productTaxes = $netPrice * ($tax->percentage / 100);
 
-            return round($productTaxes);
+            return self::_roundMoney($productTaxes);
         } else {
             return 0;
         }
@@ -169,7 +170,7 @@ class Util
         // Get the order taxes
         $orderTaxes = $netPrice * $tax->percentage / 100;
 
-        return round($orderTaxes);
+        return self::_roundMoney($orderTaxes);
     }
 
     /**
@@ -183,7 +184,7 @@ class Util
      */
     private static function _calculateOrderServiceCharges($serviceCharge, float $amount): float|int
     {
-        return ($serviceCharge->percentage) ? round($amount * $serviceCharge->percentage / 100) :
+        return ($serviceCharge->percentage) ? self::_roundMoney($amount * $serviceCharge->percentage / 100) :
             $serviceCharge->amount_money;
     }
 
@@ -296,14 +297,14 @@ class Util
             $serviceChargeAmount = match ($scope) {
                 Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::_calculateProductServiceCharges($products, $serviceCharge),
                 Constants::DEDUCTIBLE_SCOPE_ORDER   => $serviceCharge->percentage ?
-                    round($serviceCharge->percentage / 100 * self::_getOrderBaseAmount($products)) :
+                    self::_roundMoney($serviceCharge->percentage / 100 * self::_getOrderBaseAmount($products)) :
                     $serviceCharge->amount_money,
                 default => 0
             };
 
             // Apply taxes to the service charge amount
             return $serviceChargeTaxes->sum(function ($tax) use ($serviceChargeAmount) {
-                return round($serviceChargeAmount * $tax->percentage / 100);
+                return self::_roundMoney($serviceChargeAmount * $tax->percentage / 100);
             });
         });
     }
@@ -538,9 +539,453 @@ class Util
      */
     public static function calculateTotalOrderCostByModel(Model $order): float|int
     {
+        $order->loadMissing(['lineItems']);
+
+        if ($order->lineItems->count() > 1) {
+            return $order->lineItems->sum(
+                fn (OrderProductPivot $lineItem) => self::calculateLineItemTotalByModel($lineItem, $order)
+            );
+        }
+
         $allServiceCharges = self::collectServiceCharges($order);
 
         return self::_calculateTotalCost($order->discounts, $order->taxes, $allServiceCharges, $order->products);
+    }
+
+    /**
+     * Calculate the total cost for a single line item, including its apportioned
+     * share of order-level taxes, discounts, and service charges.
+     *
+     * Mirrors Square's per-line-item total calculation: order-level adjustments
+     * are apportioned proportionally by gross sales ratio.
+     *
+     * @param OrderProductPivot $lineItem The line item to calculate.
+     * @param Model             $order    The parent order (for order-level deductibles).
+     *
+     * @return float|int The total cost for this line item in cents.
+     */
+    public static function calculateLineItemTotalByModel(OrderProductPivot $lineItem, Model $order): float|int
+    {
+        $lineItem->loadMissing(['taxes', 'discounts', 'serviceCharges', 'modifiers.modifiable']);
+        $order->loadMissing(['lineItems.modifiers.modifiable', 'lineItems.serviceCharges', 'discounts', 'taxes']);
+
+        $allServiceCharges = self::collectServiceCharges($order);
+        $allLineItems = $order->lineItems;
+
+        return self::_calculateLineItemTotal($lineItem, $order->discounts, $order->taxes, $allServiceCharges, $allLineItems);
+    }
+
+    /**
+     * Core calculation pipeline for a single line item.
+     *
+     * Follows the same sequence as _calculateTotalCost:
+     * base cost → discounts → subtotal service charges → subtotal taxes
+     * → total service charges → total taxes → service charge taxes
+     *
+     * ORDER-scoped deductibles are apportioned by gross sales ratio.
+     *
+     * @param OrderProductPivot $lineItem
+     * @param Collection        $orderDiscounts
+     * @param Collection        $orderTaxes
+     * @param Collection        $orderServiceCharges
+     * @param Collection        $allLineItems
+     *
+     * @return float|int
+     */
+    private static function _calculateLineItemTotal(
+        OrderProductPivot $lineItem,
+        Collection $orderDiscounts,
+        Collection $orderTaxes,
+        Collection $orderServiceCharges,
+        Collection $allLineItems
+    ): float|int {
+        // Step 1: Base cost for this line item
+        $lineItemBaseCost = self::_calculateLineItemBaseCost($lineItem);
+
+        // Step 2: Apportionment ratio (this line item's share of order gross sales)
+        $orderBaseCost = self::_calculateAllLineItemsBaseCost($allLineItems);
+        $ratio = ($orderBaseCost > 0) ? $lineItemBaseCost / $orderBaseCost : 0;
+
+        // Step 3: Collect all applicable deductibles for this line item
+        $isCustomLineItem = is_null($lineItem->product_id);
+
+        // Line-item-scoped deductibles (directly attached to this line item)
+        $lineItemDiscounts = self::_mergeCollectionsByScope($lineItem->discounts ?? collect([]));
+        $lineItemTaxes = self::_mergeCollectionsByScope($lineItem->taxes ?? collect([]));
+        $lineItemServiceCharges = self::_mergeCollectionsByScope($lineItem->serviceCharges ?? collect([]));
+
+        // Order-scoped deductibles
+        $orderScopedDiscounts = self::_filterOrderScoped($orderDiscounts);
+        $orderScopedTaxes = self::_filterOrderScoped($orderTaxes);
+
+        // For custom line items, only include ORDER taxes that apply to custom amounts
+        if ($isCustomLineItem) {
+            $orderScopedTaxes = $orderScopedTaxes->filter(
+                fn (Tax $tax) => $tax->appliesToCustomAmounts()
+            );
+        }
+
+        $orderScopedServiceCharges = self::_filterOrderScoped($orderServiceCharges);
+
+        // Merge all applicable deductibles
+        $allDiscounts = $lineItemDiscounts->merge($orderScopedDiscounts);
+        $allTaxes = $lineItemTaxes->merge($orderScopedTaxes);
+        $allServiceCharges = $lineItemServiceCharges->merge($orderScopedServiceCharges);
+
+        // Step 4: Separate taxes by calculation phase
+        $subtotalPhaseTaxes = $allTaxes->filter(fn (Tax $tax) => $tax->isCalculatedOnSubtotal());
+        $totalPhaseTaxes = $allTaxes->filter(fn (Tax $tax) => $tax->isCalculatedOnTotal());
+
+        // Step 5: Separate service charges by calculation phase
+        $subtotalServiceCharges = $allServiceCharges->filter(fn ($sc) => in_array($sc->calculation_phase, [
+            OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
+            OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
+            OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
+        ]));
+        $totalServiceCharges = $allServiceCharges->filter(
+            fn ($sc) => $sc->calculation_phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE
+        );
+
+        // Step 6: Apply discounts
+        $discountAmount = self::_calculateLineItemDiscounts($allDiscounts, $lineItemBaseCost, $ratio);
+        $discountedCost = $lineItemBaseCost - $discountAmount;
+
+        // Step 7: Add subtotal-phase service charges
+        $subtotalServiceChargeBreakdown = self::_calculateLineItemServiceChargeBreakdown(
+            $subtotalServiceCharges,
+            $discountedCost,
+            $lineItem,
+            $allLineItems,
+            $ratio
+        );
+        $subtotalSCAmount = $subtotalServiceChargeBreakdown->sum('amount');
+        $subtotalAmount = $discountedCost + $subtotalSCAmount;
+
+        // Step 8: Add subtotal-phase taxes
+        $subtotalTaxAmount = self::_calculateLineItemTaxes($subtotalPhaseTaxes, $subtotalAmount);
+        $subtotalTaxedCost = $subtotalAmount + $subtotalTaxAmount;
+
+        // Step 9: Add total-phase service charges
+        $totalServiceChargeBreakdown = self::_calculateLineItemServiceChargeBreakdown(
+            $totalServiceCharges,
+            $subtotalTaxedCost,
+            $lineItem,
+            $allLineItems,
+            $ratio
+        );
+        $totalSCAmount = $totalServiceChargeBreakdown->sum('amount');
+        $preTotal = $subtotalTaxedCost + $totalSCAmount;
+
+        // Step 10: Add total-phase taxes
+        $totalTaxAmount = self::_calculateLineItemTaxes($totalPhaseTaxes, $preTotal);
+        $totalTaxedCost = $preTotal + $totalTaxAmount;
+
+        // Step 11: Add service charge taxes
+        $scTaxAmount = self::_calculateLineItemServiceChargeTaxes(
+            $subtotalServiceChargeBreakdown->merge($totalServiceChargeBreakdown)
+        );
+
+        return $totalTaxedCost + $scTaxAmount;
+    }
+
+    /**
+     * Calculate base cost for a single line item: (base_price + modifiers) × quantity.
+     *
+     * @param OrderProductPivot $lineItem
+     *
+     * @return float|int
+     */
+    private static function _calculateLineItemBaseCost(OrderProductPivot $lineItem): float|int
+    {
+        $basePrice = $lineItem->base_price_money_amount ?? 0;
+
+        $modifierCost = 0;
+        if ($lineItem->modifiers && $lineItem->modifiers->isNotEmpty()) {
+            $modifierCost = $lineItem->modifiers->sum(
+                fn ($modifier) => $modifier->modifiable?->price_money_amount ?? 0
+            );
+        }
+
+        return ($basePrice + $modifierCost) * ($lineItem->quantity ?? 1);
+    }
+
+    /**
+     * Sum base costs across all line items for the apportionment denominator.
+     *
+     * @param Collection $lineItems Collection of OrderProductPivot
+     *
+     * @return float|int
+     */
+    private static function _calculateAllLineItemsBaseCost(Collection $lineItems): float|int
+    {
+        return $lineItems->sum(fn (OrderProductPivot $li) => self::_calculateLineItemBaseCost($li));
+    }
+
+    /**
+     * Filter a collection of deductibles to only ORDER-scoped items.
+     *
+     * @param Collection $deductibles
+     *
+     * @return Collection
+     */
+    private static function _filterOrderScoped(Collection $deductibles): Collection
+    {
+        return $deductibles->filter(function ($item) {
+            $scope = $item->pivot ? $item->pivot->scope : $item->scope;
+
+            return $scope === Constants::DEDUCTIBLE_SCOPE_ORDER;
+        });
+    }
+
+    /**
+     * Calculate discounts for a single line item.
+     *
+     * Percentage discounts apply their percentage to this line item's base cost.
+     * Fixed-amount ORDER-scoped discounts are apportioned by gross sales ratio.
+     * Fixed-amount LINE_ITEM-scoped discounts apply their full amount.
+     *
+     * @param Collection $discounts
+     * @param float|int  $lineItemBaseCost
+     * @param float      $ratio Apportionment ratio for ORDER-scoped fixed amounts
+     *
+     * @return float|int Total discount amount
+     */
+    private static function _calculateLineItemDiscounts(Collection $discounts, float|int $lineItemBaseCost, float $ratio): float|int
+    {
+        if ($discounts->isEmpty()) {
+            return 0;
+        }
+
+        $runningAmount = $lineItemBaseCost;
+        $totalDiscount = 0;
+
+        $discountGroups = [
+            fn ($discount) => ($discount->pivot ? $discount->pivot->scope : $discount->scope) === Constants::DEDUCTIBLE_SCOPE_PRODUCT && $discount->percentage,
+            fn ($discount) => ($discount->pivot ? $discount->pivot->scope : $discount->scope) === Constants::DEDUCTIBLE_SCOPE_ORDER && $discount->percentage,
+            fn ($discount) => ($discount->pivot ? $discount->pivot->scope : $discount->scope) === Constants::DEDUCTIBLE_SCOPE_PRODUCT && !$discount->percentage,
+            fn ($discount) => ($discount->pivot ? $discount->pivot->scope : $discount->scope) === Constants::DEDUCTIBLE_SCOPE_ORDER && !$discount->percentage,
+        ];
+
+        foreach ($discountGroups as $groupFilter) {
+            foreach ($discounts->filter($groupFilter) as $discount) {
+                $scope = $discount->pivot ? $discount->pivot->scope : $discount->scope;
+                $discountAmount = $discount->percentage
+                    ? self::_roundMoney($runningAmount * $discount->percentage / 100)
+                    : ($scope === Constants::DEDUCTIBLE_SCOPE_ORDER
+                        ? self::_roundMoney(($discount->amount ?? 0) * $ratio)
+                        : ($discount->amount ?? 0));
+
+                $discountAmount = min($discountAmount, $runningAmount);
+                $totalDiscount += $discountAmount;
+                $runningAmount -= $discountAmount;
+            }
+        }
+
+        return $totalDiscount;
+    }
+
+    /**
+     * Calculate additive taxes for a single line item.
+     *
+     * Inclusive taxes reduce the net price base; additive taxes are added on top.
+     *
+     * @param Collection $taxes
+     * @param float|int  $baseAmount The amount to apply taxes to
+     *
+     * @return float|int Total tax amount
+     */
+    private static function _calculateLineItemTaxes(Collection $taxes, float|int $baseAmount): float|int
+    {
+        if ($taxes->isEmpty()) {
+            return 0;
+        }
+
+        $additiveTaxes = $taxes->filter(fn ($tax) => $tax->type === Constants::TAX_ADDITIVE);
+        $inclusiveTaxes = $taxes->filter(fn ($tax) => $tax->type === Constants::TAX_INCLUSIVE);
+
+        if ($additiveTaxes->isEmpty()) {
+            return 0;
+        }
+
+        // Calculate net price by removing inclusive taxes
+        $netPrice = self::_calculateNetPrice($baseAmount, $inclusiveTaxes);
+
+        return (int) $additiveTaxes->sum(
+            fn ($tax) => round($netPrice * $tax->percentage / 100)
+        );
+    }
+
+    /**
+     * Calculate service charges for a single line item.
+     *
+     * ORDER-scoped percentage charges apply to this line item's base amount.
+     * ORDER-scoped fixed charges are apportioned by gross sales ratio.
+     * APPORTIONED_AMOUNT charges use amount × lineItem quantity.
+     * APPORTIONED_PERCENTAGE charges use percentage × base amount.
+     * LINE_ITEM-scoped charges apply directly.
+     *
+     * @param Collection        $serviceCharges
+     * @param float|int         $baseAmount Current line item subtotal
+     * @param OrderProductPivot $lineItem
+     * @param float             $ratio Apportionment ratio
+     *
+     * @return float|int Total service charge amount
+     */
+    private static function _calculateLineItemServiceChargeBreakdown(
+        Collection $serviceCharges,
+        float|int $baseAmount,
+        OrderProductPivot $lineItem,
+        Collection $allLineItems,
+        float $ratio
+    ): Collection {
+        if ($serviceCharges->isEmpty()) {
+            return collect([]);
+        }
+
+        return $serviceCharges->map(function ($sc) use ($baseAmount, $lineItem, $allLineItems, $ratio) {
+            return [
+                'service_charge' => $sc,
+                'amount'         => self::_calculateLineItemServiceChargeAmount($sc, $baseAmount, $lineItem, $allLineItems, $ratio),
+            ];
+        });
+    }
+
+    /**
+     * Calculate taxes on service charges for a single line item.
+     *
+     * Only applies to non-APPORTIONED_TREATMENT, taxable service charges.
+     * The service charge amount attributable to this line item is taxed.
+     *
+     * @param Collection        $serviceCharges
+     * @param OrderProductPivot $lineItem
+     * @param float             $ratio Apportionment ratio
+     *
+     * @return float|int
+     */
+    private static function _calculateLineItemServiceChargeTaxes(Collection $serviceChargeBreakdown): float|int
+    {
+        if ($serviceChargeBreakdown->isEmpty()) {
+            return 0;
+        }
+
+        return $serviceChargeBreakdown->sum(function (array $serviceChargeData) {
+            /** @var mixed $sc */
+            $sc = $serviceChargeData['service_charge'];
+            $scAmount = $serviceChargeData['amount'];
+
+            // Apportioned service charges inherit taxes from line items — no direct taxes
+            if (
+                $sc->treatment_type === OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT
+                || $sc->taxable === false
+            ) {
+                return 0;
+            }
+
+            $scTaxes = $sc->taxes ?? collect([]);
+            if ($scTaxes->isEmpty()) {
+                return 0;
+            }
+
+            // Apply each tax to the service charge amount
+            return $scTaxes->sum(fn ($tax) => self::_roundMoney($scAmount * $tax->percentage / 100));
+        });
+    }
+
+    /**
+     * Calculate a single service charge amount attributable to one line item.
+     *
+     * @param mixed             $serviceCharge
+     * @param float|int         $baseAmount
+     * @param OrderProductPivot $lineItem
+     * @param Collection        $allLineItems
+     * @param float             $ratio
+     *
+     * @return int
+     */
+    private static function _calculateLineItemServiceChargeAmount(
+        $serviceCharge,
+        float|int $baseAmount,
+        OrderProductPivot $lineItem,
+        Collection $allLineItems,
+        float $ratio
+    ): int {
+        $scope = $serviceCharge->pivot ? $serviceCharge->pivot->scope : $serviceCharge->scope;
+
+        if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
+            $apportionmentRatio = self::_calculateLineItemServiceChargeRatio($serviceCharge, $lineItem, $allLineItems, $ratio);
+
+            return self::_roundMoney(($serviceCharge->amount_money ?? 0) * $apportionmentRatio);
+        }
+
+        if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE) {
+            return self::_roundMoney($baseAmount * ($serviceCharge->percentage ?? 0) / 100);
+        }
+
+        if ($scope === Constants::DEDUCTIBLE_SCOPE_ORDER) {
+            if ($serviceCharge->percentage) {
+                return self::_roundMoney($baseAmount * $serviceCharge->percentage / 100);
+            }
+
+            return self::_roundMoney(($serviceCharge->amount_money ?? 0) * $ratio);
+        }
+
+        if ($serviceCharge->percentage) {
+            return self::_roundMoney($baseAmount * $serviceCharge->percentage / 100);
+        }
+
+        return (int) ($serviceCharge->amount_money ?? 0);
+    }
+
+    /**
+     * Calculate the applicable apportionment ratio for a service charge.
+     *
+     * @param mixed             $serviceCharge
+     * @param OrderProductPivot $lineItem
+     * @param Collection        $allLineItems
+     * @param float             $defaultRatio
+     *
+     * @return float
+     */
+    private static function _calculateLineItemServiceChargeRatio(
+        $serviceCharge,
+        OrderProductPivot $lineItem,
+        Collection $allLineItems,
+        float $defaultRatio
+    ): float {
+        $scope = $serviceCharge->pivot ? $serviceCharge->pivot->scope : $serviceCharge->scope;
+
+        if ($scope === Constants::DEDUCTIBLE_SCOPE_ORDER) {
+            return $defaultRatio;
+        }
+
+        $applicableLineItems = $allLineItems->filter(function (OrderProductPivot $candidate) use ($serviceCharge) {
+            $candidate->loadMissing('serviceCharges');
+
+            return $candidate->serviceCharges->contains(fn ($attachedServiceCharge) => $attachedServiceCharge->id === $serviceCharge->id);
+        });
+
+        if ($applicableLineItems->isEmpty()) {
+            return 0;
+        }
+
+        $applicableBaseCost = self::_calculateAllLineItemsBaseCost($applicableLineItems);
+        if ($applicableBaseCost <= 0) {
+            return 0;
+        }
+
+        return self::_calculateLineItemBaseCost($lineItem) / $applicableBaseCost;
+    }
+
+    /**
+     * Round monetary adjustments using Square's documented bankers' rounding.
+     *
+     * @param float|int $amount
+     *
+     * @return int
+     */
+    private static function _roundMoney(float|int $amount): int
+    {
+        return (int) round($amount, 0, PHP_ROUND_HALF_EVEN);
     }
 
     /**

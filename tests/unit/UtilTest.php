@@ -485,8 +485,8 @@ class UtilTest extends TestCase
 
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
-        // Base: 1000, Discount 10%: -100 = 900, Tax 10%: +90 = 990, Service charge 5%: +49.5 = 1039.5 (rounded to 1040)
-        $this->assertEquals(1040, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        // Base: 1000, Discount 10%: -100 = 900, Service charge 5%: +45 = 945, Tax 10%: +94.5 -> bankers rounds to 94, Total: 1039
+        $this->assertEquals(1039, Util::calculateTotalOrderCostByModel($square->getOrder()));
     }
 
     /**
@@ -856,5 +856,499 @@ class UtilTest extends TestCase
             'Tax calculation phases did not produce expected result. '.
             'Expected: $115.83, Actual: $'.number_format($actualTotal / 100, 2)
         );
+    }
+
+    // ========================================================================
+    // calculateLineItemTotalByModel tests
+    // ========================================================================
+
+    /**
+     * Helper: create a simple order with a product-based line item.
+     *
+     * @param int $price    Base price in cents.
+     * @param int $quantity Quantity of items.
+     *
+     * @return array{order: Order, lineItem: \Nikolag\Square\Models\OrderProductPivot}
+     */
+    private function createOrderWithLineItem(int $price = 10_00, int $quantity = 1): array
+    {
+        $this->data->order->save();
+        $product = factory(Product::class)->create(['price' => $price]);
+        $this->data->order->attachProduct($product, ['quantity' => $quantity]);
+
+        $order = $this->data->order->fresh();
+        $order->load('lineItems');
+        $lineItem = $order->lineItems->first();
+
+        return ['order' => $order, 'lineItem' => $lineItem];
+    }
+
+    /**
+     * Test line item total with no deductibles equals gross sales.
+     */
+    public function test_line_item_total_no_deductibles(): void
+    {
+        ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(10_00, 3);
+
+        $total = Util::calculateLineItemTotalByModel($lineItem, $order);
+
+        // 10.00 × 3 = 30.00
+        $this->assertEquals(30_00, $total);
+    }
+
+    /**
+     * Test line item total with a LINE_ITEM-scoped percentage discount.
+     */
+    public function test_line_item_total_with_line_item_percentage_discount(): void
+    {
+        ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(10_00, 2);
+
+        $discount = factory(Discount::class)->create([
+            'percentage' => 10.0,
+            'amount'     => null,
+        ]);
+
+        $lineItem->discounts()->attach($discount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+        ]);
+
+        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+
+        // Base: 10.00 × 2 = 20.00, Discount 10%: -2.00 = 18.00
+        $this->assertEquals(18_00, $total);
+    }
+
+    /**
+     * Test line item total with a LINE_ITEM-scoped fixed-amount discount.
+     */
+    public function test_line_item_total_with_line_item_fixed_discount(): void
+    {
+        ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(10_00, 2);
+
+        $discount = factory(Discount::class)->create([
+            'amount'     => 3_00,
+            'percentage' => null,
+        ]);
+
+        $lineItem->discounts()->attach($discount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+        ]);
+
+        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+
+        // Base: 10.00 × 2 = 20.00, Discount $3.00: 17.00
+        $this->assertEquals(17_00, $total);
+    }
+
+    /**
+     * Test line item total with an ORDER-scoped percentage discount.
+     */
+    public function test_line_item_total_with_order_percentage_discount(): void
+    {
+        ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(10_00, 2);
+
+        $discount = factory(Discount::class)->create([
+            'percentage' => 20.0,
+            'amount'     => null,
+        ]);
+
+        $order->discounts()->attach($discount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+
+        // Base: 10.00 × 2 = 20.00, ORDER discount 20%: -4.00 = 16.00
+        $this->assertEquals(16_00, $total);
+    }
+
+    /**
+     * Test line item total with an ORDER-scoped fixed-amount discount apportioned across 2 line items.
+     */
+    public function test_line_item_total_with_order_fixed_discount_apportioned(): void
+    {
+        $this->data->order->save();
+
+        $product1 = factory(Product::class)->create(['price' => 30_00]);
+        $product2 = factory(Product::class)->create(['price' => 70_00]);
+
+        $this->data->order->attachProduct($product1, ['quantity' => 1]); // $30.00
+        $this->data->order->attachProduct($product2, ['quantity' => 1]); // $70.00
+
+        $discount = factory(Discount::class)->create([
+            'amount'     => 10_00, // $10 order discount
+            'percentage' => null,
+        ]);
+
+        $this->data->order->discounts()->attach($discount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $order = $this->data->order->fresh();
+        $order->load('lineItems');
+
+        $lineItem1 = $order->lineItems->where('product_id', $product1->id)->first();
+        $lineItem2 = $order->lineItems->where('product_id', $product2->id)->first();
+
+        $total1 = Util::calculateLineItemTotalByModel($lineItem1, $order);
+        $total2 = Util::calculateLineItemTotalByModel($lineItem2, $order);
+
+        // $30/$100 × $10 = $3.00 apportioned → $30 - $3 = $27.00
+        $this->assertEquals(27_00, $total1);
+        // $70/$100 × $10 = $7.00 apportioned → $70 - $7 = $63.00
+        $this->assertEquals(63_00, $total2);
+        // Sum should equal order total minus discount
+        $this->assertEquals(90_00, $total1 + $total2);
+    }
+
+    /**
+     * Test line item discounts follow Square's documented calculation order.
+     */
+    public function test_line_item_total_with_stacked_discounts_uses_square_sequence(): void
+    {
+        ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(100_00, 1);
+
+        $itemPercentageDiscount = factory(Discount::class)->create([
+            'percentage' => 10.0,
+            'amount'     => null,
+        ]);
+        $orderPercentageDiscount = factory(Discount::class)->create([
+            'percentage' => 20.0,
+            'amount'     => null,
+        ]);
+        $itemFixedDiscount = factory(Discount::class)->create([
+            'amount'     => 3_00,
+            'percentage' => null,
+        ]);
+        $orderFixedDiscount = factory(Discount::class)->create([
+            'amount'     => 5_00,
+            'percentage' => null,
+        ]);
+
+        $lineItem->discounts()->attach($itemPercentageDiscount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+        ]);
+        $lineItem->discounts()->attach($itemFixedDiscount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+        ]);
+        $order->discounts()->attach($orderPercentageDiscount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+        $order->discounts()->attach($orderFixedDiscount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+
+        // $100.00 -> item 10% = $90.00 -> order 20% = $72.00 -> item $3 = $69.00 -> order $5 = $64.00
+        $this->assertEquals(64_00, $total);
+    }
+
+    /**
+     * Test line item total with an additive tax.
+     */
+    public function test_line_item_total_with_additive_tax(): void
+    {
+        ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(10_00, 1);
+
+        $tax = factory(Tax::class)->create([
+            'percentage' => 10.0,
+            'type'       => Constants::TAX_ADDITIVE,
+        ]);
+
+        $lineItem->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+        ]);
+
+        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+
+        // Base: $10.00, Tax 10%: +$1.00 = $11.00
+        $this->assertEquals(11_00, $total);
+    }
+
+    /**
+     * Test line item total with an inclusive tax (should not increase total).
+     */
+    public function test_line_item_total_with_inclusive_tax(): void
+    {
+        ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(11_00, 1);
+
+        $tax = factory(Tax::class)->create([
+            'percentage' => 10.0,
+            'type'       => Constants::TAX_INCLUSIVE,
+        ]);
+
+        $lineItem->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+        ]);
+
+        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+
+        // Inclusive tax is already embedded in the price — total should not change
+        $this->assertEquals(11_00, $total);
+    }
+
+    /**
+     * Test line item total with ORDER-scoped additive tax.
+     */
+    public function test_line_item_total_with_order_additive_tax(): void
+    {
+        ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(10_00, 1);
+
+        $tax = factory(Tax::class)->create([
+            'percentage' => 8.5,
+            'type'       => Constants::TAX_ADDITIVE,
+        ]);
+
+        $order->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+
+        // Base: $10.00, ORDER tax 8.5%: +$0.85 = $10.85
+        $this->assertEquals(10_85, $total);
+    }
+
+    /**
+     * Test that sum of per-line-item totals equals calculateTotalOrderCostByModel
+     * for a multi-line-item order with ORDER-scoped discount and tax.
+     */
+    public function test_line_item_totals_sum_matches_order_total(): void
+    {
+        $this->data->order->save();
+
+        $product1 = factory(Product::class)->create(['price' => 15_00]);
+        $product2 = factory(Product::class)->create(['price' => 50_00]);
+        $product3 = factory(Product::class)->create(['price' => 12_00]);
+
+        $this->data->order->attachProduct($product1, ['quantity' => 2]); // $30.00
+        $this->data->order->attachProduct($product2, ['quantity' => 1]); // $50.00
+        $this->data->order->attachProduct($product3, ['quantity' => 3]); // $36.00
+
+        // Order-level percentage discount
+        $discount = factory(Discount::class)->create([
+            'percentage' => 10.0,
+            'amount'     => null,
+        ]);
+        $this->data->order->discounts()->attach($discount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        // Order-level additive tax
+        $tax = factory(Tax::class)->create([
+            'percentage' => 8.5,
+            'type'       => Constants::TAX_ADDITIVE,
+        ]);
+        $this->data->order->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+        $order = $square->getOrder();
+        $order->load('lineItems');
+
+        $orderTotal = Util::calculateTotalOrderCostByModel($order);
+
+        $lineItemSum = $order->lineItems->sum(
+            fn ($li) => Util::calculateLineItemTotalByModel($li, $order)
+        );
+
+        $this->assertSame(
+            $orderTotal,
+            $lineItemSum,
+            "Line item sum ($lineItemSum) should exactly match order total ($orderTotal)"
+        );
+    }
+
+    /**
+     * Test apportioned percentage service charge on a line item.
+     */
+    public function test_line_item_total_with_apportioned_percentage_service_charge(): void
+    {
+        ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(10_00, 2);
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'percentage'        => 10.0,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+            'taxable'           => false,
+        ]);
+
+        $order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+
+        // Base: $20.00, Service charge 10%: +$2.00 = $22.00
+        $this->assertEquals(22_00, $total);
+    }
+
+    /**
+     * Test apportioned fixed-amount service charge is distributed by gross sales ratio.
+     */
+    public function test_line_item_total_with_apportioned_amount_service_charge(): void
+    {
+        $this->data->order->save();
+
+        $product1 = factory(Product::class)->create(['price' => 30_00]);
+        $product2 = factory(Product::class)->create(['price' => 70_00]);
+
+        $this->data->order->attachProduct($product1, ['quantity' => 1]);
+        $this->data->order->attachProduct($product2, ['quantity' => 1]);
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'amount_money'      => 10_00,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+            'taxable'           => false,
+        ]);
+
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $order = $this->data->order->fresh();
+        $order->load('lineItems');
+
+        $lineItem1 = $order->lineItems->where('product_id', $product1->id)->first();
+        $lineItem2 = $order->lineItems->where('product_id', $product2->id)->first();
+
+        $total1 = Util::calculateLineItemTotalByModel($lineItem1, $order);
+        $total2 = Util::calculateLineItemTotalByModel($lineItem2, $order);
+
+        // $10 order service charge apportioned over $30/$70 gross sales.
+        $this->assertEquals(33_00, $total1);
+        $this->assertEquals(77_00, $total2);
+        $this->assertEquals(110_00, $total1 + $total2);
+    }
+
+    /**
+     * Test service charge taxes are calculated from the discounted service charge amount.
+     */
+    public function test_line_item_total_with_taxable_percentage_service_charge_after_discount(): void
+    {
+        ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(10_00, 1);
+
+        $discount = factory(Discount::class)->create([
+            'percentage' => 10.0,
+            'amount'     => null,
+        ]);
+        $serviceChargeTax = factory(Tax::class)->create([
+            'percentage' => 8.0,
+            'type'       => Constants::TAX_ADDITIVE,
+        ]);
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'percentage'        => 5.0,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
+            'treatment_type'    => OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT,
+            'taxable'           => true,
+        ]);
+
+        $order->discounts()->attach($discount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+        $order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+        $serviceCharge->taxes()->attach($serviceChargeTax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_SERVICE_CHARGE,
+        ]);
+
+        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+
+        // $10.00 -> 10% discount = $9.00 -> 5% service charge = $0.45 -> 8% tax on service charge = $0.04
+        $this->assertEquals(9_49, $total);
+    }
+
+    /**
+     * Test banker rounding is used for .5 cent adjustments.
+     */
+    public function test_line_item_total_uses_bankers_rounding_for_percentage_adjustments(): void
+    {
+        $scenarios = [
+            [
+                'price'            => 5_00,
+                'percentage'       => 10.1,
+                'expectedTotal'    => 4_50,
+                'expectedDiscount' => '0.505 -> 0.50',
+            ],
+            [
+                'price'            => 11_00,
+                'percentage'       => 6.5,
+                'expectedTotal'    => 10_28,
+                'expectedDiscount' => '0.715 -> 0.72',
+            ],
+            [
+                'price'            => 1_00,
+                'percentage'       => 8.5,
+                'expectedTotal'    => 92,
+                'expectedDiscount' => '0.085 -> 0.08',
+            ],
+        ];
+
+        foreach ($scenarios as $scenario) {
+            $order = factory(Order::class)->create();
+            $product = factory(Product::class)->create(['price' => $scenario['price']]);
+            $order->attachProduct($product, ['quantity' => 1]);
+            $order->load('lineItems');
+            $lineItem = $order->lineItems->first();
+
+            $discount = factory(Discount::class)->create([
+                'percentage' => $scenario['percentage'],
+                'amount'     => null,
+            ]);
+
+            $order->discounts()->attach($discount->id, [
+                'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+                'featurable_type' => config('nikolag.connections.square.order.namespace'),
+                'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+            ]);
+
+            $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+
+            $this->assertEquals(
+                $scenario['expectedTotal'],
+                $total,
+                "Expected documented bankers rounding example {$scenario['expectedDiscount']} to be preserved."
+            );
+        }
     }
 }
