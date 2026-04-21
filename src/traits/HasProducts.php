@@ -3,6 +3,7 @@
 namespace Nikolag\Square\Traits;
 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Schema;
 use Nikolag\Core\Exceptions\Exception;
@@ -130,6 +131,17 @@ trait HasProducts
         ], $attributes);
 
         $this->products()->attach($product, $pivotData);
+    }
+
+    /**
+     * Return all line items for this order, including custom line items
+     * that have no linked product.
+     *
+     * @return HasMany
+     */
+    public function lineItems(): HasMany
+    {
+        return $this->hasMany(Constants::ORDER_PRODUCT_NAMESPACE, 'order_id');
     }
 
     /**
