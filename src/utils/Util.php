@@ -92,7 +92,7 @@ class Util
      */
     private static function _calculateOrderDiscounts($discount, float $noDeductiblesCost): float|int
     {
-        return ($discount->percentage) ? ($noDeductiblesCost * $discount->percentage / 100) :
+        return ($discount->percentage) ? self::_roundMoney($noDeductiblesCost * $discount->percentage / 100) :
             $discount->amount;
     }
 
@@ -112,7 +112,7 @@ class Util
         });
 
         if ($product) {
-            return ($discount->percentage) ? ($product->pivot->base_price_money_amount * $product->pivot->quantity * $discount->percentage / 100) :
+            return ($discount->percentage) ? self::_roundMoney($product->pivot->base_price_money_amount * $product->pivot->quantity * $discount->percentage / 100) :
                 $discount->amount;
         } else {
             return 0;
@@ -811,7 +811,7 @@ class Util
         $netPrice = self::_calculateNetPrice($baseAmount, $inclusiveTaxes);
 
         return (int) $additiveTaxes->sum(
-            fn ($tax) => round($netPrice * $tax->percentage / 100)
+            fn ($tax) => self::_roundMoney($netPrice * $tax->percentage / 100)
         );
     }
 
@@ -912,6 +912,11 @@ class Util
         $scope = $serviceCharge->pivot ? $serviceCharge->pivot->scope : $serviceCharge->scope;
 
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
+            // PRODUCT-scoped: apply fixed amount per unit (matches _calculateProductServiceCharges behavior)
+            if ($scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) {
+                return self::_roundMoney(($serviceCharge->amount_money ?? 0) * ($lineItem->quantity ?? 1));
+            }
+
             $apportionmentRatio = self::_calculateLineItemServiceChargeRatio($serviceCharge, $lineItem, $allLineItems, $ratio);
 
             return self::_roundMoney(($serviceCharge->amount_money ?? 0) * $apportionmentRatio);
