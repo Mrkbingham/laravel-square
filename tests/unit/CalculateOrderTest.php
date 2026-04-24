@@ -10,6 +10,7 @@ use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
+use Nikolag\Square\Tests\Traits\AssertsSquareCalculation;
 use Nikolag\Square\Tests\Traits\MocksSquareConfigDependency;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
@@ -23,6 +24,7 @@ use Square\Models\OrderServiceChargeTreatmentType;
 
 class CalculateOrderTest extends TestCase
 {
+    use AssertsSquareCalculation;
     use MocksSquareConfigDependency;
 
     /**
@@ -181,7 +183,7 @@ class CalculateOrderTest extends TestCase
             )
             ->build();
 
-        $result = Util::compareWithSquareCalculation(4671, $squareResponse);
+        $result = $this->compareWithSquareCalculation(4671, $squareResponse);
 
         $this->assertTrue($result['matches']);
         $this->assertEquals(4671, $result['internal_total']);
@@ -208,7 +210,7 @@ class CalculateOrderTest extends TestCase
             )
             ->build();
 
-        $result = Util::compareWithSquareCalculation(4671, $squareResponse);
+        $result = $this->compareWithSquareCalculation(4671, $squareResponse);
 
         $this->assertFalse($result['matches']);
         $this->assertEquals(4671, $result['internal_total']);
@@ -223,7 +225,7 @@ class CalculateOrderTest extends TestCase
     {
         $squareResponse = CalculateOrderResponseBuilder::init()->build();
 
-        $result = Util::compareWithSquareCalculation(4671, $squareResponse);
+        $result = $this->compareWithSquareCalculation(4671, $squareResponse);
 
         $this->assertFalse($result['matches']);
         $this->assertNull($result['square_total']);
@@ -327,7 +329,7 @@ class CalculateOrderTest extends TestCase
         $squareResponse = Square::calculateOrder($order, env('SQUARE_LOCATION'));
 
         // Compare internal vs Square
-        $comparison = Util::compareWithSquareCalculation($internalTotal, $squareResponse);
+        $comparison = $this->compareWithSquareCalculation($internalTotal, $squareResponse);
 
         // Assert that our calculation matches Square's
         $this->assertTrue(
@@ -375,7 +377,7 @@ class CalculateOrderTest extends TestCase
 
         $internalTotal = Util::calculateTotalOrderCostByModel($order);
         $squareResponse = Square::calculateOrder($order, env('SQUARE_LOCATION'));
-        $comparison = Util::compareWithSquareCalculation($internalTotal, $squareResponse);
+        $comparison = $this->compareWithSquareCalculation($internalTotal, $squareResponse);
 
         $this->assertTrue(
             $comparison['matches'],
@@ -531,7 +533,7 @@ class CalculateOrderTest extends TestCase
 
         $internalTotal = Util::calculateTotalOrderCostByModel($order);
         $squareResponse = Square::calculateOrder($order, env('SQUARE_LOCATION'));
-        $comparison = Util::compareWithSquareCalculation($internalTotal, $squareResponse);
+        $comparison = $this->compareWithSquareCalculation($internalTotal, $squareResponse);
 
         $this->assertTrue(
             $comparison['matches'],

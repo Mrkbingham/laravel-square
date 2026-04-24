@@ -1044,7 +1044,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      *
      * @return CalculateOrderResponse
      */
-    public function calculateOrder(Model $order, string $locationId, string $currency = 'USD'): mixed
+    public function calculateOrder(mixed $order, string $locationId, string $currency = 'USD'): mixed
     {
         $request = $this->squareBuilder->buildCalculateOrderRequest($order, $locationId, $currency);
         $response = $this->config->ordersAPI()->calculateOrder($request);

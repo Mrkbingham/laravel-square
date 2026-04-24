@@ -15,6 +15,7 @@ use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\Models\User;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
+use Nikolag\Square\Tests\Traits\AssertsSquareCalculation;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
 use Square\Models\OrderServiceChargeCalculationPhase;
@@ -23,6 +24,7 @@ use Square\Models\TaxCalculationPhase;
 
 class UtilTest extends TestCase
 {
+    use AssertsSquareCalculation;
     /**
      * @var Order
      */

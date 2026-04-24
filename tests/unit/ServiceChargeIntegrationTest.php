@@ -11,6 +11,7 @@ use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
+use Nikolag\Square\Tests\Traits\AssertsSquareCalculation;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\Util;
 use Square\Models\OrderServiceChargeCalculationPhase;
@@ -18,6 +19,8 @@ use Square\Models\OrderServiceChargeTreatmentType;
 
 class ServiceChargeIntegrationTest extends TestCase
 {
+    use AssertsSquareCalculation;
+
     /**
      * Test service charge integration with full order processing workflow.
      *
