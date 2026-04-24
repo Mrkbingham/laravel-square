@@ -14,6 +14,7 @@ use Square\Apis\WebhookSubscriptionsApi;
 use Square\Http\ApiResponse;
 use Square\Models\Builders\CreateCustomerResponseBuilder;
 use Square\Models\Builders\CreateInvoiceResponseBuilder;
+use Square\Models\Builders\CalculateOrderResponseBuilder;
 use Square\Models\Builders\CreateOrderResponseBuilder;
 use Square\Models\Builders\CreateWebhookSubscriptionResponseBuilder;
 use Square\Models\Builders\CustomerBuilder;
@@ -36,6 +37,7 @@ use Square\Models\Builders\UpdateWebhookSubscriptionSignatureKeyResponseBuilder;
 use Square\Models\Builders\WebhookSubscriptionBuilder;
 use Square\Models\CreateCustomerResponse;
 use Square\Models\CreateInvoiceResponse;
+use Square\Models\CalculateOrderResponse;
 use Square\Models\CreateOrderResponse;
 use Square\Models\CreateWebhookSubscriptionResponse;
 use Square\Models\DeleteWebhookSubscriptionResponse;
@@ -736,6 +738,8 @@ trait MocksSquareConfigDependency
                 return $this->buildCreateOrderResponse($data);
             case 'updateOrder':
                 return $this->buildUpdateOrderResponse($data);
+            case 'calculateOrder':
+                return $this->buildCalculateOrderResponse($data);
             default:
                 return $this->buildRetrieveOrderResponse($data);
         }
@@ -962,6 +966,70 @@ trait MocksSquareConfigDependency
         $mockApiResponse->method('getStatusCode')->willReturn(409);
 
         $this->bindMockOrdersToServiceContainer('updateOrder', $mockApiResponse);
+    }
+
+    /**
+     * Build a calculate order response.
+     *
+     * @param array|null $data The data to include in the response.
+     *
+     * @return CalculateOrderResponse
+     */
+    private function buildCalculateOrderResponse(?array $data = null): CalculateOrderResponse
+    {
+        $orderData = $data ?? [
+            'locationId'              => 'test-location-123',
+            'state'                   => 'OPEN',
+            'totalMoney'              => 0,
+            'totalTaxMoney'           => 0,
+            'totalDiscountMoney'      => 0,
+            'totalServiceChargeMoney' => 0,
+        ];
+
+        $builder = OrderBuilder::init($orderData['locationId'])
+            ->state($orderData['state'] ?? 'OPEN');
+
+        if (isset($orderData['totalMoney'])) {
+            $builder->totalMoney(MoneyBuilder::init()->amount($orderData['totalMoney'])->currency('USD')->build());
+        }
+        if (isset($orderData['totalTaxMoney'])) {
+            $builder->totalTaxMoney(MoneyBuilder::init()->amount($orderData['totalTaxMoney'])->currency('USD')->build());
+        }
+        if (isset($orderData['totalDiscountMoney'])) {
+            $builder->totalDiscountMoney(MoneyBuilder::init()->amount($orderData['totalDiscountMoney'])->currency('USD')->build());
+        }
+        if (isset($orderData['totalServiceChargeMoney'])) {
+            $builder->totalServiceChargeMoney(MoneyBuilder::init()->amount($orderData['totalServiceChargeMoney'])->currency('USD')->build());
+        }
+
+        return CalculateOrderResponseBuilder::init()
+            ->order($builder->build())
+            ->build();
+    }
+
+    /**
+     * Mock the ordersAPI()->calculateOrder($request) method in the SquareService class.
+     *
+     * @param array $responseData Data to include in the successful response.
+     *
+     * @return void
+     */
+    protected function mockCalculateOrderSuccess(array $responseData = []): void
+    {
+        $this->mockSquareOrdersEndpoint('calculateOrder', $responseData);
+    }
+
+    /**
+     * Mock the ordersAPI()->calculateOrder($request) method with error in the SquareService class.
+     *
+     * @param string $message Error message to return.
+     * @param int    $code    HTTP error code to return.
+     *
+     * @return void
+     */
+    protected function mockCalculateOrderError(string $message = 'Calculate order failed', int $code = 400): void
+    {
+        $this->mockSquareOrdersEndpoint('calculateOrder', [], true, $message, $code);
     }
 
     // ========================================
