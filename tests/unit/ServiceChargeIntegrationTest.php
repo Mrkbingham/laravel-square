@@ -175,6 +175,8 @@ class ServiceChargeIntegrationTest extends TestCase
             $actualTotal,
             'Service charge should work correctly with variable pricing'
         );
+
+        $this->validateAgainstSquareApi($order, $actualTotal);
     }
 
     /**
@@ -213,6 +215,8 @@ class ServiceChargeIntegrationTest extends TestCase
         $actualTotal = Util::calculateTotalOrderCostByModel($order);
 
         $this->assertEquals($expectedTotal, $actualTotal);
+
+        $this->validateAgainstSquareApi($order, $actualTotal);
 
         // Test charging the order
         $transaction = $square->charge([
@@ -260,6 +264,8 @@ class ServiceChargeIntegrationTest extends TestCase
         $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
 
         $this->assertEquals($expectedTotal, $actualTotal);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actualTotal);
 
         // Test charging the order
         $transaction = $square->charge([
@@ -321,6 +327,8 @@ class ServiceChargeIntegrationTest extends TestCase
         $actualTotal = Util::calculateTotalOrderCostByModel($order);
 
         $this->assertEquals($expectedTotal, $actualTotal, 'Multiple service charges were not calculated correctly');
+
+        $this->validateAgainstSquareApi($order, $actualTotal);
     }
 
     /**
