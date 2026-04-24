@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Nikolag\Core\Abstracts\CorePaymentService;
@@ -56,6 +57,7 @@ use Square\Models\ListPaymentsResponse;
 use Square\Models\ListWebhookEventTypesResponse;
 use Square\Models\ListWebhookSubscriptionsResponse;
 use Square\Models\RetrieveLocationResponse;
+use Square\Models\CalculateOrderResponse;
 use Square\Models\RetrieveOrderResponse;
 use Square\Models\TestWebhookSubscriptionResponse;
 use Square\Models\UpdateCustomerRequest;
@@ -1024,6 +1026,34 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         } else {
             throw $this->_handleApiResponseErrors($response);
         }
+    }
+
+    /**
+     * Calculate an order using Square's CalculateOrder API.
+     *
+     * Calls Square's read-only endpoint to compute order totals including
+     * taxes, discounts, and service charges without creating an order.
+     * Used for validation against internal calculation logic.
+     *
+     * @param Model  $order      The order model to calculate.
+     * @param string $locationId The location ID for the order.
+     * @param string $currency   The currency code (default 'USD').
+     *
+     * @throws \Exception
+     * @throws ApiException
+     *
+     * @return CalculateOrderResponse
+     */
+    public function calculateOrder(Model $order, string $locationId, string $currency = 'USD'): mixed
+    {
+        $request = $this->squareBuilder->buildCalculateOrderRequest($order, $locationId, $currency);
+        $response = $this->config->ordersAPI()->calculateOrder($request);
+
+        if ($response->isError()) {
+            throw $this->_handleApiResponseErrors($response);
+        }
+
+        return $response->getResult();
     }
 
     /**

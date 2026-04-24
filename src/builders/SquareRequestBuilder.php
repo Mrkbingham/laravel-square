@@ -28,6 +28,7 @@ use Square\Models\CatalogObjectType;
 use Square\Models\CatalogPricingType;
 use Square\Models\CreateCatalogImageRequest;
 use Square\Models\CreateCustomerRequest;
+use Square\Models\CalculateOrderRequest;
 use Square\Models\CreateOrderRequest;
 use Square\Models\CreatePaymentRequest;
 use Square\Models\Money;
@@ -93,6 +94,7 @@ class SquareRequestBuilder
         $this->productDiscounts = collect([]);
         $this->serviceCharges = collect([]);
         $this->productServiceCharges = collect([]);
+        $this->serviceChargeTaxes = collect([]);
 
         $this->fulfillmentRequestBuilder = new FulfillmentRequestBuilder();
     }
@@ -446,6 +448,25 @@ class SquareRequestBuilder
         return $request;
     }
 
+    /**
+     * Create and return a calculate order request for validating pricing
+     * against Square's CalculateOrder API without creating an order.
+     *
+     * @param Model  $order
+     * @param string $locationId
+     * @param string $currency
+     *
+     * @throws InvalidSquareOrderException
+     * @throws MissingPropertyException
+     *
+     * @return CalculateOrderRequest
+     */
+    public function buildCalculateOrderRequest(Model $order, string $locationId, string $currency): CalculateOrderRequest
+    {
+        $squareOrder = $this->buildSquareOrder($order, $locationId, $currency);
+
+        return new CalculateOrderRequest($squareOrder);
+    }
 
     /**
      * Build a Square Order object with line items, discounts, taxes,
