@@ -772,6 +772,8 @@ class UtilTest extends TestCase
         $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
 
         $this->assertEquals($expectedTotal, $actualTotal);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actualTotal);
     }
 
     /**
@@ -810,6 +812,8 @@ class UtilTest extends TestCase
         $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
 
         $this->assertEquals($expectedTotal, $actualTotal);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actualTotal);
     }
 
     /**
@@ -934,6 +938,8 @@ class UtilTest extends TestCase
 
         // 10.00 × 3 = 30.00
         $this->assertEquals(30_00, $total);
+
+        $this->validateAgainstSquareApi($order, $total);
     }
 
     /**
@@ -958,6 +964,9 @@ class UtilTest extends TestCase
 
         // Base: 10.00 × 2 = 20.00, Discount 10%: -2.00 = 18.00
         $this->assertEquals(18_00, $total);
+
+        $freshOrder = $order->fresh();
+        $this->validateAgainstSquareApi($freshOrder, $total);
     }
 
     /**
@@ -982,6 +991,9 @@ class UtilTest extends TestCase
 
         // Base: 10.00 × 2 = 20.00, Discount $3.00: 17.00
         $this->assertEquals(17_00, $total);
+
+        $freshOrder = $order->fresh();
+        $this->validateAgainstSquareApi($freshOrder, $total);
     }
 
     /**
@@ -1006,6 +1018,9 @@ class UtilTest extends TestCase
 
         // Base: 10.00 × 2 = 20.00, ORDER discount 20%: -4.00 = 16.00
         $this->assertEquals(16_00, $total);
+
+        $freshOrder = $order->fresh();
+        $this->validateAgainstSquareApi($freshOrder, $total);
     }
 
     /**
@@ -1047,6 +1062,8 @@ class UtilTest extends TestCase
         $this->assertEquals(63_00, $total2);
         // Sum should equal order total minus discount
         $this->assertEquals(90_00, $total1 + $total2);
+
+        $this->validateAgainstSquareApi($order, $total1 + $total2);
     }
 
     /**
@@ -1098,6 +1115,9 @@ class UtilTest extends TestCase
 
         // $100.00 -> item 10% = $90.00 -> order 20% = $72.00 -> item $3 = $69.00 -> order $5 = $64.00
         $this->assertEquals(64_00, $total);
+
+        $freshOrder = $order->fresh();
+        $this->validateAgainstSquareApi($freshOrder, $total);
     }
 
     /**
@@ -1122,6 +1142,9 @@ class UtilTest extends TestCase
 
         // Base: $10.00, Tax 10%: +$1.00 = $11.00
         $this->assertEquals(11_00, $total);
+
+        $freshOrder = $order->fresh();
+        $this->validateAgainstSquareApi($freshOrder, $total);
     }
 
     /**
@@ -1146,6 +1169,9 @@ class UtilTest extends TestCase
 
         // Inclusive tax is already embedded in the price — total should not change
         $this->assertEquals(11_00, $total);
+
+        $freshOrder = $order->fresh();
+        $this->validateAgainstSquareApi($freshOrder, $total);
     }
 
     /**
@@ -1170,6 +1196,9 @@ class UtilTest extends TestCase
 
         // Base: $10.00, ORDER tax 8.5%: +$0.85 = $10.85
         $this->assertEquals(10_85, $total);
+
+        $freshOrder = $order->fresh();
+        $this->validateAgainstSquareApi($freshOrder, $total);
     }
 
     /**
@@ -1225,6 +1254,8 @@ class UtilTest extends TestCase
             $lineItemSum,
             "Line item sum ($lineItemSum) should exactly match order total ($orderTotal)"
         );
+
+        $this->validateAgainstSquareApi($order, $orderTotal);
     }
 
     /**
@@ -1251,6 +1282,9 @@ class UtilTest extends TestCase
 
         // Base: $20.00, Service charge 10%: +$2.00 = $22.00
         $this->assertEquals(22_00, $total);
+
+        $freshOrder = $order->fresh();
+        $this->validateAgainstSquareApi($freshOrder, $total);
     }
 
     /**
@@ -1292,6 +1326,8 @@ class UtilTest extends TestCase
         $this->assertEquals(33_00, $total1);
         $this->assertEquals(77_00, $total2);
         $this->assertEquals(110_00, $total1 + $total2);
+
+        $this->validateAgainstSquareApi($order, $total1 + $total2);
     }
 
     /**
@@ -1336,6 +1372,9 @@ class UtilTest extends TestCase
 
         // $10.00 -> 10% discount = $9.00 -> 5% service charge = $0.45 -> 8% tax on service charge = $0.04
         $this->assertEquals(9_49, $total);
+
+        $freshOrder = $order->fresh();
+        $this->validateAgainstSquareApi($freshOrder, $total);
     }
 
     /**
@@ -1389,6 +1428,9 @@ class UtilTest extends TestCase
                 $total,
                 "Expected documented bankers rounding example {$scenario['expectedDiscount']} to be preserved."
             );
+
+            $freshOrder = $order->fresh();
+            $this->validateAgainstSquareApi($freshOrder, $total);
         }
     }
 }
