@@ -72,6 +72,12 @@ class SquareRequestBuilder
      */
     private Collection $serviceCharges;
     /**
+     * Taxes applied to service charges which need to be added to order-level taxes.
+     *
+     * @var Collection
+     */
+    private Collection $serviceChargeTaxes;
+    /**
      * Fulfillment request helper builder.
      *
      * @var FulfillmentRequestBuilder
@@ -726,6 +732,32 @@ class SquareRequestBuilder
                     $money->setAmount($amountMoney);
                     $money->setCurrency($serviceCharge->amount_currency ?? $currency);
                     $tempServiceCharge->amountMoney($money);
+                }
+
+                // Build taxes applied to this service charge
+                $serviceCharge->loadMissing('taxes');
+                $scTaxes = $serviceCharge->taxes ?? collect([]);
+                if ($scTaxes->isNotEmpty()) {
+                    $appliedTaxes = [];
+                    foreach ($scTaxes as $tax) {
+                        $tempTax = new OrderLineItemTax();
+                        $tempTax->setUid(Util::uid());
+                        $tempTax->setName($tax->name);
+                        $tempTax->setType($tax->type);
+                        $tempTax->setPercentage((string) $tax->percentage);
+                        // Use LINE_ITEM scope so the tax only applies where explicitly referenced
+                        // (on the service charge via applied_taxes), not to all line items
+                        $tempTax->setScope(Constants::DEDUCTIBLE_SCOPE_PRODUCT);
+                        if ($tax->square_catalog_object_id) {
+                            $tempTax->setCatalogObjectId($tax->square_catalog_object_id);
+                        }
+                        $this->serviceChargeTaxes->push($tempTax);
+
+                        $appliedTax = new OrderLineItemAppliedTax($tempTax->getUid());
+                        $appliedTax->setUid(Util::uid());
+                        $appliedTaxes[] = $appliedTax;
+                    }
+                    $tempServiceCharge->appliedTaxes($appliedTaxes);
                 }
 
                 $temp[] = $tempServiceCharge->build();
