@@ -30,8 +30,8 @@ class ServiceChargeIntegrationTest extends TestCase
     {
         // Create test data
         $order = factory(Order::class)->create();
-        $product1 = factory(ModelsProduct::class)->create(['price' => 1000]); // $10.00
-        $product2 = factory(Product::class)->create(['price' => 2000]); // $20.00
+        $product1 = factory(ModelsProduct::class)->create(['price' => 10_00]); // $10.00
+        $product2 = factory(Product::class)->create(['price' => 20_00]); // $20.00
 
         // Create service charges
         $orderServiceCharge = factory(ServiceCharge::class)->create([
