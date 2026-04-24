@@ -62,6 +62,22 @@ trait AssertsSquareCalculation
     }
 
     /**
+     * Validate internal calculation against Square's CalculateOrder API when enabled.
+     *
+     * Gated behind SQUARE_VALIDATE_CALCULATIONS env flag so tests run fast by default
+     * and only hit the Square API when explicitly opted in.
+     *
+     * @param object $order         The order model with relationships loaded.
+     * @param int    $internalTotal The internally calculated total.
+     */
+    protected function validateAgainstSquareApi(object $order, int $internalTotal): void
+    {
+        if (env('SQUARE_VALIDATE_CALCULATIONS', false)) {
+            $this->assertMatchesSquareCalculation($order, $internalTotal);
+        }
+    }
+
+    /**
      * Validate internal calculation against Square's CalculateOrder API.
      *
      * @param mixed $order         The order model with relationships loaded.
