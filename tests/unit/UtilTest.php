@@ -105,6 +105,8 @@ class UtilTest extends TestCase
         $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
 
         $this->assertEquals($expected, $actual, 'Util::calculateTotalOrderCost didn\'t calculate properly.');
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -129,7 +131,10 @@ class UtilTest extends TestCase
             ->save();
 
         // The expected total is 935.
-        $this->assertEquals(935, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(935, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -158,7 +163,10 @@ class UtilTest extends TestCase
             ->save();
 
         // The expected total is $27.50.
-        $this->assertEquals(2750, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(2750, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -182,7 +190,10 @@ class UtilTest extends TestCase
             ->save();
 
         // The expected total is 990.
-        $this->assertEquals(990, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(990, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -244,7 +255,10 @@ class UtilTest extends TestCase
             ->save();
 
         // Expected total is 3 * 750 = 2250
-        $this->assertEquals(2250, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(2250, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -276,7 +290,10 @@ class UtilTest extends TestCase
             ->save();
 
         // The expected total is $32.50.
-        $this->assertEquals(32_50, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(32_50, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -406,7 +423,10 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base cost: $116.00, Service charge $10.00, Total: $126.00
-        $this->assertEquals(126_00, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(126_00, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -437,7 +457,10 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base cost: $116.00, Service charge $11.60, Total: $127.60
-        $this->assertEquals(127_60, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(127_60, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -488,7 +511,10 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base: 1000, Discount 10%: -100 = 900, Service charge 5%: +45 = 945, Tax 10%: +94.5 -> bankers rounds to 94, Total: 1039
-        $this->assertEquals(1039, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(1039, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -532,7 +558,10 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base cost: $116.00, Service charge $10.00 x 6 = $60.00, Total: $176.00
-        $this->assertEquals(176_00, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(176_00, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -575,7 +604,10 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
 
         // Base cost: $116.00, Service charge $10.00, Tax on service charge $0.80 Total: $126.80
-        $this->assertEquals(126_80, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(126_80, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -602,7 +634,10 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base cost: $116.00, Service charge $1.74, Total: $117.74
-        $this->assertEquals(117_74, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(117_74, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
@@ -634,7 +669,10 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base cost: 1000, Service charge fixed: 200, Total: 1200
-        $this->assertEquals(1200, Util::calculateTotalOrderCostByModel($square->getOrder()));
+        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $this->assertEquals(1200, $actual);
+
+        $this->validateAgainstSquareApi($square->getOrder(), $actual);
     }
 
     /**
