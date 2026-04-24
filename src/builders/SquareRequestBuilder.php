@@ -407,18 +407,7 @@ class SquareRequestBuilder
      */
     public function buildOrderRequest(Model $order, string $locationId, string $currency): CreateOrderRequest
     {
-        $squareOrder = new Order($locationId);
-        $squareOrder->setReferenceId($order->id);
-        $squareOrder->setLineItems($this->buildProducts($order->products, $currency));
-        $squareOrder->setDiscounts($this->buildDiscounts($order->discounts, $currency));
-        $squareOrder->setTaxes($this->buildTaxes($order->taxes));
-        $squareOrder->setFulfillments($this->fulfillmentRequestBuilder->buildFulfillments($order->fulfillments));
-
-        // Merge the product level service charges into the main service charges collection
-        $orderServiceCharges = collect($this->buildServiceCharges($order->serviceCharges, $currency));
-        $allServiceCharges = $this->productServiceCharges->merge($orderServiceCharges);
-
-        $squareOrder->setServiceCharges($allServiceCharges->all());
+        $squareOrder = $this->buildSquareOrder($order, $locationId, $currency);
 
         $request = new CreateOrderRequest();
         $request->setOrder($squareOrder);
@@ -445,13 +434,44 @@ class SquareRequestBuilder
         $serviceIdentifierProperty = config('nikolag.connections.square.order.service_identifier');
         $referenceIdProperty = config('nikolag.connections.square.order.reference_id');
 
-        $squareOrder = new Order($locationId);
+        $squareOrder = $this->buildSquareOrder($order, $locationId, $currency);
         $squareOrder->setId($order->{$serviceIdentifierProperty});
         $squareOrder->setReferenceId($order->{$referenceIdProperty});
         $squareOrder->setVersion($version);
-        $squareOrder->setLineItems($this->buildProducts($order->products, $currency));
+
+        $request = new UpdateOrderRequest();
+        $request->setOrder($squareOrder);
+        $request->setIdempotencyKey(uniqid());
+
+        return $request;
+    }
+
+
+    /**
+     * Build a Square Order object with line items, discounts, taxes,
+     * fulfillments, and service charges from a local order model.
+     *
+     * @param Model  $order
+     * @param string $locationId
+     * @param string $currency
+     *
+     * @throws InvalidSquareOrderException
+     * @throws MissingPropertyException
+     *
+     * @return Order
+     */
+    private function buildSquareOrder(Model $order, string $locationId, string $currency): Order
+    {
+        // Reset accumulated collections from any previous build call
+        $this->productTaxes = collect([]);
+        $this->productDiscounts = collect([]);
+        $this->productServiceCharges = collect([]);
+        $this->serviceChargeTaxes = collect([]);
+
+        $squareOrder = new Order($locationId);
+        $squareOrder->setReferenceId($order->id);
+        $lineItems = $this->buildProducts($order->products, $currency);
         $squareOrder->setDiscounts($this->buildDiscounts($order->discounts, $currency));
-        $squareOrder->setTaxes($this->buildTaxes($order->taxes));
         $squareOrder->setFulfillments($this->fulfillmentRequestBuilder->buildFulfillments($order->fulfillments));
 
         // Merge the product level service charges into the main service charges collection
@@ -460,11 +480,26 @@ class SquareRequestBuilder
 
         $squareOrder->setServiceCharges($allServiceCharges->all());
 
-        $request = new UpdateOrderRequest();
-        $request->setOrder($squareOrder);
-        $request->setIdempotencyKey(uniqid());
+        // Apply LINE_ITEM-scoped service charges to all line items as appliedServiceCharges
+        $lineItemScopedCharges = $allServiceCharges->filter(
+            fn ($sc) => $sc->getScope() === Constants::DEDUCTIBLE_SCOPE_PRODUCT
+        );
+        if ($lineItemScopedCharges->isNotEmpty()) {
+            $appliedRefs = $this->buildAppliedServiceCharges($lineItemScopedCharges);
+            foreach ($lineItems as $lineItem) {
+                $existing = $lineItem->getAppliedServiceCharges() ?? [];
+                $lineItem->setAppliedServiceCharges(array_merge($existing, $appliedRefs));
+            }
+        }
 
-        return $request;
+        $squareOrder->setLineItems($lineItems);
+
+        // Merge service charge taxes into the order-level taxes
+        $orderTaxes = collect($this->buildTaxes($order->taxes));
+        $allTaxes = $orderTaxes->merge($this->serviceChargeTaxes);
+        $squareOrder->setTaxes($allTaxes->all());
+
+        return $squareOrder;
     }
 
     /**
