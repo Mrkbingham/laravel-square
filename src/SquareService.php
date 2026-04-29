@@ -584,16 +584,16 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         foreach ($taxCatalogObjects as $taxObject) {
             $taxData = $taxObject->getTaxData();
 
-            $itemData = [
-                'name'       => $taxData->getName(),
-                'type'       => $taxData->getInclusionType(),
-                'percentage' => $taxData->getPercentage(),
-            ];
-
             $squareID = $taxObject->getId();
 
-            // Create or update the product
-            Tax::updateOrCreate(['square_catalog_object_id' => $squareID], $itemData);
+            // Lookup by (name, type) to respect the unique constraint on those columns
+            Tax::updateOrCreate(
+                ['name' => $taxData->getName(), 'type' => $taxData->getInclusionType()],
+                [
+                    'square_catalog_object_id' => $squareID,
+                    'percentage'               => $taxData->getPercentage(),
+                ]
+            );
         }
     }
 

@@ -27,6 +27,9 @@ class ModifiersBuilder
     {
         $temp = collect([]);
         foreach ($modifiers as $modifier) {
+            if (! $modifier instanceof Modifier && ! $modifier instanceof ModifierOption) {
+                continue;
+            }
             $modifierPivot = $this->createProductModifier($orderProduct, $modifier);
             $temp->push($modifierPivot);
         }
