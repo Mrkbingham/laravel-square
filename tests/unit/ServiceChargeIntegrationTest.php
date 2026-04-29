@@ -105,15 +105,26 @@ class ServiceChargeIntegrationTest extends TestCase
         $this->assertCount(1, $order->products->first()->pivot->serviceCharges, 'First product should have 1 service charge');
         $this->assertEquals('Fake Percentage Fee', $order->products->first()->pivot->serviceCharges->first()->name);
 
-        // Calculate expected total:
-        // Products: (2 × $10.00) + (1 × $20.00) = $40.00
-        // Order discount: 10% of $40.00 = -$4.00, new subtotal: $36.00
-        // Product service charge: $5.00 (fixed amount on first product): $36.00 + $5.00 = $41.00
-        // Tax: 8.5% of $41.00 = $3.49, new subtotal: $44.49
-        // Order service charge: 5% of $44.49 = $2.22, new total: $46.71
+        // 0. Get the subtotal of the order before any discounts, taxes, or service charges:
+        //   (2 × $10.00) + (1 × $20.00) = $40.00
+        //   Subtotal: $40.00
+        // 1. Order-level discount applied first
+        //   Discount: -$4.00 (10% of $40.00)
+        //   Subtotal: $36.00
+        // 2. Subtotal Service charge
+        //   Service charge: +$5.00 (flat amount)
+        //   Subtotal: $41.00
+        // 3. Taxes  - calculated after order discounts and subtotal-phase service charges
+        //    Tax: $3.49 (8.5% of $41.00)
+        //    Total: $44.49
+        // 4. Total Phase Service Charge - calculated after taxes.
+        //    Service charge: $2.22 (5% of $44.49)
+        //    Total: $46.71 ($44.49 + $2.22)
         $actualTotal = Util::calculateTotalOrderCostByModel($order);
 
         $this->assertEquals(46_71, $actualTotal, 'Total calculation should include all service charges, taxes, and discounts');
+
+        $this->validateAgainstSquareApi($order, $actualTotal);
 
         // Test building Square request with service charges
         $squareBuilder = Square::getSquareBuilder();
