@@ -637,16 +637,13 @@ class Util
         }
 
         $orderScopedServiceCharges = self::_filterOrderScoped($orderServiceCharges);
-        $productScopedServiceCharges = $orderServiceCharges->filter(function ($item) {
-            $scope = $item->pivot ? $item->pivot->scope : $item->scope;
-
-            return $scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT;
-        });
 
         // Merge all applicable deductibles
+        // PRODUCT-scoped service charges are already in $lineItemServiceCharges (from the pivot)
+        // — they must NOT be pulled from the order-wide collection, which would apply them to every line item
         $allDiscounts = $lineItemDiscounts->merge($orderScopedDiscounts);
         $allTaxes = $lineItemTaxes->merge($orderScopedTaxes);
-        $allServiceCharges = $lineItemServiceCharges->merge($orderScopedServiceCharges)->merge($productScopedServiceCharges);
+        $allServiceCharges = $lineItemServiceCharges->merge($orderScopedServiceCharges);
 
         // Step 4: Separate taxes by calculation phase
         $subtotalPhaseTaxes = $allTaxes->filter(fn (Tax $tax) => $tax->isCalculatedOnSubtotal());
@@ -675,10 +672,14 @@ class Util
             $ratio
         );
         $subtotalSCAmount = $subtotalServiceChargeBreakdown->sum('amount');
+        $taxableSubtotalSCAmount = $subtotalServiceChargeBreakdown
+            ->filter(fn (array $entry) => $entry['service_charge']->taxable)
+            ->sum('amount');
         $subtotalAmount = $discountedCost + $subtotalSCAmount;
 
-        // Step 8: Add subtotal-phase taxes
-        $subtotalTaxAmount = self::_calculateLineItemTaxes($subtotalPhaseTaxes, $subtotalAmount);
+        // Step 8: Add subtotal-phase taxes (only taxable service charges are included in the tax base)
+        $subtotalTaxBase = $discountedCost + $taxableSubtotalSCAmount;
+        $subtotalTaxAmount = self::_calculateLineItemTaxes($subtotalPhaseTaxes, $subtotalTaxBase);
         $subtotalTaxedCost = $subtotalAmount + $subtotalTaxAmount;
 
         // Step 9: Add total-phase service charges
@@ -690,10 +691,14 @@ class Util
             $ratio
         );
         $totalSCAmount = $totalServiceChargeBreakdown->sum('amount');
+        $taxableTotalSCAmount = $totalServiceChargeBreakdown
+            ->filter(fn (array $entry) => $entry['service_charge']->taxable)
+            ->sum('amount');
         $preTotal = $subtotalTaxedCost + $totalSCAmount;
 
         // Step 10: Add total-phase taxes (on pre-tax subtotal + total service charges, not compounded)
-        $totalTaxBase = $subtotalAmount + $totalSCAmount;
+        // Only taxable service charges are included in the tax base
+        $totalTaxBase = $subtotalTaxBase + $taxableTotalSCAmount;
         $totalTaxAmount = self::_calculateLineItemTaxes($totalPhaseTaxes, $totalTaxBase);
         $totalTaxedCost = $preTotal + $totalTaxAmount;
 
