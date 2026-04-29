@@ -67,4 +67,15 @@ interface SquareServiceContract extends PaymentServiceContract
      * @return self
      */
     public function setOrder(mixed $order, string $locationId, string $currency = 'USD'): SquareServiceContract;
+
+    /**
+     * Calculate an order using Square's CalculateOrder API endpoint.
+     *
+     * @param mixed  $order
+     * @param string $locationId
+     * @param string $currency
+     *
+     * @return mixed
+     */
+    public function calculateOrder(mixed $order, string $locationId, string $currency = 'USD'): mixed;
 }

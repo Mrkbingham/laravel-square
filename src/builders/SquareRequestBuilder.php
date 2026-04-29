@@ -28,6 +28,7 @@ use Square\Models\CatalogObjectType;
 use Square\Models\CatalogPricingType;
 use Square\Models\CreateCatalogImageRequest;
 use Square\Models\CreateCustomerRequest;
+use Square\Models\CalculateOrderRequest;
 use Square\Models\CreateOrderRequest;
 use Square\Models\CreatePaymentRequest;
 use Square\Models\Money;
@@ -72,6 +73,12 @@ class SquareRequestBuilder
      */
     private Collection $serviceCharges;
     /**
+     * Taxes applied to service charges which need to be added to order-level taxes.
+     *
+     * @var Collection
+     */
+    private Collection $serviceChargeTaxes;
+    /**
      * Fulfillment request helper builder.
      *
      * @var FulfillmentRequestBuilder
@@ -87,6 +94,7 @@ class SquareRequestBuilder
         $this->productDiscounts = collect([]);
         $this->serviceCharges = collect([]);
         $this->productServiceCharges = collect([]);
+        $this->serviceChargeTaxes = collect([]);
 
         $this->fulfillmentRequestBuilder = new FulfillmentRequestBuilder();
     }
@@ -401,18 +409,7 @@ class SquareRequestBuilder
      */
     public function buildOrderRequest(Model $order, string $locationId, string $currency): CreateOrderRequest
     {
-        $squareOrder = new Order($locationId);
-        $squareOrder->setReferenceId($order->id);
-        $squareOrder->setLineItems($this->buildProducts($order->products, $currency));
-        $squareOrder->setDiscounts($this->buildDiscounts($order->discounts, $currency));
-        $squareOrder->setTaxes($this->buildTaxes($order->taxes));
-        $squareOrder->setFulfillments($this->fulfillmentRequestBuilder->buildFulfillments($order->fulfillments));
-
-        // Merge the product level service charges into the main service charges collection
-        $orderServiceCharges = collect($this->buildServiceCharges($order->serviceCharges, $currency));
-        $allServiceCharges = $this->productServiceCharges->merge($orderServiceCharges);
-
-        $squareOrder->setServiceCharges($allServiceCharges->all());
+        $squareOrder = $this->buildSquareOrder($order, $locationId, $currency);
 
         $request = new CreateOrderRequest();
         $request->setOrder($squareOrder);
@@ -439,13 +436,63 @@ class SquareRequestBuilder
         $serviceIdentifierProperty = config('nikolag.connections.square.order.service_identifier');
         $referenceIdProperty = config('nikolag.connections.square.order.reference_id');
 
-        $squareOrder = new Order($locationId);
+        $squareOrder = $this->buildSquareOrder($order, $locationId, $currency);
         $squareOrder->setId($order->{$serviceIdentifierProperty});
         $squareOrder->setReferenceId($order->{$referenceIdProperty});
         $squareOrder->setVersion($version);
-        $squareOrder->setLineItems($this->buildProducts($order->products, $currency));
+
+        $request = new UpdateOrderRequest();
+        $request->setOrder($squareOrder);
+        $request->setIdempotencyKey(uniqid());
+
+        return $request;
+    }
+
+    /**
+     * Create and return a calculate order request for validating pricing
+     * against Square's CalculateOrder API without creating an order.
+     *
+     * @param Model  $order
+     * @param string $locationId
+     * @param string $currency
+     *
+     * @throws InvalidSquareOrderException
+     * @throws MissingPropertyException
+     *
+     * @return CalculateOrderRequest
+     */
+    public function buildCalculateOrderRequest(Model $order, string $locationId, string $currency): CalculateOrderRequest
+    {
+        $squareOrder = $this->buildSquareOrder($order, $locationId, $currency);
+
+        return new CalculateOrderRequest($squareOrder);
+    }
+
+    /**
+     * Build a Square Order object with line items, discounts, taxes,
+     * fulfillments, and service charges from a local order model.
+     *
+     * @param Model  $order
+     * @param string $locationId
+     * @param string $currency
+     *
+     * @throws InvalidSquareOrderException
+     * @throws MissingPropertyException
+     *
+     * @return Order
+     */
+    private function buildSquareOrder(Model $order, string $locationId, string $currency): Order
+    {
+        // Reset accumulated collections from any previous build call
+        $this->productTaxes = collect([]);
+        $this->productDiscounts = collect([]);
+        $this->productServiceCharges = collect([]);
+        $this->serviceChargeTaxes = collect([]);
+
+        $squareOrder = new Order($locationId);
+        $squareOrder->setReferenceId($order->id);
+        $lineItems = $this->buildProducts($order->products, $currency);
         $squareOrder->setDiscounts($this->buildDiscounts($order->discounts, $currency));
-        $squareOrder->setTaxes($this->buildTaxes($order->taxes));
         $squareOrder->setFulfillments($this->fulfillmentRequestBuilder->buildFulfillments($order->fulfillments));
 
         // Merge the product level service charges into the main service charges collection
@@ -453,12 +500,14 @@ class SquareRequestBuilder
         $allServiceCharges = $this->productServiceCharges->merge($orderServiceCharges);
 
         $squareOrder->setServiceCharges($allServiceCharges->all());
+        $squareOrder->setLineItems($lineItems);
 
-        $request = new UpdateOrderRequest();
-        $request->setOrder($squareOrder);
-        $request->setIdempotencyKey(uniqid());
+        // Merge service charge taxes into the order-level taxes
+        $orderTaxes = collect($this->buildTaxes($order->taxes));
+        $allTaxes = $orderTaxes->merge($this->serviceChargeTaxes);
+        $squareOrder->setTaxes($allTaxes->all());
 
-        return $request;
+        return $squareOrder;
     }
 
     /**
@@ -726,6 +775,32 @@ class SquareRequestBuilder
                     $money->setAmount($amountMoney);
                     $money->setCurrency($serviceCharge->amount_currency ?? $currency);
                     $tempServiceCharge->amountMoney($money);
+                }
+
+                // Build taxes applied to this service charge
+                $serviceCharge->loadMissing('taxes');
+                $scTaxes = $serviceCharge->taxes ?? collect([]);
+                if ($scTaxes->isNotEmpty()) {
+                    $appliedTaxes = [];
+                    foreach ($scTaxes as $tax) {
+                        $tempTax = new OrderLineItemTax();
+                        $tempTax->setUid(Util::uid());
+                        $tempTax->setName($tax->name);
+                        $tempTax->setType($tax->type);
+                        $tempTax->setPercentage((string) $tax->percentage);
+                        // Use LINE_ITEM scope so the tax only applies where explicitly referenced
+                        // (on the service charge via applied_taxes), not to all line items
+                        $tempTax->setScope(Constants::DEDUCTIBLE_SCOPE_PRODUCT);
+                        if ($tax->square_catalog_object_id) {
+                            $tempTax->setCatalogObjectId($tax->square_catalog_object_id);
+                        }
+                        $this->serviceChargeTaxes->push($tempTax);
+
+                        $appliedTax = new OrderLineItemAppliedTax($tempTax->getUid());
+                        $appliedTax->setUid(Util::uid());
+                        $appliedTaxes[] = $appliedTax;
+                    }
+                    $tempServiceCharge->appliedTaxes($appliedTaxes);
                 }
 
                 $temp[] = $tempServiceCharge->build();
