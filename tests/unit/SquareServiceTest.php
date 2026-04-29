@@ -26,7 +26,7 @@ use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Tests\Traits\MocksSquareConfigDependency;
 use Nikolag\Square\Utils\Constants;
-use Nikolag\Square\Utils\Util;
+use Nikolag\Square\Utils\OrderCalculator;
 use Square\Models\BatchUpsertCatalogObjectsRequest;
 use Square\Models\CatalogObject;
 use Square\Models\CatalogObjectType;
@@ -1503,7 +1503,7 @@ class SquareServiceTest extends TestCase
             ->setOrder($this->data->order, env('SQUARE_LOCATION'))
             ->save();
 
-        $calculatedCost = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $calculatedCost = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
 
         $this->assertEquals(707, $calculatedCost);
     }
