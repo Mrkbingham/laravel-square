@@ -548,17 +548,20 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
-        // Add the service charge to the order
-        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
-            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
-            'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
-        ]);
-
+        // Attach the service charge to each product's pivot (PRODUCT scope = per line item)
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
+        $order = $square->getOrder();
 
-        // Base cost: $116.00, Service charge $10.00 x 6 = $60.00, Total: $176.00
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        foreach ($order->products as $product) {
+            $product->pivot->serviceCharges()->attach($serviceCharge->id, [
+                'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+                'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+                'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
+            ]);
+        }
+
+        // Base cost: $116.00, Service charge $10.00 x 6 (total qty) = $60.00, Total: $176.00
+        $actual = Util::calculateTotalOrderCostByModel($order->fresh());
         $this->assertEquals(176_00, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);

@@ -366,11 +366,20 @@ class CalculateOrderTest extends TestCase
 
         $serviceCharge = factory(ServiceCharge::class)->create($serviceChargeAttrs);
 
-        $order->serviceCharges()->attach($serviceCharge->id, [
-            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
-            'featurable_type' => config('nikolag.connections.square.order.namespace'),
-            'scope'           => $scope,
-        ]);
+        if ($scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) {
+            // PRODUCT-scoped service charges must be attached to a specific line item's pivot
+            $order->products->first()->pivot->serviceCharges()->attach($serviceCharge->id, [
+                'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+                'featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE,
+                'scope'           => $scope,
+            ]);
+        } else {
+            $order->serviceCharges()->attach($serviceCharge->id, [
+                'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+                'featurable_type' => config('nikolag.connections.square.order.namespace'),
+                'scope'           => $scope,
+            ]);
+        }
 
         $order->refresh();
         $order->load('products', 'taxes', 'discounts', 'serviceCharges', 'fulfillments');

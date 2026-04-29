@@ -105,24 +105,24 @@ class ServiceChargeIntegrationTest extends TestCase
         $this->assertCount(1, $order->products->first()->pivot->serviceCharges, 'First product should have 1 service charge');
         $this->assertEquals('Fake Percentage Fee', $order->products->first()->pivot->serviceCharges->first()->name);
 
-        // 0. Get the subtotal of the order before any discounts, taxes, or service charges:
-        //   (2 × $10.00) + (1 × $20.00) = $40.00
-        //   Subtotal: $40.00
-        // 1. Order-level discount applied first
-        //   Discount: -$4.00 (10% of $40.00)
-        //   Subtotal: $36.00
-        // 2. Subtotal Service charge
-        //   Service charge: +$5.00 (flat amount)
-        //   Subtotal: $41.00
-        // 3. Taxes  - calculated after order discounts and subtotal-phase service charges
-        //    Tax: $3.49 (8.5% of $41.00)
-        //    Total: $44.49
-        // 4. Total Phase Service Charge - calculated after taxes.
-        //    Service charge: $2.22 (5% of $44.49)
-        //    Total: $46.71 ($44.49 + $2.22)
+        // Per-line-item calculation (2 line items, each with ratio 0.5):
+        //
+        // Order-level totals: subtotal=$40, discount=$4.00 (10%), SC=$5+5%
+        //
+        // Each line item (apportioned by 0.5 ratio):
+        //   Base: $20.00 (line item 1: 2×$10, line item 2: 1×$20)
+        //   Discount: -$2.00 (10% of $20.00, order total: $4.00) → $18.00
+        //   Subtotal SC: +$2.50 ($5.00 × 0.5 ratio, order total: $5.00) → $20.50
+        //   Tax base: $18.00 (non-taxable SCs excluded from tax base)
+        //   Total SC: +$1.02 (5% of $20.50, bankers rounded)
+        //   Running total: $20.50 + $1.02 = $21.52
+        //   Tax: $1.53 (8.5% of $18.00)
+        //   Line item total: $21.52 + $1.53 = $23.05
+        //
+        // Order total: $23.05 × 2 = $46.10
         $actualTotal = Util::calculateTotalOrderCostByModel($order);
 
-        $this->assertEquals(46_71, $actualTotal, 'Total calculation should include all service charges, taxes, and discounts');
+        $this->assertEquals(46_10, $actualTotal, 'Total calculation should include all service charges, taxes, and discounts');
 
         $this->validateAgainstSquareApi($order, $actualTotal);
 
@@ -177,8 +177,8 @@ class ServiceChargeIntegrationTest extends TestCase
 
         $order->refresh();
 
-        // Expected: 3 × $15.00 = $45.00, service charge 2.5% = $1.13, total = $46.13 = 4613 cents
-        $expectedTotal = 4613;
+        // Expected: 3 × $15.00 = $45.00, service charge 2.5% = $1.125 → $1.12 (bankers rounding), total = $46.12
+        $expectedTotal = 4612;
         $actualTotal = Util::calculateTotalOrderCostByModel($order);
 
         $this->assertEquals(
