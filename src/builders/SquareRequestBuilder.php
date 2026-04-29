@@ -500,19 +500,6 @@ class SquareRequestBuilder
         $allServiceCharges = $this->productServiceCharges->merge($orderServiceCharges);
 
         $squareOrder->setServiceCharges($allServiceCharges->all());
-
-        // Apply LINE_ITEM-scoped service charges to all line items as appliedServiceCharges
-        $lineItemScopedCharges = $allServiceCharges->filter(
-            fn ($sc) => $sc->getScope() === Constants::DEDUCTIBLE_SCOPE_PRODUCT
-        );
-        if ($lineItemScopedCharges->isNotEmpty()) {
-            $appliedRefs = $this->buildAppliedServiceCharges($lineItemScopedCharges);
-            foreach ($lineItems as $lineItem) {
-                $existing = $lineItem->getAppliedServiceCharges() ?? [];
-                $lineItem->setAppliedServiceCharges(array_merge($existing, $appliedRefs));
-            }
-        }
-
         $squareOrder->setLineItems($lineItems);
 
         // Merge service charge taxes into the order-level taxes
