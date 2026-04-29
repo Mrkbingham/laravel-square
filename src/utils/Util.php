@@ -933,6 +933,14 @@ class Util
     ): int {
         $scope = $serviceCharge->pivot ? $serviceCharge->pivot->scope : $serviceCharge->scope;
 
+        // SUBTOTAL_PHASE is an order-level calculation phase — it cannot be applied to individual products
+        if (
+            $scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            && $serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE
+        ) {
+            throw new Exception('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order.');
+        }
+
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
             // PRODUCT-scoped: apply fixed amount per unit (matches _calculateProductServiceCharges behavior)
             if ($scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) {
