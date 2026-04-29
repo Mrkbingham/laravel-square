@@ -448,18 +448,27 @@ class Util
         $discountCost = $noDeductiblesCost - self::_calculateDiscounts($allDiscounts, $noDeductiblesCost, $products);
 
         // Add subtotal-phase service charges to discount cost
-        $subTotalAmount = $discountCost + self::_calculateServiceCharges($subtotalServiceCharges, $discountCost, $products);
+        $subtotalSCAmount = self::_calculateServiceCharges($subtotalServiceCharges, $discountCost, $products);
+        $taxableSubtotalSCAmount = self::_calculateServiceCharges(
+            $subtotalServiceCharges->filter(fn ($sc) => $sc->taxable), $discountCost, $products
+        );
+        $subTotalAmount = $discountCost + $subtotalSCAmount;
 
-        // Apply subtotal-phase taxes (before total-phase service charges)
-        $subtotalTaxedCost = $subTotalAmount + self::_calculateAdditiveTaxes($subtotalPhaseTaxes, $subTotalAmount, $products, $allDiscounts);
+        // Apply subtotal-phase taxes (only taxable service charges are included in the tax base)
+        $subtotalTaxBase = $discountCost + $taxableSubtotalSCAmount;
+        $subtotalTaxedCost = $subTotalAmount + self::_calculateAdditiveTaxes($subtotalPhaseTaxes, $subtotalTaxBase, $products, $allDiscounts);
 
         // Add total-phase service charges after subtotal taxes
         $totalServiceChargeAmount = self::_calculateServiceCharges($totalServiceCharges, $subtotalTaxedCost, $products);
+        $taxableTotalSCAmount = self::_calculateServiceCharges(
+            $totalServiceCharges->filter(fn ($sc) => $sc->taxable), $subtotalTaxedCost, $products
+        );
         $preTotal = $subtotalTaxedCost + $totalServiceChargeAmount;
 
         // Apply total-phase taxes to the pre-tax subtotal + total service charges
         // (taxes are not compounded on each other — Square applies each phase's taxes independently)
-        $totalTaxBase = $subTotalAmount + $totalServiceChargeAmount;
+        // Only taxable service charges are included in the tax base
+        $totalTaxBase = $subtotalTaxBase + $taxableTotalSCAmount;
         $totalTaxedCost = $preTotal + self::_calculateAdditiveTaxes($totalPhaseTaxes, $totalTaxBase, $products, $allDiscounts);
 
         // Finally, calculate service charge taxes
