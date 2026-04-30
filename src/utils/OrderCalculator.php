@@ -353,11 +353,11 @@ class OrderCalculator
         }
 
         // Use index for direct lookup if available, otherwise linear scan
-        $targetProduct = !empty($serviceChargeToProduct)
+        $targetProduct = ! empty($serviceChargeToProduct)
             ? ($serviceChargeToProduct[$serviceCharge->id] ?? null)
             : $products->first(fn ($product) => $product->pivot->serviceCharges->contains($serviceCharge));
 
-        if (!$targetProduct) {
+        if (! $targetProduct) {
             return 0;
         }
 
@@ -590,7 +590,7 @@ class OrderCalculator
             // Also check direct product-level deductibles
             $directItems = $product->$relation ?? collect([]);
             foreach ($directItems as $item) {
-                if (!isset($index[$item->id])) {
+                if (! isset($index[$item->id])) {
                     $index[$item->id] = $product;
                 }
             }
