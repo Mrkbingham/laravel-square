@@ -528,13 +528,13 @@ class OrderCalculator
         $totalPhaseTaxes = $allTaxes->filter(fn (Tax $tax) => $tax->isCalculatedOnTotal());
 
         // Separate service charges by calculation phase
-        $subtotalServiceCharges = $allServiceCharges->filter(fn ($sc) => in_array($sc->calculation_phase, [
+        $subtotalServiceCharges = $allServiceCharges->filter(fn ($serviceCharge) => in_array($serviceCharge->calculation_phase, [
             OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
             OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
             OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
         ]));
         $totalServiceCharges = $allServiceCharges->filter(
-            fn ($sc) => $sc->calculation_phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE
+            fn ($serviceCharge) => $serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE
         );
 
         // Build reverse-index maps once for O(1) lookups
@@ -551,7 +551,7 @@ class OrderCalculator
         // Add subtotal-phase service charges to discount cost
         $subtotalSCAmount = self::_calculateServiceCharges($subtotalServiceCharges, $discountCost, $products, $serviceChargeToProduct);
         $taxableSubtotalSCAmount = self::_calculateServiceCharges(
-            $subtotalServiceCharges->filter(fn ($sc) => $sc->taxable), $discountCost, $products, $serviceChargeToProduct
+            $subtotalServiceCharges->filter(fn ($serviceCharge) => $serviceCharge->taxable), $discountCost, $products, $serviceChargeToProduct
         );
         $subTotalAmount = $discountCost + $subtotalSCAmount;
 
@@ -562,7 +562,7 @@ class OrderCalculator
         // Add total-phase service charges after subtotal taxes
         $totalServiceChargeAmount = self::_calculateServiceCharges($totalServiceCharges, $subtotalTaxedCost, $products, $serviceChargeToProduct);
         $taxableTotalSCAmount = self::_calculateServiceCharges(
-            $totalServiceCharges->filter(fn ($sc) => $sc->taxable), $subtotalTaxedCost, $products, $serviceChargeToProduct
+            $totalServiceCharges->filter(fn ($serviceCharge) => $serviceCharge->taxable), $subtotalTaxedCost, $products, $serviceChargeToProduct
         );
         $preTotal = $subtotalTaxedCost + $totalServiceChargeAmount;
 
@@ -711,13 +711,13 @@ class OrderCalculator
         $totalPhaseTaxes = $allTaxes->filter(fn (Tax $tax) => $tax->isCalculatedOnTotal());
 
         // Step 5: Separate service charges by calculation phase
-        $subtotalServiceCharges = $allServiceCharges->filter(fn ($sc) => in_array($sc->calculation_phase, [
+        $subtotalServiceCharges = $allServiceCharges->filter(fn ($serviceCharge) => in_array($serviceCharge->calculation_phase, [
             OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
             OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
             OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
         ]));
         $totalServiceCharges = $allServiceCharges->filter(
-            fn ($sc) => $sc->calculation_phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE
+            fn ($serviceCharge) => $serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE
         );
 
         // Step 6: Apply discounts
@@ -812,13 +812,13 @@ class OrderCalculator
         $subtotalPhaseTaxes = $allTaxes->filter(fn (Tax $tax) => $tax->isCalculatedOnSubtotal());
         $totalPhaseTaxes = $allTaxes->filter(fn (Tax $tax) => $tax->isCalculatedOnTotal());
 
-        $subtotalServiceCharges = $allServiceCharges->filter(fn ($sc) => in_array($sc->calculation_phase, [
+        $subtotalServiceCharges = $allServiceCharges->filter(fn ($serviceCharge) => in_array($serviceCharge->calculation_phase, [
             OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
             OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
             OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
         ]));
         $totalServiceCharges = $allServiceCharges->filter(
-            fn ($sc) => $sc->calculation_phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE
+            fn ($serviceCharge) => $serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE
         );
 
         // Step 6: Apply discounts
@@ -881,21 +881,21 @@ class OrderCalculator
     {
         $map = [];
 
-        foreach ($allServiceCharges as $sc) {
-            $scope = self::_getScope($sc);
+        foreach ($allServiceCharges as $serviceCharge) {
+            $scope = self::_getScope($serviceCharge);
 
             if ($scope === Constants::DEDUCTIBLE_SCOPE_ORDER) {
                 continue;
             }
 
-            $applicableLineItems = $allLineItems->filter(function (OrderProductPivot $candidate) use ($sc) {
+            $applicableLineItems = $allLineItems->filter(function (OrderProductPivot $candidate) use ($serviceCharge) {
                 $candidate->loadMissing('serviceCharges');
 
-                return $candidate->serviceCharges->contains(fn ($attached) => $attached->id === $sc->id);
+                return $candidate->serviceCharges->contains(fn ($attached) => $attached->id === $serviceCharge->id);
             });
 
             if ($applicableLineItems->isNotEmpty()) {
-                $map[$sc->id] = self::_calculateAllLineItemsBaseCost($applicableLineItems);
+                $map[$serviceCharge->id] = self::_calculateAllLineItemsBaseCost($applicableLineItems);
             }
         }
 
@@ -926,11 +926,11 @@ class OrderCalculator
             return collect([]);
         }
 
-        return $serviceCharges->map(function ($sc) use ($baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts) {
+        return $serviceCharges->map(function ($serviceCharge) use ($baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts) {
             return [
-                'service_charge' => $sc,
+                'service_charge' => $serviceCharge,
                 'amount'         => self::_calculateLineItemServiceChargeAmountWithContext(
-                    $sc, $baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
+                    $serviceCharge, $baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
                 ),
             ];
         });
@@ -1047,7 +1047,7 @@ class OrderCalculator
      */
     private static function _calculateAllLineItemsBaseCost(Collection $lineItems): float|int
     {
-        return $lineItems->sum(fn (OrderProductPivot $li) => self::_calculateLineItemBaseCost($li));
+        return $lineItems->sum(fn (OrderProductPivot $lineItem) => self::_calculateLineItemBaseCost($lineItem));
     }
 
     /**
@@ -1161,10 +1161,10 @@ class OrderCalculator
             return collect([]);
         }
 
-        return $serviceCharges->map(function ($sc) use ($baseAmount, $lineItem, $allLineItems, $ratio) {
+        return $serviceCharges->map(function ($serviceCharge) use ($baseAmount, $lineItem, $allLineItems, $ratio) {
             return [
-                'service_charge' => $sc,
-                'amount'         => self::_calculateLineItemServiceChargeAmount($sc, $baseAmount, $lineItem, $allLineItems, $ratio),
+                'service_charge' => $serviceCharge,
+                'amount'         => self::_calculateLineItemServiceChargeAmount($serviceCharge, $baseAmount, $lineItem, $allLineItems, $ratio),
             ];
         });
     }
@@ -1183,25 +1183,25 @@ class OrderCalculator
         }
 
         return $serviceChargeBreakdown->sum(function (array $serviceChargeData) {
-            /** @var mixed $sc */
-            $sc = $serviceChargeData['service_charge'];
-            $scAmount = $serviceChargeData['amount'];
+            /** @var mixed $serviceCharge */
+            $serviceCharge = $serviceChargeData['service_charge'];
+            $serviceChargeAmount = $serviceChargeData['amount'];
 
             // Apportioned service charges inherit taxes from line items — no direct taxes
             if (
-                $sc->treatment_type === OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT
-                || $sc->taxable === false
+                $serviceCharge->treatment_type === OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT
+                || $serviceCharge->taxable === false
             ) {
                 return 0;
             }
 
-            $scTaxes = $sc->taxes ?? collect([]);
-            if ($scTaxes->isEmpty()) {
+            $serviceChargeTaxes = $serviceCharge->taxes ?? collect([]);
+            if ($serviceChargeTaxes->isEmpty()) {
                 return 0;
             }
 
             // Apply each tax to the service charge amount
-            return $scTaxes->sum(fn ($tax) => self::_roundMoney($scAmount * $tax->percentage / 100));
+            return $serviceChargeTaxes->sum(fn ($tax) => self::_roundMoney($serviceChargeAmount * $tax->percentage / 100));
         });
     }
 
