@@ -2,7 +2,7 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
-use Exception;
+use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\Product;
@@ -13,7 +13,7 @@ use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\Traits\AssertsSquareCalculation;
 use Nikolag\Square\Utils\Constants;
-use Nikolag\Square\Utils\Util;
+use Nikolag\Square\Utils\OrderCalculator;
 use Square\Models\OrderServiceChargeCalculationPhase;
 use Square\Models\OrderServiceChargeTreatmentType;
 
@@ -120,7 +120,7 @@ class ServiceChargeIntegrationTest extends TestCase
         //   Line item total: $21.52 + $1.53 = $23.05
         //
         // Order total: $23.05 × 2 = $46.10
-        $actualTotal = Util::calculateTotalOrderCostByModel($order);
+        $actualTotal = OrderCalculator::calculateTotalOrderCostByModel($order);
 
         $this->assertEquals(46_10, $actualTotal, 'Total calculation should include all service charges, taxes, and discounts');
 
@@ -179,7 +179,7 @@ class ServiceChargeIntegrationTest extends TestCase
 
         // Expected: 3 × $15.00 = $45.00, service charge 2.5% = $1.125 → $1.12 (bankers rounding), total = $46.12
         $expectedTotal = 4612;
-        $actualTotal = Util::calculateTotalOrderCostByModel($order);
+        $actualTotal = OrderCalculator::calculateTotalOrderCostByModel($order);
 
         $this->assertEquals(
             $expectedTotal,
@@ -223,7 +223,7 @@ class ServiceChargeIntegrationTest extends TestCase
 
         // Calculate total: $20.00 + $3.00 = $23.00 = 2300 cents
         $expectedTotal = 2300;
-        $actualTotal = Util::calculateTotalOrderCostByModel($order);
+        $actualTotal = OrderCalculator::calculateTotalOrderCostByModel($order);
 
         $this->assertEquals($expectedTotal, $actualTotal);
 
@@ -272,7 +272,7 @@ class ServiceChargeIntegrationTest extends TestCase
 
         // Calculate total: ($15.00 + $10.00) x 2 = $50.00
         $expectedTotal = 50_00;
-        $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actualTotal = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
 
         $this->assertEquals($expectedTotal, $actualTotal);
 
@@ -335,7 +335,7 @@ class ServiceChargeIntegrationTest extends TestCase
 
         // Calculate total: $20.00 + 5% ($1.00) + $1.00 = $22.00 = 2200 cents
         $expectedTotal = 2200;
-        $actualTotal = Util::calculateTotalOrderCostByModel($order);
+        $actualTotal = OrderCalculator::calculateTotalOrderCostByModel($order);
 
         $this->assertEquals($expectedTotal, $actualTotal, 'Multiple service charges were not calculated correctly');
 
@@ -376,9 +376,9 @@ class ServiceChargeIntegrationTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
-        $this->expectException(Exception::class);
+        $this->expectException(InvalidSquareOrderException::class);
         $this->expectExceptionMessage('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order');
 
-        Util::calculateTotalOrderCostByModel($order);
+        OrderCalculator::calculateTotalOrderCostByModel($order);
     }
 }

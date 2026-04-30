@@ -2,7 +2,7 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
-use Exception;
+use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\Discount;
@@ -16,7 +16,9 @@ use Nikolag\Square\Tests\Models\User;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Tests\Traits\AssertsSquareCalculation;
+use Nikolag\Square\Dto\OrderTotalsBreakdown;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\OrderCalculator;
 use Nikolag\Square\Utils\Util;
 use Square\Models\OrderServiceChargeCalculationPhase;
 use Square\Models\OrderServiceChargeTreatmentType;
@@ -102,7 +104,7 @@ class UtilTest extends TestCase
             ->addProduct($this->product)
             ->save();
         $expected = 445;
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
 
         $this->assertEquals($expected, $actual, 'Util::calculateTotalOrderCost didn\'t calculate properly.');
 
@@ -131,7 +133,7 @@ class UtilTest extends TestCase
             ->save();
 
         // The expected total is 935.
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(935, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -163,7 +165,7 @@ class UtilTest extends TestCase
             ->save();
 
         // The expected total is $27.50.
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(2750, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -190,7 +192,7 @@ class UtilTest extends TestCase
             ->save();
 
         // The expected total is 990.
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(990, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -203,11 +205,11 @@ class UtilTest extends TestCase
      */
     public function test_calculate_total_order_cost_missing_data(): void
     {
-        $this->expectException(Exception::class);
+        $this->expectException(InvalidSquareOrderException::class);
         $this->expectExceptionMessage('Total cost cannot be calculated without products.');
 
         // Run the calculation with missing products
-        Util::calculateTotalOrderCostByModel($this->order);
+        OrderCalculator::calculateTotalOrderCostByModel($this->order);
     }
 
     /**
@@ -255,7 +257,7 @@ class UtilTest extends TestCase
             ->save();
 
         // Expected total is 3 * 750 = 2250
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(2250, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -290,7 +292,7 @@ class UtilTest extends TestCase
             ->save();
 
         // The expected total is $32.50.
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(32_50, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -423,7 +425,7 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base cost: $116.00, Service charge $10.00, Total: $126.00
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(126_00, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -457,7 +459,7 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base cost: $116.00, Service charge $11.60, Total: $127.60
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(127_60, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -511,7 +513,7 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base: 1000, Discount 10%: -100 = 900, Service charge 5%: +45 = 945, Tax 10%: +94.5 -> bankers rounds to 94, Total: 1039
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(1039, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -561,7 +563,7 @@ class UtilTest extends TestCase
         }
 
         // Base cost: $116.00, Service charge $10.00 x 6 (total qty) = $60.00, Total: $176.00
-        $actual = Util::calculateTotalOrderCostByModel($order->fresh());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($order->fresh());
         $this->assertEquals(176_00, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -607,7 +609,7 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
 
         // Base cost: $116.00, Service charge $10.00, Tax on service charge $0.80 Total: $126.80
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(126_80, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -637,7 +639,7 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base cost: $116.00, Service charge $1.74, Total: $117.74
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(117_74, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -672,7 +674,7 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base cost: 1000, Service charge fixed: 200, Total: 1200
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(1200, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -710,7 +712,7 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Base cost: 1000, Product service charge 15%: 150, Total: 1150
-        $actual = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actual = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(1150, $actual);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actual);
@@ -775,7 +777,7 @@ class UtilTest extends TestCase
         // Base: $100.00
         // Subtotal Tax (10%): $10.00 → Subtotal: $110.00
         $expectedTotal = 110_00;
-        $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actualTotal = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
 
         $this->assertEquals($expectedTotal, $actualTotal);
 
@@ -815,7 +817,7 @@ class UtilTest extends TestCase
         // Base: $100.00
         // Total tax (7%): $7.00 → Total: $107.00
         $expectedTotal = 107_00;
-        $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actualTotal = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
 
         $this->assertEquals($expectedTotal, $actualTotal);
 
@@ -863,7 +865,7 @@ class UtilTest extends TestCase
         $square = Square::setOrder($this->data->order, env('SQUARE_LOCATION'))->save();
 
         // Expected: Base $100.00 + subtotal tax 5% ($5.00) + total-phase tax 3% ($3.00) = $108.00
-        $actualTotal = Util::calculateTotalOrderCostByModel($square->getOrder());
+        $actualTotal = OrderCalculator::calculateTotalOrderCostByModel($square->getOrder());
         $this->assertEquals(108_00, $actualTotal);
 
         $this->validateAgainstSquareApi($square->getOrder(), $actualTotal);
@@ -901,7 +903,7 @@ class UtilTest extends TestCase
     {
         ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(10_00, 3);
 
-        $total = Util::calculateLineItemTotalByModel($lineItem, $order);
+        $total = OrderCalculator::calculateLineItemTotalByModel($lineItem, $order);
 
         // 10.00 × 3 = 30.00
         $this->assertEquals(30_00, $total);
@@ -927,7 +929,7 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
-        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+        $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: 10.00 × 2 = 20.00, Discount 10%: -2.00 = 18.00
         $this->assertEquals(18_00, $total);
@@ -954,7 +956,7 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
-        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+        $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: 10.00 × 2 = 20.00, Discount $3.00: 17.00
         $this->assertEquals(17_00, $total);
@@ -981,7 +983,7 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
-        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+        $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: 10.00 × 2 = 20.00, ORDER discount 20%: -4.00 = 16.00
         $this->assertEquals(16_00, $total);
@@ -1020,8 +1022,8 @@ class UtilTest extends TestCase
         $lineItem1 = $order->lineItems->where('product_id', $product1->id)->first();
         $lineItem2 = $order->lineItems->where('product_id', $product2->id)->first();
 
-        $total1 = Util::calculateLineItemTotalByModel($lineItem1, $order);
-        $total2 = Util::calculateLineItemTotalByModel($lineItem2, $order);
+        $total1 = OrderCalculator::calculateLineItemTotalByModel($lineItem1, $order);
+        $total2 = OrderCalculator::calculateLineItemTotalByModel($lineItem2, $order);
 
         // $30/$100 × $10 = $3.00 apportioned → $30 - $3 = $27.00
         $this->assertEquals(27_00, $total1);
@@ -1078,7 +1080,7 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
-        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+        $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // $100.00 -> item 10% = $90.00 -> order 20% = $72.00 -> item $3 = $69.00 -> order $5 = $64.00
         $this->assertEquals(64_00, $total);
@@ -1105,7 +1107,7 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
-        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+        $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: $10.00, Tax 10%: +$1.00 = $11.00
         $this->assertEquals(11_00, $total);
@@ -1132,7 +1134,7 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
-        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+        $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Inclusive tax is already embedded in the price — total should not change
         $this->assertEquals(11_00, $total);
@@ -1159,7 +1161,7 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
-        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+        $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: $10.00, ORDER tax 8.5%: +$0.85 = $10.85
         $this->assertEquals(10_85, $total);
@@ -1210,10 +1212,10 @@ class UtilTest extends TestCase
         $order = $square->getOrder();
         $order->load('lineItems');
 
-        $orderTotal = Util::calculateTotalOrderCostByModel($order);
+        $orderTotal = OrderCalculator::calculateTotalOrderCostByModel($order);
 
         $lineItemSum = $order->lineItems->sum(
-            fn ($li) => Util::calculateLineItemTotalByModel($li, $order)
+            fn ($li) => OrderCalculator::calculateLineItemTotalByModel($li, $order)
         );
 
         $this->assertSame(
@@ -1245,7 +1247,7 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
-        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+        $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: $20.00, Service charge 10%: +$2.00 = $22.00
         $this->assertEquals(22_00, $total);
@@ -1286,8 +1288,8 @@ class UtilTest extends TestCase
         $lineItem1 = $order->lineItems->where('product_id', $product1->id)->first();
         $lineItem2 = $order->lineItems->where('product_id', $product2->id)->first();
 
-        $total1 = Util::calculateLineItemTotalByModel($lineItem1, $order);
-        $total2 = Util::calculateLineItemTotalByModel($lineItem2, $order);
+        $total1 = OrderCalculator::calculateLineItemTotalByModel($lineItem1, $order);
+        $total2 = OrderCalculator::calculateLineItemTotalByModel($lineItem2, $order);
 
         // $10 order service charge apportioned over $30/$70 gross sales.
         $this->assertEquals(33_00, $total1);
@@ -1335,7 +1337,7 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_SERVICE_CHARGE,
         ]);
 
-        $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+        $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // $10.00 -> 10% discount = $9.00 -> 5% service charge = $0.45 -> 8% tax on service charge = $0.04
         $this->assertEquals(9_49, $total);
@@ -1388,7 +1390,7 @@ class UtilTest extends TestCase
                 'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
             ]);
 
-            $total = Util::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
+            $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
             $this->assertEquals(
                 $scenario['expectedTotal'],
@@ -1399,5 +1401,137 @@ class UtilTest extends TestCase
             $freshOrder = $order->fresh();
             $this->validateAgainstSquareApi($freshOrder, $total);
         }
+    }
+
+    /**
+     * Test order totals breakdown with no deductibles.
+     */
+    public function test_order_totals_breakdown_no_deductibles(): void
+    {
+        $this->data->order->save();
+        $product = factory(Product::class)->create(['price' => 10_00]);
+        $this->data->order->attachProduct($product, ['quantity' => 3]);
+
+        $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
+
+        $breakdown = OrderCalculator::calculateOrderTotalsBreakdown($square->getOrder());
+
+        $this->assertInstanceOf(OrderTotalsBreakdown::class, $breakdown);
+        $this->assertEquals(30_00, $breakdown->netAmount);
+        $this->assertEquals(30_00, $breakdown->totalAmount);
+        $this->assertEquals(0, $breakdown->totalTaxAmount);
+        $this->assertEquals(0, $breakdown->totalDiscountAmount);
+        $this->assertEquals(0, $breakdown->totalServiceChargeAmount);
+    }
+
+    /**
+     * Test order totals breakdown with discount and tax.
+     */
+    public function test_order_totals_breakdown_with_discount_and_tax(): void
+    {
+        $this->data->order->save();
+        $product = factory(Product::class)->create(['price' => 10_00]);
+        $this->data->order->attachProduct($product, ['quantity' => 1]);
+
+        $orderClass = config('nikolag.connections.square.order.namespace');
+
+        $discount = factory(Discount::class)->create([
+            'percentage' => 10.0,
+            'amount'     => null,
+        ]);
+        $this->data->order->discounts()->attach($discount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => $orderClass,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $tax = factory(Tax::class)->create([
+            'percentage'        => 8.0,
+            'type'              => Constants::TAX_ADDITIVE,
+            'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
+        ]);
+        $this->data->order->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => $orderClass,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
+        $order = $square->getOrder();
+
+        $breakdown = OrderCalculator::calculateOrderTotalsBreakdown($order);
+
+        // Base: $10.00, Discount 10%: -$1.00, Tax 8% of $9.00: $0.72, Total: $9.72
+        $this->assertEquals(10_00, $breakdown->netAmount);
+        $this->assertEquals(9_72, $breakdown->totalAmount);
+        $this->assertEquals(72, $breakdown->totalTaxAmount);
+        $this->assertEquals(1_00, $breakdown->totalDiscountAmount);
+        $this->assertEquals(0, $breakdown->totalServiceChargeAmount);
+    }
+
+    /**
+     * Test order totals breakdown with service charge.
+     */
+    public function test_order_totals_breakdown_with_service_charge(): void
+    {
+        $this->data->order->save();
+        $product = factory(Product::class)->create(['price' => 20_00]);
+        $this->data->order->attachProduct($product, ['quantity' => 1]);
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name'              => 'Gratuity',
+            'percentage'        => 10.0,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
+            'taxable'           => false,
+            'treatment_type'    => OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT,
+        ]);
+
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
+        $order = $square->getOrder();
+
+        $breakdown = OrderCalculator::calculateOrderTotalsBreakdown($order);
+
+        // Base: $20.00, Service charge 10%: $2.00, Total: $22.00
+        $this->assertEquals(20_00, $breakdown->netAmount);
+        $this->assertEquals(22_00, $breakdown->totalAmount);
+        $this->assertEquals(0, $breakdown->totalTaxAmount);
+        $this->assertEquals(0, $breakdown->totalDiscountAmount);
+        $this->assertEquals(2_00, $breakdown->totalServiceChargeAmount);
+    }
+
+    /**
+     * Test that breakdown totalAmount matches calculateTotalOrderCostByModel.
+     */
+    public function test_order_totals_breakdown_matches_total_cost(): void
+    {
+        $this->set_up_service_charges_order();
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name'              => 'Apportioned percentage service charge',
+            'percentage'        => 10.0,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
+            'taxable'           => true,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+        ]);
+
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
+        $order = $square->getOrder();
+
+        $total = OrderCalculator::calculateTotalOrderCostByModel($order);
+        $breakdown = OrderCalculator::calculateOrderTotalsBreakdown($order->fresh());
+
+        $this->assertEquals($total, $breakdown->totalAmount, 'Breakdown totalAmount should match calculateTotalOrderCostByModel');
     }
 }

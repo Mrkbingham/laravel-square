@@ -34,6 +34,7 @@ use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Models\WebhookEvent;
 use Nikolag\Square\Models\WebhookSubscription;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\OrderCalculator;
 use Nikolag\Square\Utils\Util;
 use Nikolag\Square\Utils\WebhookProcessor;
 use Square\Exceptions\ApiException;
@@ -963,7 +964,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         if ($this->getOrder()) {
             try {
                 // Calculate the total order amount
-                $calculatedCost = Util::calculateTotalOrderCost($this->orderCopy);
+                $calculatedCost = OrderCalculator::calculateTotalOrderCost($this->orderCopy);
                 // If order total does not match charge amount, throw error
                 if ($calculatedCost != $options['amount']) {
                     throw new InvalidSquareAmountException('The charge amount does not match the order total.', 500);

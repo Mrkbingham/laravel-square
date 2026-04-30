@@ -13,7 +13,7 @@ use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\Traits\AssertsSquareCalculation;
 use Nikolag\Square\Tests\Traits\MocksSquareConfigDependency;
 use Nikolag\Square\Utils\Constants;
-use Nikolag\Square\Utils\Util;
+use Nikolag\Square\Utils\OrderCalculator;
 use Square\Models\Builders\CalculateOrderResponseBuilder;
 use Square\Models\Builders\MoneyBuilder;
 use Square\Models\Builders\OrderBuilder;
@@ -323,7 +323,7 @@ class CalculateOrderTest extends TestCase
         $order->load('products', 'serviceCharges', 'taxes', 'discounts', 'fulfillments');
 
         // Calculate using our internal logic
-        $internalTotal = Util::calculateTotalOrderCostByModel($order);
+        $internalTotal = OrderCalculator::calculateTotalOrderCostByModel($order);
 
         // Send to Square's CalculateOrder endpoint for validation
         $squareResponse = Square::calculateOrder($order, env('SQUARE_LOCATION'));
@@ -384,7 +384,7 @@ class CalculateOrderTest extends TestCase
         $order->refresh();
         $order->load('products', 'taxes', 'discounts', 'serviceCharges', 'fulfillments');
 
-        $internalTotal = Util::calculateTotalOrderCostByModel($order);
+        $internalTotal = OrderCalculator::calculateTotalOrderCostByModel($order);
         $squareResponse = Square::calculateOrder($order, env('SQUARE_LOCATION'));
         $comparison = $this->compareWithSquareCalculation($internalTotal, $squareResponse);
 
@@ -540,7 +540,7 @@ class CalculateOrderTest extends TestCase
         $order->refresh();
         $order->load('products', 'taxes', 'discounts', 'serviceCharges', 'fulfillments');
 
-        $internalTotal = Util::calculateTotalOrderCostByModel($order);
+        $internalTotal = OrderCalculator::calculateTotalOrderCostByModel($order);
         $squareResponse = Square::calculateOrder($order, env('SQUARE_LOCATION'));
         $comparison = $this->compareWithSquareCalculation($internalTotal, $squareResponse);
 
