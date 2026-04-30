@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
+use Nikolag\Square\Dto\OrderTotalsBreakdown;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Customer;
@@ -16,7 +17,6 @@ use Nikolag\Square\Tests\Models\User;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Tests\Traits\AssertsSquareCalculation;
-use Nikolag\Square\Dto\OrderTotalsBreakdown;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\OrderCalculator;
 use Nikolag\Square\Utils\Util;
