@@ -16,9 +16,9 @@ class Util
      *
      * @param stdClass $orderCopy
      *
-     * @return float|int
+     * @return int
      */
-    public static function calculateTotalOrderCost(stdClass $orderCopy): float|int
+    public static function calculateTotalOrderCost(stdClass $orderCopy): int
     {
         return OrderCalculator::calculateTotalOrderCost($orderCopy);
     }
