@@ -84,14 +84,11 @@ class OrderCalculator
     {
         $order->loadMissing(['lineItems']);
 
-        if ($order->lineItems->count() > 1) {
-            $context = self::buildOrderContext($order);
+        $context = $order->lineItems->count() > 1
+            ? self::buildOrderContext($order)
+            : null;
 
-            $breakdowns = $context['allLineItems']->map(
-                fn (OrderProductPivot $lineItem) => self::calculateLineItemBreakdownWithContext($lineItem, $context)
-            );
-        } else {
-            // Single line item: use the line-item pipeline for consistent breakdown
+        if (! $context) {
             $order->loadMissing([
                 'lineItems.modifiers.modifiable',
                 'lineItems.serviceCharges.taxes',
@@ -100,16 +97,16 @@ class OrderCalculator
                 'discounts',
                 'taxes',
             ]);
-
-            $allServiceCharges = self::collectServiceCharges($order);
-            $allLineItems = $order->lineItems;
-
-            $breakdowns = $allLineItems->map(
-                fn (OrderProductPivot $lineItem) => self::calculateLineItemBreakdown(
-                    $lineItem, $order->discounts, $order->taxes, $allServiceCharges, $allLineItems
-                )
-            );
         }
+
+        $allServiceCharges = self::collectServiceCharges($order);
+        $allLineItems = $context['allLineItems'] ?? $order->lineItems;
+
+        $breakdowns = $allLineItems->map(
+            fn (OrderProductPivot $lineItem) => self::calculateLineItemBreakdown(
+                $lineItem, $order->discounts, $order->taxes, $allServiceCharges, $allLineItems, $context
+            )
+        );
 
         return new OrderTotalsBreakdown(
             netAmount: (int) $breakdowns->sum('baseCost'),
@@ -651,16 +648,11 @@ class OrderCalculator
      * Core calculation pipeline for a single line item, returning a full breakdown.
      *
      * Follows the same sequence as calculateTotalCost:
-     * base cost → discounts → subtotal service charges → subtotal taxes
-     * → total service charges → total taxes → service charge taxes
+     * base cost -> discounts -> subtotal service charges -> subtotal taxes
+     * -> total service charges -> total taxes -> service charge taxes
      *
-     * ORDER-scoped deductibles are apportioned by gross sales ratio.
-     *
-     * @param OrderProductPivot $lineItem
-     * @param Collection        $orderDiscounts
-     * @param Collection        $orderTaxes
-     * @param Collection        $orderServiceCharges
-     * @param Collection        $allLineItems
+     * When $context is provided (from buildOrderContext), uses pre-computed order-level
+     * state to avoid redundant work across multiple line items.
      *
      * @return array{baseCost: int, discountAmount: int, serviceChargeAmount: int, taxAmount: int, total: int}
      */
@@ -669,37 +661,35 @@ class OrderCalculator
         Collection $orderDiscounts,
         Collection $orderTaxes,
         Collection $orderServiceCharges,
-        Collection $allLineItems
+        Collection $allLineItems,
+        ?array $context = null
     ): array {
+        $serviceChargeApplicableBaseCosts = $context['serviceChargeApplicableBaseCosts'] ?? null;
+
         // Step 1: Base cost for this line item
         $lineItemBaseCost = self::calculateLineItemBaseCost($lineItem);
 
         // Step 2: Apportionment ratio (this line item's share of order gross sales)
-        $orderBaseCost = self::calculateAllLineItemsBaseCost($allLineItems);
+        $orderBaseCost = $context['orderBaseCost'] ?? self::calculateAllLineItemsBaseCost($allLineItems);
         $ratio = ($orderBaseCost > 0) ? $lineItemBaseCost / $orderBaseCost : 0;
 
         // Step 3: Collect all applicable deductibles for this line item
         $isCustomLineItem = is_null($lineItem->product_id);
 
-        // Line-item-scoped deductibles (directly attached to this line item)
         $lineItemDiscounts = self::mergeCollectionsByScope($lineItem->discounts ?? collect([]));
         $lineItemTaxes = self::mergeCollectionsByScope($lineItem->taxes ?? collect([]));
         $lineItemServiceCharges = self::mergeCollectionsByScope($lineItem->serviceCharges ?? collect([]));
 
-        // Order-scoped deductibles
-        $orderScopedDiscounts = self::filterOrderScoped($orderDiscounts);
-        $orderScopedTaxes = self::filterOrderScoped($orderTaxes);
+        $orderScopedDiscounts = $context['orderScopedDiscounts'] ?? self::filterOrderScoped($orderDiscounts);
+        $orderScopedTaxes = $context['orderScopedTaxes'] ?? self::filterOrderScoped($orderTaxes);
+        $orderScopedServiceCharges = $context['orderScopedServiceCharges'] ?? self::filterOrderScoped($orderServiceCharges);
 
-        // For custom line items, only include ORDER taxes that apply to custom amounts
         if ($isCustomLineItem) {
             $orderScopedTaxes = $orderScopedTaxes->filter(
                 fn (Tax $tax) => $tax->appliesToCustomAmounts()
             );
         }
 
-        $orderScopedServiceCharges = self::filterOrderScoped($orderServiceCharges);
-
-        // Merge all applicable deductibles
         $allDiscounts = $lineItemDiscounts->merge($orderScopedDiscounts);
         $allTaxes = $lineItemTaxes->merge($orderScopedTaxes);
         $allServiceCharges = $lineItemServiceCharges->merge($orderScopedServiceCharges);
@@ -723,11 +713,11 @@ class OrderCalculator
         $discountedCost = $lineItemBaseCost - $discountAmount;
 
         // Step 7: Add subtotal-phase service charges
-        $subtotalServiceChargeBreakdown = self::calculateLineItemServiceChargeBreakdown(
-            $subtotalServiceCharges, $discountedCost, $lineItem, $allLineItems, $ratio
+        $subtotalSCBreakdown = self::calculateLineItemServiceChargeBreakdown(
+            $subtotalServiceCharges, $discountedCost, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
         );
-        $subtotalSCAmount = $subtotalServiceChargeBreakdown->sum('amount');
-        $taxableSubtotalSCAmount = $subtotalServiceChargeBreakdown
+        $subtotalSCAmount = $subtotalSCBreakdown->sum('amount');
+        $taxableSubtotalSCAmount = $subtotalSCBreakdown
             ->filter(fn (array $entry) => $entry['service_charge']->taxable)
             ->sum('amount');
         $subtotalAmount = $discountedCost + $subtotalSCAmount;
@@ -738,11 +728,11 @@ class OrderCalculator
         $subtotalTaxedCost = $subtotalAmount + $subtotalTaxAmount;
 
         // Step 9: Add total-phase service charges
-        $totalServiceChargeBreakdown = self::calculateLineItemServiceChargeBreakdown(
-            $totalServiceCharges, $subtotalTaxedCost, $lineItem, $allLineItems, $ratio
+        $totalSCBreakdown = self::calculateLineItemServiceChargeBreakdown(
+            $totalServiceCharges, $subtotalTaxedCost, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
         );
-        $totalSCAmount = $totalServiceChargeBreakdown->sum('amount');
-        $taxableTotalSCAmount = $totalServiceChargeBreakdown
+        $totalSCAmount = $totalSCBreakdown->sum('amount');
+        $taxableTotalSCAmount = $totalSCBreakdown
             ->filter(fn (array $entry) => $entry['service_charge']->taxable)
             ->sum('amount');
         $preTotal = $subtotalTaxedCost + $totalSCAmount;
@@ -753,117 +743,16 @@ class OrderCalculator
         $totalTaxedCost = $preTotal + $totalTaxAmount;
 
         // Step 11: Add service charge taxes
-        $scTaxAmount = self::calculateLineItemServiceChargeTaxes(
-            $subtotalServiceChargeBreakdown->merge($totalServiceChargeBreakdown)
+        $serviceChargeTaxAmount = self::calculateLineItemServiceChargeTaxes(
+            $subtotalSCBreakdown->merge($totalSCBreakdown)
         );
 
         return [
             'baseCost'            => $lineItemBaseCost,
             'discountAmount'      => $discountAmount,
             'serviceChargeAmount' => $subtotalSCAmount + $totalSCAmount,
-            'taxAmount'           => $subtotalTaxAmount + $totalTaxAmount + $scTaxAmount,
-            'total'               => $totalTaxedCost + $scTaxAmount,
-        ];
-    }
-
-    /**
-     * Calculate line item breakdown using pre-computed shared context.
-     * Avoids recomputing order-level state for each line item.
-     *
-     * @param OrderProductPivot $lineItem
-     * @param array             $context Pre-computed shared state
-     *
-     * @return array{baseCost: int, discountAmount: int, serviceChargeAmount: int, taxAmount: int, total: int}
-     */
-    private static function calculateLineItemBreakdownWithContext(OrderProductPivot $lineItem, array $context): array
-    {
-        $allLineItems = $context['allLineItems'];
-        $orderBaseCost = $context['orderBaseCost'];
-        $orderScopedDiscounts = $context['orderScopedDiscounts'];
-        $orderScopedTaxes = $context['orderScopedTaxes'];
-        $orderScopedServiceCharges = $context['orderScopedServiceCharges'];
-        $serviceChargeApplicableBaseCosts = $context['serviceChargeApplicableBaseCosts'];
-
-        // Step 1: Base cost for this line item
-        $lineItemBaseCost = self::calculateLineItemBaseCost($lineItem);
-
-        // Step 2: Apportionment ratio using pre-computed order base cost
-        $ratio = ($orderBaseCost > 0) ? $lineItemBaseCost / $orderBaseCost : 0;
-
-        // Step 3: Collect all applicable deductibles for this line item
-        $isCustomLineItem = is_null($lineItem->product_id);
-
-        $lineItemDiscounts = self::mergeCollectionsByScope($lineItem->discounts ?? collect([]));
-        $lineItemTaxes = self::mergeCollectionsByScope($lineItem->taxes ?? collect([]));
-        $lineItemServiceCharges = self::mergeCollectionsByScope($lineItem->serviceCharges ?? collect([]));
-
-        $applicableTaxes = $orderScopedTaxes;
-        if ($isCustomLineItem) {
-            $applicableTaxes = $applicableTaxes->filter(fn (Tax $tax) => $tax->appliesToCustomAmounts());
-        }
-
-        $allDiscounts = $lineItemDiscounts->merge($orderScopedDiscounts);
-        $allTaxes = $lineItemTaxes->merge($applicableTaxes);
-        $allServiceCharges = $lineItemServiceCharges->merge($orderScopedServiceCharges);
-
-        // Step 4-5: Separate by phase
-        $subtotalPhaseTaxes = $allTaxes->filter(fn (Tax $tax) => $tax->isCalculatedOnSubtotal());
-        $totalPhaseTaxes = $allTaxes->filter(fn (Tax $tax) => $tax->isCalculatedOnTotal());
-
-        $subtotalServiceCharges = $allServiceCharges->filter(fn ($serviceCharge) => in_array($serviceCharge->calculation_phase, [
-            OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
-            OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE,
-            OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
-        ]));
-        $totalServiceCharges = $allServiceCharges->filter(
-            fn ($serviceCharge) => $serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::TOTAL_PHASE
-        );
-
-        // Step 6: Apply discounts
-        $discountAmount = self::calculateLineItemDiscounts($allDiscounts, $lineItemBaseCost, $ratio);
-        $discountedCost = $lineItemBaseCost - $discountAmount;
-
-        // Step 7: Subtotal-phase service charges
-        $subtotalServiceChargeBreakdown = self::calculateLineItemServiceChargeBreakdownWithContext(
-            $subtotalServiceCharges, $discountedCost, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
-        );
-        $subtotalSCAmount = $subtotalServiceChargeBreakdown->sum('amount');
-        $taxableSubtotalSCAmount = $subtotalServiceChargeBreakdown
-            ->filter(fn (array $entry) => $entry['service_charge']->taxable)
-            ->sum('amount');
-        $subtotalAmount = $discountedCost + $subtotalSCAmount;
-
-        // Step 8: Subtotal-phase taxes
-        $subtotalTaxBase = $discountedCost + $taxableSubtotalSCAmount;
-        $subtotalTaxAmount = self::calculateLineItemTaxes($subtotalPhaseTaxes, $subtotalTaxBase);
-        $subtotalTaxedCost = $subtotalAmount + $subtotalTaxAmount;
-
-        // Step 9: Total-phase service charges
-        $totalServiceChargeBreakdown = self::calculateLineItemServiceChargeBreakdownWithContext(
-            $totalServiceCharges, $subtotalTaxedCost, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
-        );
-        $totalSCAmount = $totalServiceChargeBreakdown->sum('amount');
-        $taxableTotalSCAmount = $totalServiceChargeBreakdown
-            ->filter(fn (array $entry) => $entry['service_charge']->taxable)
-            ->sum('amount');
-        $preTotal = $subtotalTaxedCost + $totalSCAmount;
-
-        // Step 10: Total-phase taxes
-        $totalTaxBase = $subtotalTaxBase + $taxableTotalSCAmount;
-        $totalTaxAmount = self::calculateLineItemTaxes($totalPhaseTaxes, $totalTaxBase);
-        $totalTaxedCost = $preTotal + $totalTaxAmount;
-
-        // Step 11: Service charge taxes
-        $scTaxAmount = self::calculateLineItemServiceChargeTaxes(
-            $subtotalServiceChargeBreakdown->merge($totalServiceChargeBreakdown)
-        );
-
-        return [
-            'baseCost'            => $lineItemBaseCost,
-            'discountAmount'      => $discountAmount,
-            'serviceChargeAmount' => $subtotalSCAmount + $totalSCAmount,
-            'taxAmount'           => $subtotalTaxAmount + $totalTaxAmount + $scTaxAmount,
-            'total'               => $totalTaxedCost + $scTaxAmount,
+            'taxAmount'           => $subtotalTaxAmount + $totalTaxAmount + $serviceChargeTaxAmount,
+            'total'               => $totalTaxedCost + $serviceChargeTaxAmount,
         ];
     }
 
@@ -898,123 +787,6 @@ class OrderCalculator
         }
 
         return $map;
-    }
-
-    /**
-     * Service charge breakdown using pre-computed applicability map.
-     *
-     * @param Collection        $serviceCharges
-     * @param float|int         $baseAmount
-     * @param OrderProductPivot $lineItem
-     * @param Collection        $allLineItems
-     * @param float             $ratio
-     * @param array             $serviceChargeApplicableBaseCosts
-     *
-     * @return Collection
-     */
-    private static function calculateLineItemServiceChargeBreakdownWithContext(
-        Collection $serviceCharges,
-        float|int $baseAmount,
-        OrderProductPivot $lineItem,
-        Collection $allLineItems,
-        float $ratio,
-        array $serviceChargeApplicableBaseCosts
-    ): Collection {
-        if ($serviceCharges->isEmpty()) {
-            return collect([]);
-        }
-
-        return $serviceCharges->map(function ($serviceCharge) use ($baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts) {
-            return [
-                'service_charge' => $serviceCharge,
-                'amount'         => self::calculateLineItemServiceChargeAmountWithContext(
-                    $serviceCharge, $baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
-                ),
-            ];
-        });
-    }
-
-    /**
-     * Calculate a single service charge amount using pre-computed applicability map.
-     *
-     * @param mixed             $serviceCharge
-     * @param float|int         $baseAmount
-     * @param OrderProductPivot $lineItem
-     * @param Collection        $allLineItems
-     * @param float             $ratio
-     * @param array             $serviceChargeApplicableBaseCosts
-     *
-     * @return int
-     */
-    private static function calculateLineItemServiceChargeAmountWithContext(
-        $serviceCharge,
-        float|int $baseAmount,
-        OrderProductPivot $lineItem,
-        Collection $allLineItems,
-        float $ratio,
-        array $serviceChargeApplicableBaseCosts
-    ): int {
-        $scope = self::getScope($serviceCharge);
-
-        self::assertNotSubtotalOnProduct($scope, $serviceCharge->calculation_phase);
-
-        if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
-            if ($scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) {
-                return self::roundMoney(($serviceCharge->amount_money ?? 0) * ($lineItem->quantity ?? 1));
-            }
-
-            $apportionmentRatio = self::calculateLineItemServiceChargeRatioWithContext(
-                $serviceCharge, $lineItem, $ratio, $serviceChargeApplicableBaseCosts
-            );
-
-            return self::roundMoney(($serviceCharge->amount_money ?? 0) * $apportionmentRatio);
-        }
-
-        if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE) {
-            return self::roundMoney($baseAmount * ($serviceCharge->percentage ?? 0) / 100);
-        }
-
-        if ($scope === Constants::DEDUCTIBLE_SCOPE_ORDER) {
-            if ($serviceCharge->percentage) {
-                return self::roundMoney($baseAmount * $serviceCharge->percentage / 100);
-            }
-
-            return self::roundMoney(($serviceCharge->amount_money ?? 0) * $ratio);
-        }
-
-        if ($serviceCharge->percentage) {
-            return self::roundMoney($baseAmount * $serviceCharge->percentage / 100);
-        }
-
-        return (int) ($serviceCharge->amount_money ?? 0);
-    }
-
-    /**
-     * Calculate service charge ratio using pre-computed applicability map.
-     *
-     * @param mixed             $serviceCharge
-     * @param OrderProductPivot $lineItem
-     * @param float             $defaultRatio
-     * @param array             $serviceChargeApplicableBaseCosts
-     *
-     * @return float
-     */
-    private static function calculateLineItemServiceChargeRatioWithContext(
-        $serviceCharge,
-        OrderProductPivot $lineItem,
-        float $defaultRatio,
-        array $serviceChargeApplicableBaseCosts
-    ): float {
-        if (self::getScope($serviceCharge) === Constants::DEDUCTIBLE_SCOPE_ORDER) {
-            return $defaultRatio;
-        }
-
-        $applicableBaseCost = $serviceChargeApplicableBaseCosts[$serviceCharge->id] ?? 0;
-        if ($applicableBaseCost <= 0) {
-            return 0;
-        }
-
-        return self::calculateLineItemBaseCost($lineItem) / $applicableBaseCost;
     }
 
     /**
