@@ -469,7 +469,7 @@ class OrderCalculator
      *
      * @return int
      */
-    private static function removeInclusiveTax(int $amountWithInclusiveTax, Collection $inclusiveTaxes): int
+    private static function removeInclusiveTax(float|int $amountWithInclusiveTax, Collection $inclusiveTaxes): float
     {
         $inclusiveTaxPercent = $inclusiveTaxes->sum('percentage') / 100;
 
@@ -540,7 +540,7 @@ class OrderCalculator
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE) {
             $totalValue = $products->sum(fn ($product) => $product->pivot->base_price_money_amount * $product->pivot->quantity);
 
-            return $totalValue * $serviceCharge->percentage / 100;
+            return self::roundMoney($totalValue * $serviceCharge->percentage / 100);
         }
 
         // Use index for direct lookup if available, otherwise linear scan
@@ -555,7 +555,7 @@ class OrderCalculator
         $pivot = $targetProduct->pivot;
 
         return $serviceCharge->percentage ?
-            ($pivot->base_price_money_amount * $pivot->quantity * $serviceCharge->percentage / 100) :
+            self::roundMoney($pivot->base_price_money_amount * $pivot->quantity * $serviceCharge->percentage / 100) :
             $serviceCharge->amount_money;
     }
 
