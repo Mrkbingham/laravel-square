@@ -56,7 +56,7 @@ $factory->state(Constants::TAX_NAMESPACE, 'INCLUSIVE', [
 /* LOCATION */
 $factory->define(Location::class, function (Faker\Generator $faker) {
     return [
-        'name'    => $faker->company,
+        'name'               => $faker->company,
         'timezone'           => $faker->timezone,
         'capabilities'       => ['CREDIT_CARD_PROCESSING', 'IN_STORE_PICKUP'],
         'status'             => Arr::random(['ACTIVE', 'INACTIVE']),

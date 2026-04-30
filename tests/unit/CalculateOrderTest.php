@@ -404,7 +404,7 @@ class CalculateOrderTest extends TestCase
     }
 
     /**
-     * SUBTOTAL_PHASE + LINE_ITEM_TREATMENT + fixed amount (ORDER scope)
+     * SUBTOTAL_PHASE + LINE_ITEM_TREATMENT + fixed amount (ORDER scope).
      *
      * @group live
      */
@@ -420,7 +420,7 @@ class CalculateOrderTest extends TestCase
     }
 
     /**
-     * SUBTOTAL_PHASE + LINE_ITEM_TREATMENT + percentage (ORDER scope)
+     * SUBTOTAL_PHASE + LINE_ITEM_TREATMENT + percentage (ORDER scope).
      *
      * @group live
      */
@@ -436,7 +436,7 @@ class CalculateOrderTest extends TestCase
     }
 
     /**
-     * APPORTIONED_AMOUNT_PHASE + APPORTIONED_TREATMENT + fixed amount (ORDER scope)
+     * APPORTIONED_AMOUNT_PHASE + APPORTIONED_TREATMENT + fixed amount (ORDER scope).
      *
      * @group live
      */
@@ -452,7 +452,7 @@ class CalculateOrderTest extends TestCase
     }
 
     /**
-     * APPORTIONED_PERCENTAGE_PHASE + APPORTIONED_TREATMENT + percentage (ORDER scope)
+     * APPORTIONED_PERCENTAGE_PHASE + APPORTIONED_TREATMENT + percentage (ORDER scope).
      *
      * @group live
      */
@@ -468,7 +468,7 @@ class CalculateOrderTest extends TestCase
     }
 
     /**
-     * APPORTIONED_AMOUNT_PHASE + APPORTIONED_TREATMENT + fixed amount (LINE_ITEM scope)
+     * APPORTIONED_AMOUNT_PHASE + APPORTIONED_TREATMENT + fixed amount (LINE_ITEM scope).
      *
      * @group live
      */
@@ -484,7 +484,7 @@ class CalculateOrderTest extends TestCase
     }
 
     /**
-     * APPORTIONED_PERCENTAGE_PHASE + APPORTIONED_TREATMENT + percentage (LINE_ITEM scope)
+     * APPORTIONED_PERCENTAGE_PHASE + APPORTIONED_TREATMENT + percentage (LINE_ITEM scope).
      *
      * @group live
      */
@@ -500,7 +500,7 @@ class CalculateOrderTest extends TestCase
     }
 
     /**
-     * SUBTOTAL_PHASE + LINE_ITEM_TREATMENT + taxable fixed amount (ORDER scope)
+     * SUBTOTAL_PHASE + LINE_ITEM_TREATMENT + taxable fixed amount (ORDER scope).
      *
      * @group live
      */
