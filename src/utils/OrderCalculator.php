@@ -37,7 +37,17 @@ class OrderCalculator
      */
     public static function calculateTotalOrderCostByModel(Model $order): int
     {
-        return self::calculateOrderTotalsBreakdown($order)->totalAmount;
+        $order->loadMissing(['lineItems']);
+
+        // Multi-line-item orders use the per-line-item breakdown for apportionment
+        if ($order->lineItems->count() > 1) {
+            return self::calculateOrderTotalsBreakdown($order)->totalAmount;
+        }
+
+        // Single line items use the order-level pipeline directly
+        $allServiceCharges = self::collectServiceCharges($order);
+
+        return self::calculateTotalCost($order->discounts, $order->taxes, $allServiceCharges, $order->products);
     }
 
     /**
