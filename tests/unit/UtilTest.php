@@ -16,6 +16,7 @@ use Nikolag\Square\Tests\Models\User;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Tests\Traits\AssertsSquareCalculation;
+use Nikolag\Square\Dto\OrderTotalsBreakdown;
 use Nikolag\Square\Utils\Constants;
 use Nikolag\Square\Utils\OrderCalculator;
 use Nikolag\Square\Utils\Util;
@@ -1400,5 +1401,137 @@ class UtilTest extends TestCase
             $freshOrder = $order->fresh();
             $this->validateAgainstSquareApi($freshOrder, $total);
         }
+    }
+
+    /**
+     * Test order totals breakdown with no deductibles.
+     */
+    public function test_order_totals_breakdown_no_deductibles(): void
+    {
+        $this->data->order->save();
+        $product = factory(Product::class)->create(['price' => 10_00]);
+        $this->data->order->attachProduct($product, ['quantity' => 3]);
+
+        $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
+
+        $breakdown = OrderCalculator::calculateOrderTotalsBreakdown($square->getOrder());
+
+        $this->assertInstanceOf(OrderTotalsBreakdown::class, $breakdown);
+        $this->assertEquals(30_00, $breakdown->netAmount);
+        $this->assertEquals(30_00, $breakdown->totalAmount);
+        $this->assertEquals(0, $breakdown->totalTaxAmount);
+        $this->assertEquals(0, $breakdown->totalDiscountAmount);
+        $this->assertEquals(0, $breakdown->totalServiceChargeAmount);
+    }
+
+    /**
+     * Test order totals breakdown with discount and tax.
+     */
+    public function test_order_totals_breakdown_with_discount_and_tax(): void
+    {
+        $this->data->order->save();
+        $product = factory(Product::class)->create(['price' => 10_00]);
+        $this->data->order->attachProduct($product, ['quantity' => 1]);
+
+        $orderClass = config('nikolag.connections.square.order.namespace');
+
+        $discount = factory(Discount::class)->create([
+            'percentage' => 10.0,
+            'amount'     => null,
+        ]);
+        $this->data->order->discounts()->attach($discount->id, [
+            'deductible_type' => Constants::DISCOUNT_NAMESPACE,
+            'featurable_type' => $orderClass,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $tax = factory(Tax::class)->create([
+            'percentage'        => 8.0,
+            'type'              => Constants::TAX_ADDITIVE,
+            'calculation_phase' => TaxCalculationPhase::TAX_SUBTOTAL_PHASE,
+        ]);
+        $this->data->order->taxes()->attach($tax->id, [
+            'deductible_type' => Constants::TAX_NAMESPACE,
+            'featurable_type' => $orderClass,
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
+        $order = $square->getOrder();
+
+        $breakdown = OrderCalculator::calculateOrderTotalsBreakdown($order);
+
+        // Base: $10.00, Discount 10%: -$1.00, Tax 8% of $9.00: $0.72, Total: $9.72
+        $this->assertEquals(10_00, $breakdown->netAmount);
+        $this->assertEquals(9_72, $breakdown->totalAmount);
+        $this->assertEquals(72, $breakdown->totalTaxAmount);
+        $this->assertEquals(1_00, $breakdown->totalDiscountAmount);
+        $this->assertEquals(0, $breakdown->totalServiceChargeAmount);
+    }
+
+    /**
+     * Test order totals breakdown with service charge.
+     */
+    public function test_order_totals_breakdown_with_service_charge(): void
+    {
+        $this->data->order->save();
+        $product = factory(Product::class)->create(['price' => 20_00]);
+        $this->data->order->attachProduct($product, ['quantity' => 1]);
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name'              => 'Gratuity',
+            'percentage'        => 10.0,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE,
+            'taxable'           => false,
+            'treatment_type'    => OrderServiceChargeTreatmentType::LINE_ITEM_TREATMENT,
+        ]);
+
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
+        $order = $square->getOrder();
+
+        $breakdown = OrderCalculator::calculateOrderTotalsBreakdown($order);
+
+        // Base: $20.00, Service charge 10%: $2.00, Total: $22.00
+        $this->assertEquals(20_00, $breakdown->netAmount);
+        $this->assertEquals(22_00, $breakdown->totalAmount);
+        $this->assertEquals(0, $breakdown->totalTaxAmount);
+        $this->assertEquals(0, $breakdown->totalDiscountAmount);
+        $this->assertEquals(2_00, $breakdown->totalServiceChargeAmount);
+    }
+
+    /**
+     * Test that breakdown totalAmount matches calculateTotalOrderCostByModel.
+     */
+    public function test_order_totals_breakdown_matches_total_cost(): void
+    {
+        $this->set_up_service_charges_order();
+
+        $serviceCharge = factory(ServiceCharge::class)->create([
+            'name'              => 'Apportioned percentage service charge',
+            'percentage'        => 10.0,
+            'calculation_phase' => OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE,
+            'taxable'           => true,
+            'treatment_type'    => OrderServiceChargeTreatmentType::APPORTIONED_TREATMENT,
+        ]);
+
+        $this->data->order->serviceCharges()->attach($serviceCharge->id, [
+            'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE,
+            'featurable_type' => config('nikolag.connections.square.order.namespace'),
+            'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
+        ]);
+
+        $square = Square::setOrder($this->data->order->refresh(), env('SQUARE_LOCATION'))->save();
+        $order = $square->getOrder();
+
+        $total = OrderCalculator::calculateTotalOrderCostByModel($order);
+        $breakdown = OrderCalculator::calculateOrderTotalsBreakdown($order->fresh());
+
+        $this->assertEquals($total, $breakdown->totalAmount, 'Breakdown totalAmount should match calculateTotalOrderCostByModel');
     }
 }
