@@ -13,5 +13,6 @@ readonly class OrderContext
         public Collection $orderScopedTaxes,
         public Collection $orderScopedServiceCharges,
         public array $serviceChargeApplicableBaseCosts,
-    ) {}
+    ) {
+    }
 }

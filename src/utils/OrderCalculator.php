@@ -95,7 +95,7 @@ class OrderCalculator
             ? self::buildOrderContext($order)
             : null;
 
-        if (! $context) {
+        if (!$context) {
             $order->loadMissing([
                 'lineItems.modifiers.modifiable',
                 'lineItems.serviceCharges.taxes',
@@ -111,7 +111,12 @@ class OrderCalculator
 
         $breakdowns = $allLineItems->map(
             fn (OrderProductPivot $lineItem) => self::calculateLineItemBreakdown(
-                $lineItem, $order->discounts, $order->taxes, $allServiceCharges, $allLineItems, $context
+                $lineItem,
+                $order->discounts,
+                $order->taxes,
+                $allServiceCharges,
+                $allLineItems,
+                $context
             )
         );
 
@@ -199,7 +204,10 @@ class OrderCalculator
         // Add subtotal-phase service charges
         $subtotalSCAmount = self::calculateServiceCharges($subtotalServiceCharges, $costAfterDiscounts, $products, $serviceChargeToProduct);
         $taxableSubtotalSCAmount = self::calculateServiceCharges(
-            $subtotalServiceCharges->filter(fn ($serviceCharge) => $serviceCharge->taxable), $costAfterDiscounts, $products, $serviceChargeToProduct
+            $subtotalServiceCharges->filter(fn ($serviceCharge) => $serviceCharge->taxable),
+            $costAfterDiscounts,
+            $products,
+            $serviceChargeToProduct
         );
         $subTotalAmount = $costAfterDiscounts + $subtotalSCAmount;
 
@@ -210,7 +218,10 @@ class OrderCalculator
         // Add total-phase service charges after subtotal taxes
         $totalServiceChargeAmount = self::calculateServiceCharges($totalServiceCharges, $subtotalTaxedCost, $products, $serviceChargeToProduct);
         $taxableTotalSCAmount = self::calculateServiceCharges(
-            $totalServiceCharges->filter(fn ($serviceCharge) => $serviceCharge->taxable), $subtotalTaxedCost, $products, $serviceChargeToProduct
+            $totalServiceCharges->filter(fn ($serviceCharge) => $serviceCharge->taxable),
+            $subtotalTaxedCost,
+            $products,
+            $serviceChargeToProduct
         );
         $preTotal = $subtotalTaxedCost + $totalServiceChargeAmount;
 
@@ -327,8 +338,8 @@ class OrderCalculator
      * Calculate the discount amount for a single ORDER-scoped discount.
      * Uses percentage if set, otherwise uses the fixed amount.
      *
-     * @param       $discount
-     * @param int   $baseCost
+     * @param     $discount
+     * @param int $baseCost
      *
      * @return int
      */
@@ -343,7 +354,7 @@ class OrderCalculator
      * Calculate the discount amount for a single PRODUCT-scoped discount.
      * Uses percentage if set, otherwise uses the fixed amount.
      *
-     * @param $discount
+     * @param       $discount
      * @param array $discountToProduct
      *
      * @return int
@@ -352,7 +363,7 @@ class OrderCalculator
     {
         $product = $discountToProduct[$discount->id] ?? null;
 
-        if (! $product) {
+        if (!$product) {
             return 0;
         }
 
@@ -449,7 +460,7 @@ class OrderCalculator
     {
         $product = $taxToProduct[$tax->id] ?? null;
 
-        if (! $product) {
+        if (!$product) {
             return 0;
         }
 
@@ -505,8 +516,8 @@ class OrderCalculator
      * Calculate the amount for a single ORDER-scoped service charge.
      * Uses percentage if set, otherwise uses the fixed amount.
      *
-     * @param       $serviceCharge
-     * @param int   $amount
+     * @param     $serviceCharge
+     * @param int $amount
      *
      * @return int
      */
@@ -544,11 +555,11 @@ class OrderCalculator
         }
 
         // Use index for direct lookup if available, otherwise linear scan
-        $targetProduct = ! empty($serviceChargeToProduct)
+        $targetProduct = !empty($serviceChargeToProduct)
             ? ($serviceChargeToProduct[$serviceCharge->id] ?? null)
             : $products->first(fn ($product) => $product->pivot->serviceCharges->contains($serviceCharge));
 
-        if (! $targetProduct) {
+        if (!$targetProduct) {
             return 0;
         }
 
@@ -673,7 +684,12 @@ class OrderCalculator
 
         // Step 7: Add subtotal-phase service charges
         $subtotalSCBreakdown = self::calculateLineItemServiceChargeBreakdown(
-            $subtotalServiceCharges, $discountedCost, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
+            $subtotalServiceCharges,
+            $discountedCost,
+            $lineItem,
+            $allLineItems,
+            $ratio,
+            $serviceChargeApplicableBaseCosts
         );
         $subtotalSCAmount = self::sumServiceChargeBreakdown($subtotalSCBreakdown);
         $taxableSubtotalSCAmount = self::sumServiceChargeBreakdown($subtotalSCBreakdown, taxableOnly: true);
@@ -686,7 +702,12 @@ class OrderCalculator
 
         // Step 9: Add total-phase service charges
         $totalSCBreakdown = self::calculateLineItemServiceChargeBreakdown(
-            $totalServiceCharges, $subtotalTaxedCost, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
+            $totalServiceCharges,
+            $subtotalTaxedCost,
+            $lineItem,
+            $allLineItems,
+            $ratio,
+            $serviceChargeApplicableBaseCosts
         );
         $totalSCAmount = self::sumServiceChargeBreakdown($totalSCBreakdown);
         $taxableTotalSCAmount = self::sumServiceChargeBreakdown($totalSCBreakdown, taxableOnly: true);
@@ -747,7 +768,7 @@ class OrderCalculator
      *
      * @param Collection $discounts
      * @param float|int  $lineItemBaseCost
-     * @param float      $ratio Apportionment ratio for ORDER-scoped fixed amounts
+     * @param float      $ratio            Apportionment ratio for ORDER-scoped fixed amounts
      *
      * @return int Total discount amount
      */
@@ -850,7 +871,12 @@ class OrderCalculator
             return new ServiceChargeEntry(
                 serviceCharge: $serviceCharge,
                 amount: self::calculateLineItemServiceChargeAmount(
-                    $serviceCharge, $baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
+                    $serviceCharge,
+                    $baseAmount,
+                    $lineItem,
+                    $allLineItems,
+                    $ratio,
+                    $serviceChargeApplicableBaseCosts
                 ),
             );
         });
@@ -879,7 +905,11 @@ class OrderCalculator
             }
 
             $apportionmentRatio = self::calculateLineItemServiceChargeRatio(
-                $serviceCharge, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
+                $serviceCharge,
+                $lineItem,
+                $allLineItems,
+                $ratio,
+                $serviceChargeApplicableBaseCosts
             );
 
             return self::roundMoney(($serviceCharge->amount_money ?? 0) * $apportionmentRatio);
@@ -1054,7 +1084,7 @@ class OrderCalculator
      * Sum amounts from a service charge breakdown, optionally filtering to taxable only.
      *
      * @param Collection<int, ServiceChargeEntry> $breakdown
-     * @param bool $taxableOnly When true, only include taxable service charges
+     * @param bool                                $taxableOnly When true, only include taxable service charges
      *
      * @return int
      */
@@ -1110,7 +1140,7 @@ class OrderCalculator
             // Also check direct product-level deductibles
             $directItems = $product->$relation ?? collect([]);
             foreach ($directItems as $item) {
-                if (! isset($index[$item->id])) {
+                if (!isset($index[$item->id])) {
                     $index[$item->id] = $product;
                 }
             }
