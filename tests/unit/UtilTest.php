@@ -2,7 +2,7 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
-use Exception;
+use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Customer;
 use Nikolag\Square\Models\Discount;
@@ -204,7 +204,7 @@ class UtilTest extends TestCase
      */
     public function test_calculate_total_order_cost_missing_data(): void
     {
-        $this->expectException(Exception::class);
+        $this->expectException(InvalidSquareOrderException::class);
         $this->expectExceptionMessage('Total cost cannot be calculated without products.');
 
         // Run the calculation with missing products

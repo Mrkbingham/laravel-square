@@ -2,7 +2,7 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
-use Exception;
+use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\Product;
@@ -376,7 +376,7 @@ class ServiceChargeIntegrationTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
-        $this->expectException(Exception::class);
+        $this->expectException(InvalidSquareOrderException::class);
         $this->expectExceptionMessage('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order');
 
         OrderCalculator::calculateTotalOrderCostByModel($order);
