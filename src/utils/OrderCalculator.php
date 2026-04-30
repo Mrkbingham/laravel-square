@@ -219,12 +219,12 @@ class OrderCalculator
     /**
      * Function which calculates the net price by removing any additive taxes to the entire order.
      *
-     * @param float      $discountCost
+     * @param int        $discountCost
      * @param Collection $inclusiveTaxes
      *
      * @return int
      */
-    private static function calculateNetPrice(float $discountCost, Collection $inclusiveTaxes): int
+    private static function calculateNetPrice(int $discountCost, Collection $inclusiveTaxes): int
     {
         $inclusiveTaxPercent = $inclusiveTaxes->sum('percentage') / 100;
 
@@ -236,11 +236,11 @@ class OrderCalculator
      * takes over precedence over flat amount.
      *
      * @param       $discount
-     * @param float $noDeductiblesCost
+     * @param int   $noDeductiblesCost
      *
      * @return int
      */
-    private static function calculateOrderDiscounts($discount, float $noDeductiblesCost): int
+    private static function calculateOrderDiscounts($discount, int $noDeductiblesCost): int
     {
         return $discount->percentage
             ? self::roundMoney($noDeductiblesCost * $discount->percentage / 100)
@@ -318,11 +318,11 @@ class OrderCalculator
      * takes over precedence over flat amount.
      *
      * @param       $serviceCharge
-        $orderTaxes = $netPrice * $tax->percentage / 100;
+     * @param int   $amount
      *
      * @return int
      */
-
+    private static function calculateOrderServiceCharges($serviceCharge, int $amount): int
     {
         return $serviceCharge->percentage
             ? self::roundMoney($amount * $serviceCharge->percentage / 100)
