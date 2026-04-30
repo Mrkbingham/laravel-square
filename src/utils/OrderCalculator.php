@@ -2,10 +2,10 @@
 
 namespace Nikolag\Square\Utils;
 
-use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Nikolag\Square\Dto\OrderTotalsBreakdown;
+use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Models\OrderProductPivot;
 use Nikolag\Square\Models\Tax;
 use Square\Models\OrderServiceChargeCalculationPhase;
