@@ -289,7 +289,7 @@ class OrderCalculator
             return 0;
         }
 
-        $productId = spl_object_id($product);
+        $productId = $product->pivot->id;
         $discountCost = $productDiscountedCosts[$productId] ?? ($product->pivot->base_price_money_amount * $product->pivot->quantity);
 
         $netPrice = self::_calculateNetPrice($discountCost, $inclusiveTaxes);
@@ -489,7 +489,7 @@ class OrderCalculator
         // Pre-compute discounted cost per product once (avoids O(T*D*P))
         $productDiscountedCosts = [];
         foreach ($products as $product) {
-            $productId = spl_object_id($product);
+            $productId = $product->pivot->id;
             $totalCost = $product->pivot->base_price_money_amount * $product->pivot->quantity;
             $productDiscountedCosts[$productId] = $totalCost - self::_calculateDiscounts($discounts, $totalCost, $products, $discountToProduct);
         }
