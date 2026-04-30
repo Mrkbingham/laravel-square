@@ -343,9 +343,7 @@ class OrderCalculator
      */
     private static function _calculateProductServiceCharges(Collection $products, $serviceCharge, array $serviceChargeToProduct = []): float|int
     {
-        if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE) {
-            throw new Exception('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order.');
-        }
+        self::_assertNotSubtotalOnProduct(Constants::DEDUCTIBLE_SCOPE_PRODUCT, $serviceCharge->calculation_phase);
 
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
             $totalQuantity = $products->sum('pivot.quantity');
@@ -517,7 +515,7 @@ class OrderCalculator
     {
         // Early validation
         if ($products->isEmpty()) {
-            throw new Exception('Total cost cannot be calculated without products.');
+            throw new InvalidSquareOrderException('Total cost cannot be calculated without products.');
         }
 
         // Pre-filter all collections by scope once for efficiency
@@ -960,12 +958,7 @@ class OrderCalculator
     ): int {
         $scope = self::_getScope($serviceCharge);
 
-        if (
-            $scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT
-            && $serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE
-        ) {
-            throw new Exception('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order.');
-        }
+        self::_assertNotSubtotalOnProduct($scope, $serviceCharge->calculation_phase);
 
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
             if ($scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) {
@@ -1232,12 +1225,7 @@ class OrderCalculator
     ): int {
         $scope = self::_getScope($serviceCharge);
 
-        if (
-            $scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT
-            && $serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE
-        ) {
-            throw new Exception('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order.');
-        }
+        self::_assertNotSubtotalOnProduct($scope, $serviceCharge->calculation_phase);
 
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
             if ($scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) {
@@ -1304,6 +1292,24 @@ class OrderCalculator
         }
 
         return self::_calculateLineItemBaseCost($lineItem) / $applicableBaseCost;
+    }
+
+    /**
+     * Assert that a SUBTOTAL-phase service charge is not applied to a product scope.
+     *
+     * @param string $scope
+     * @param string $calculationPhase
+     *
+     * @throws InvalidSquareOrderException
+     */
+    private static function _assertNotSubtotalOnProduct(string $scope, string $calculationPhase): void
+    {
+        if (
+            $scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT
+            && $calculationPhase === OrderServiceChargeCalculationPhase::SUBTOTAL_PHASE
+        ) {
+            throw new InvalidSquareOrderException('Service charge calculation phase "SUBTOTAL" cannot be applied to products in an order.');
+        }
     }
 
     /**
