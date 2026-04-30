@@ -864,12 +864,13 @@ class OrderCalculator
 
         foreach ($groups as $group) {
             foreach ($group as $discount) {
-                $scope = self::getScope($discount);
-                $discountAmount = $discount->percentage
-                    ? self::roundMoney($runningAmount * $discount->percentage / 100)
-                    : ($scope === Constants::DEDUCTIBLE_SCOPE_ORDER
-                        ? self::roundMoney(($discount->amount ?? 0) * $ratio)
-                        : ($discount->amount ?? 0));
+                if ($discount->percentage) {
+                    $discountAmount = self::roundMoney($runningAmount * $discount->percentage / 100);
+                } elseif (self::getScope($discount) === Constants::DEDUCTIBLE_SCOPE_ORDER) {
+                    $discountAmount = self::roundMoney(($discount->amount ?? 0) * $ratio);
+                } else {
+                    $discountAmount = $discount->amount ?? 0;
+                }
 
                 $discountAmount = min($discountAmount, $runningAmount);
                 $totalDiscount += $discountAmount;
@@ -912,29 +913,26 @@ class OrderCalculator
     /**
      * Calculate service charge breakdown for a single line item.
      *
-     * @param Collection        $serviceCharges
-     * @param float|int         $baseAmount Current line item subtotal
-     * @param OrderProductPivot $lineItem
-     * @param Collection        $allLineItems
-     * @param float             $ratio Apportionment ratio
-     *
-     * @return Collection
+     * When $serviceChargeApplicableBaseCosts is provided, uses pre-computed map for ratio lookups.
      */
     private static function calculateLineItemServiceChargeBreakdown(
         Collection $serviceCharges,
         float|int $baseAmount,
         OrderProductPivot $lineItem,
         Collection $allLineItems,
-        float $ratio
+        float $ratio,
+        ?array $serviceChargeApplicableBaseCosts = null
     ): Collection {
         if ($serviceCharges->isEmpty()) {
             return collect([]);
         }
 
-        return $serviceCharges->map(function ($serviceCharge) use ($baseAmount, $lineItem, $allLineItems, $ratio) {
+        return $serviceCharges->map(function ($serviceCharge) use ($baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts) {
             return [
                 'service_charge' => $serviceCharge,
-                'amount'         => self::calculateLineItemServiceChargeAmount($serviceCharge, $baseAmount, $lineItem, $allLineItems, $ratio),
+                'amount'         => self::calculateLineItemServiceChargeAmount(
+                    $serviceCharge, $baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
+                ),
             ];
         });
     }
@@ -978,20 +976,15 @@ class OrderCalculator
     /**
      * Calculate a single service charge amount attributable to one line item.
      *
-     * @param mixed             $serviceCharge
-     * @param float|int         $baseAmount
-     * @param OrderProductPivot $lineItem
-     * @param Collection        $allLineItems
-     * @param float             $ratio
-     *
-     * @return int
+     * When $serviceChargeApplicableBaseCosts is provided, uses pre-computed map for ratio lookups.
      */
     private static function calculateLineItemServiceChargeAmount(
-        $serviceCharge,
+        mixed $serviceCharge,
         float|int $baseAmount,
         OrderProductPivot $lineItem,
         Collection $allLineItems,
-        float $ratio
+        float $ratio,
+        ?array $serviceChargeApplicableBaseCosts = null
     ): int {
         $scope = self::getScope($serviceCharge);
 
@@ -1002,7 +995,9 @@ class OrderCalculator
                 return self::roundMoney(($serviceCharge->amount_money ?? 0) * ($lineItem->quantity ?? 1));
             }
 
-            $apportionmentRatio = self::calculateLineItemServiceChargeRatio($serviceCharge, $lineItem, $allLineItems, $ratio);
+            $apportionmentRatio = self::calculateLineItemServiceChargeRatio(
+                $serviceCharge, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
+            );
 
             return self::roundMoney(($serviceCharge->amount_money ?? 0) * $apportionmentRatio);
         }
@@ -1029,27 +1024,32 @@ class OrderCalculator
     /**
      * Calculate the applicable apportionment ratio for a service charge.
      *
-     * @param mixed             $serviceCharge
-     * @param OrderProductPivot $lineItem
-     * @param Collection        $allLineItems
-     * @param float             $defaultRatio
-     *
-     * @return float
+     * When $serviceChargeApplicableBaseCosts is provided, uses pre-computed map for O(1) lookup.
+     * Otherwise, filters $allLineItems on-the-fly.
      */
     private static function calculateLineItemServiceChargeRatio(
-        $serviceCharge,
+        mixed $serviceCharge,
         OrderProductPivot $lineItem,
         Collection $allLineItems,
-        float $defaultRatio
+        float $defaultRatio,
+        ?array $serviceChargeApplicableBaseCosts = null
     ): float {
         if (self::getScope($serviceCharge) === Constants::DEDUCTIBLE_SCOPE_ORDER) {
             return $defaultRatio;
         }
 
+        if ($serviceChargeApplicableBaseCosts !== null) {
+            $applicableBaseCost = $serviceChargeApplicableBaseCosts[$serviceCharge->id] ?? 0;
+
+            return ($applicableBaseCost > 0)
+                ? self::calculateLineItemBaseCost($lineItem) / $applicableBaseCost
+                : 0;
+        }
+
         $applicableLineItems = $allLineItems->filter(function (OrderProductPivot $candidate) use ($serviceCharge) {
             $candidate->loadMissing('serviceCharges');
 
-            return $candidate->serviceCharges->contains(fn ($attachedServiceCharge) => $attachedServiceCharge->id === $serviceCharge->id);
+            return $candidate->serviceCharges->contains(fn ($attached) => $attached->id === $serviceCharge->id);
         });
 
         if ($applicableLineItems->isEmpty()) {
@@ -1057,11 +1057,10 @@ class OrderCalculator
         }
 
         $applicableBaseCost = self::calculateAllLineItemsBaseCost($applicableLineItems);
-        if ($applicableBaseCost <= 0) {
-            return 0;
-        }
 
-        return self::calculateLineItemBaseCost($lineItem) / $applicableBaseCost;
+        return ($applicableBaseCost > 0)
+            ? self::calculateLineItemBaseCost($lineItem) / $applicableBaseCost
+            : 0;
     }
 
     /**
