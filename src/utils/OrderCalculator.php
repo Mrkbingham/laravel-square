@@ -19,13 +19,13 @@ class OrderCalculator
      *
      * @param stdClass $orderCopy
      *
-     * @return float|int
+     * @return int
      */
-    public static function calculateTotalOrderCost(stdClass $orderCopy): float|int
+    public static function calculateTotalOrderCost(stdClass $orderCopy): int
     {
         $allServiceCharges = self::collectServiceCharges($orderCopy);
 
-        return self::_calculateTotalCost($orderCopy->discounts, $orderCopy->taxes, $allServiceCharges, $orderCopy->products);
+        return self::calculateTotalCost($orderCopy->discounts, $orderCopy->taxes, $allServiceCharges, $orderCopy->products);
     }
 
     /**
@@ -33,23 +33,23 @@ class OrderCalculator
      *
      * @param Model $order
      *
-     * @return float|int
+     * @return int
      */
-    public static function calculateTotalOrderCostByModel(Model $order): float|int
+    public static function calculateTotalOrderCostByModel(Model $order): int
     {
         $order->loadMissing(['lineItems']);
 
         if ($order->lineItems->count() > 1) {
-            $context = self::_buildOrderContext($order);
+            $context = self::buildOrderContext($order);
 
             return $context['allLineItems']->sum(
-                fn (OrderProductPivot $lineItem) => self::_calculateLineItemBreakdownWithContext($lineItem, $context)['total']
+                fn (OrderProductPivot $lineItem) => self::calculateLineItemBreakdownWithContext($lineItem, $context)['total']
             );
         }
 
         $allServiceCharges = self::collectServiceCharges($order);
 
-        return self::_calculateTotalCost($order->discounts, $order->taxes, $allServiceCharges, $order->products);
+        return self::calculateTotalCost($order->discounts, $order->taxes, $allServiceCharges, $order->products);
     }
 
     /**
@@ -59,9 +59,9 @@ class OrderCalculator
      * @param OrderProductPivot $lineItem The line item to calculate.
      * @param Model             $order    The parent order (for order-level deductibles).
      *
-     * @return float|int The total cost for this line item in cents.
+     * @return int The total cost for this line item in cents.
      */
-    public static function calculateLineItemTotalByModel(OrderProductPivot $lineItem, Model $order): float|int
+    public static function calculateLineItemTotalByModel(OrderProductPivot $lineItem, Model $order): int
     {
         $lineItem->loadMissing(['taxes', 'discounts', 'serviceCharges', 'modifiers.modifiable']);
         $order->loadMissing(['lineItems.modifiers.modifiable', 'lineItems.serviceCharges', 'discounts', 'taxes']);
@@ -69,7 +69,7 @@ class OrderCalculator
         $allServiceCharges = self::collectServiceCharges($order);
         $allLineItems = $order->lineItems;
 
-        return self::_calculateLineItemBreakdown($lineItem, $order->discounts, $order->taxes, $allServiceCharges, $allLineItems)['total'];
+        return self::calculateLineItemBreakdown($lineItem, $order->discounts, $order->taxes, $allServiceCharges, $allLineItems)['total'];
     }
 
     /**
@@ -87,10 +87,10 @@ class OrderCalculator
         $order->loadMissing(['lineItems']);
 
         if ($order->lineItems->count() > 1) {
-            $context = self::_buildOrderContext($order);
+            $context = self::buildOrderContext($order);
 
             $breakdowns = $context['allLineItems']->map(
-                fn (OrderProductPivot $lineItem) => self::_calculateLineItemBreakdownWithContext($lineItem, $context)
+                fn (OrderProductPivot $lineItem) => self::calculateLineItemBreakdownWithContext($lineItem, $context)
             );
         } else {
             // Single line item: use the line-item pipeline for consistent breakdown
@@ -107,7 +107,7 @@ class OrderCalculator
             $allLineItems = $order->lineItems;
 
             $breakdowns = $allLineItems->map(
-                fn (OrderProductPivot $lineItem) => self::_calculateLineItemBreakdown(
+                fn (OrderProductPivot $lineItem) => self::calculateLineItemBreakdown(
                     $lineItem, $order->discounts, $order->taxes, $allServiceCharges, $allLineItems
                 )
             );
@@ -157,7 +157,7 @@ class OrderCalculator
      *
      * @return array
      */
-    private static function _buildOrderContext(Model $order): array
+    private static function buildOrderContext(Model $order): array
     {
         $order->loadMissing([
             'lineItems.modifiers.modifiable',
@@ -171,12 +171,12 @@ class OrderCalculator
         $allServiceCharges = self::collectServiceCharges($order);
         $allLineItems = $order->lineItems;
 
-        $orderBaseCost = self::_calculateAllLineItemsBaseCost($allLineItems);
-        $orderScopedDiscounts = self::_filterOrderScoped($order->discounts);
-        $orderScopedTaxes = self::_filterOrderScoped($order->taxes);
-        $orderScopedServiceCharges = self::_filterOrderScoped($allServiceCharges);
+        $orderBaseCost = self::calculateAllLineItemsBaseCost($allLineItems);
+        $orderScopedDiscounts = self::filterOrderScoped($order->discounts);
+        $orderScopedTaxes = self::filterOrderScoped($order->taxes);
+        $orderScopedServiceCharges = self::filterOrderScoped($allServiceCharges);
 
-        $serviceChargeApplicableBaseCosts = self::_buildServiceChargeApplicableBaseCosts($allServiceCharges, $allLineItems);
+        $serviceChargeApplicableBaseCosts = self::buildServiceChargeApplicableBaseCosts($allServiceCharges, $allLineItems);
 
         return [
             'allLineItems'                    => $allLineItems,
@@ -196,9 +196,9 @@ class OrderCalculator
      * @param Collection $products
      * @param array      $discountToProduct
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateDiscounts(Collection $discounts, float $noDeductiblesCost, Collection $products, array $discountToProduct = []): float|int
+    private static function calculateDiscounts(Collection $discounts, float $noDeductiblesCost, Collection $products, array $discountToProduct = []): int
     {
         if ($discounts->isEmpty() || $products->isEmpty()) {
             return 0;
@@ -206,13 +206,13 @@ class OrderCalculator
 
         // Build index on-demand if not provided
         if (empty($discountToProduct)) {
-            $discountToProduct = self::_buildDeductibleToProductIndex($products, 'discounts');
+            $discountToProduct = self::buildDeductibleToProductIndex($products, 'discounts');
         }
 
         return $discounts->sum(function ($discount) use ($noDeductiblesCost, $discountToProduct) {
-            return match (self::_getScope($discount)) {
-                Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::_calculateProductDiscounts($discount, $discountToProduct),
-                Constants::DEDUCTIBLE_SCOPE_ORDER   => self::_calculateOrderDiscounts($discount, $noDeductiblesCost),
+            return match (self::getScope($discount)) {
+                Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::calculateProductDiscounts($discount, $discountToProduct),
+                Constants::DEDUCTIBLE_SCOPE_ORDER   => self::calculateOrderDiscounts($discount, $noDeductiblesCost),
                 default                             => 0
             };
         });
@@ -224,9 +224,9 @@ class OrderCalculator
      * @param float      $discountCost
      * @param Collection $inclusiveTaxes
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateNetPrice(float $discountCost, Collection $inclusiveTaxes): float|int
+    private static function calculateNetPrice(float $discountCost, Collection $inclusiveTaxes): int
     {
         $inclusiveTaxPercent = $inclusiveTaxes->sum('percentage') / 100;
 
@@ -240,12 +240,12 @@ class OrderCalculator
      * @param       $discount
      * @param float $noDeductiblesCost
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateOrderDiscounts($discount, float $noDeductiblesCost): float|int
+    private static function calculateOrderDiscounts($discount, float $noDeductiblesCost): int
     {
         return $discount->percentage
-            ? self::_roundMoney($noDeductiblesCost * $discount->percentage / 100)
+            ? self::roundMoney($noDeductiblesCost * $discount->percentage / 100)
             : $discount->amount;
     }
 
@@ -256,9 +256,9 @@ class OrderCalculator
      * @param $discount
      * @param array $discountToProduct
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateProductDiscounts($discount, array $discountToProduct): float|int
+    private static function calculateProductDiscounts($discount, array $discountToProduct): int
     {
         $product = $discountToProduct[$discount->id] ?? null;
 
@@ -267,7 +267,7 @@ class OrderCalculator
         }
 
         return $discount->percentage
-            ? self::_roundMoney($product->pivot->base_price_money_amount * $product->pivot->quantity * $discount->percentage / 100)
+            ? self::roundMoney($product->pivot->base_price_money_amount * $product->pivot->quantity * $discount->percentage / 100)
             : $discount->amount;
     }
 
@@ -279,9 +279,9 @@ class OrderCalculator
      * @param array      $taxToProduct
      * @param array      $productDiscountedCosts
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateProductTaxes($tax, Collection $inclusiveTaxes, array $taxToProduct, array $productDiscountedCosts): float|int
+    private static function calculateProductTaxes($tax, Collection $inclusiveTaxes, array $taxToProduct, array $productDiscountedCosts): int
     {
         $product = $taxToProduct[$tax->id] ?? null;
 
@@ -292,9 +292,9 @@ class OrderCalculator
         $productId = $product->pivot->id;
         $discountCost = $productDiscountedCosts[$productId] ?? ($product->pivot->base_price_money_amount * $product->pivot->quantity);
 
-        $netPrice = self::_calculateNetPrice($discountCost, $inclusiveTaxes);
+        $netPrice = self::calculateNetPrice($discountCost, $inclusiveTaxes);
 
-        return self::_roundMoney($netPrice * ($tax->percentage / 100));
+        return self::roundMoney($netPrice * ($tax->percentage / 100));
     }
 
     /**
@@ -304,15 +304,15 @@ class OrderCalculator
      * @param            $tax
      * @param Collection $inclusiveTaxes
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateOrderTaxes(float $discountCost, $tax, Collection $inclusiveTaxes): float|int
+    private static function calculateOrderTaxes(float $discountCost, $tax, Collection $inclusiveTaxes): int
     {
-        $netPrice = self::_calculateNetPrice($discountCost, $inclusiveTaxes);
+        $netPrice = self::calculateNetPrice($discountCost, $inclusiveTaxes);
 
         $orderTaxes = $netPrice * $tax->percentage / 100;
 
-        return self::_roundMoney($orderTaxes);
+        return self::roundMoney($orderTaxes);
     }
 
     /**
@@ -322,12 +322,12 @@ class OrderCalculator
      * @param       $serviceCharge
      * @param float $amount
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateOrderServiceCharges($serviceCharge, float $amount): float|int
+    private static function calculateOrderServiceCharges($serviceCharge, float $amount): int
     {
         return $serviceCharge->percentage
-            ? self::_roundMoney($amount * $serviceCharge->percentage / 100)
+            ? self::roundMoney($amount * $serviceCharge->percentage / 100)
             : $serviceCharge->amount_money;
     }
 
@@ -339,11 +339,11 @@ class OrderCalculator
      * @param            $serviceCharge
      * @param array      $serviceChargeToProduct
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateProductServiceCharges(Collection $products, $serviceCharge, array $serviceChargeToProduct = []): float|int
+    private static function calculateProductServiceCharges(Collection $products, $serviceCharge, array $serviceChargeToProduct = []): int
     {
-        self::_assertNotSubtotalOnProduct(Constants::DEDUCTIBLE_SCOPE_PRODUCT, $serviceCharge->calculation_phase);
+        self::assertNotSubtotalOnProduct(Constants::DEDUCTIBLE_SCOPE_PRODUCT, $serviceCharge->calculation_phase);
 
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
             $totalQuantity = $products->sum('pivot.quantity');
@@ -381,18 +381,18 @@ class OrderCalculator
      * @param Collection $products
      * @param array      $serviceChargeToProduct
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateServiceCharges(Collection $serviceCharges, float $baseAmount, Collection $products, array $serviceChargeToProduct = []): float|int
+    private static function calculateServiceCharges(Collection $serviceCharges, float $baseAmount, Collection $products, array $serviceChargeToProduct = []): int
     {
         if ($serviceCharges->isEmpty() || $products->isEmpty()) {
             return 0;
         }
 
         return $serviceCharges->sum(function ($serviceCharge) use ($products, $baseAmount, $serviceChargeToProduct) {
-            return match (self::_getScope($serviceCharge)) {
-                Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::_calculateProductServiceCharges($products, $serviceCharge, $serviceChargeToProduct),
-                Constants::DEDUCTIBLE_SCOPE_ORDER   => self::_calculateOrderServiceCharges($serviceCharge, $baseAmount),
+            return match (self::getScope($serviceCharge)) {
+                Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::calculateProductServiceCharges($products, $serviceCharge, $serviceChargeToProduct),
+                Constants::DEDUCTIBLE_SCOPE_ORDER   => self::calculateOrderServiceCharges($serviceCharge, $baseAmount),
                 default                             => 0
             };
         });
@@ -406,9 +406,9 @@ class OrderCalculator
      * @param float|int  $orderBaseAmount
      * @param array      $serviceChargeToProduct
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateServiceChargeTaxes(Collection $serviceCharges, Collection $products, float|int $orderBaseAmount, array $serviceChargeToProduct = []): float|int
+    private static function calculateServiceChargeTaxes(Collection $serviceCharges, Collection $products, float|int $orderBaseAmount, array $serviceChargeToProduct = []): int
     {
         if ($serviceCharges->isEmpty()) {
             return 0;
@@ -430,17 +430,17 @@ class OrderCalculator
             }
 
             // Calculate the service charge amount using pre-computed base amount
-            $serviceChargeAmount = match (self::_getScope($serviceCharge)) {
-                Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::_calculateProductServiceCharges($products, $serviceCharge, $serviceChargeToProduct),
+            $serviceChargeAmount = match (self::getScope($serviceCharge)) {
+                Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::calculateProductServiceCharges($products, $serviceCharge, $serviceChargeToProduct),
                 Constants::DEDUCTIBLE_SCOPE_ORDER   => $serviceCharge->percentage ?
-                    self::_roundMoney($serviceCharge->percentage / 100 * $orderBaseAmount) :
+                    self::roundMoney($serviceCharge->percentage / 100 * $orderBaseAmount) :
                     $serviceCharge->amount_money,
                 default => 0
             };
 
             // Apply taxes to the service charge amount
             return $serviceChargeTaxes->sum(function ($tax) use ($serviceChargeAmount) {
-                return self::_roundMoney($serviceChargeAmount * $tax->percentage / 100);
+                return self::roundMoney($serviceChargeAmount * $tax->percentage / 100);
             });
         });
     }
@@ -455,16 +455,16 @@ class OrderCalculator
      * @param array      $taxToProduct
      * @param array      $discountToProduct
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateAdditiveTaxes(
+    private static function calculateAdditiveTaxes(
         Collection $taxes,
         float $discountCost,
         Collection $products,
         Collection $discounts,
         array $taxToProduct = [],
         array $discountToProduct = []
-    ): float|int {
+    ): int {
         if ($taxes->isEmpty() || $products->isEmpty()) {
             return 0;
         }
@@ -478,10 +478,10 @@ class OrderCalculator
 
         // Build indexes on-demand if not provided
         if (empty($taxToProduct)) {
-            $taxToProduct = self::_buildDeductibleToProductIndex($products, 'taxes');
+            $taxToProduct = self::buildDeductibleToProductIndex($products, 'taxes');
         }
         if (empty($discountToProduct)) {
-            $discountToProduct = self::_buildDeductibleToProductIndex($products, 'discounts');
+            $discountToProduct = self::buildDeductibleToProductIndex($products, 'discounts');
         }
 
         // Pre-compute discounted cost per product once (avoids O(T*D*P))
@@ -489,13 +489,13 @@ class OrderCalculator
         foreach ($products as $product) {
             $productId = $product->pivot->id;
             $totalCost = $product->pivot->base_price_money_amount * $product->pivot->quantity;
-            $productDiscountedCosts[$productId] = $totalCost - self::_calculateDiscounts($discounts, $totalCost, $products, $discountToProduct);
+            $productDiscountedCosts[$productId] = $totalCost - self::calculateDiscounts($discounts, $totalCost, $products, $discountToProduct);
         }
 
         return $additiveTaxes->sum(function ($tax) use ($discountCost, $inclusiveTaxes, $taxToProduct, $productDiscountedCosts) {
-            return match (self::_getScope($tax)) {
-                Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::_calculateProductTaxes($tax, $inclusiveTaxes, $taxToProduct, $productDiscountedCosts),
-                Constants::DEDUCTIBLE_SCOPE_ORDER   => self::_calculateOrderTaxes($discountCost, $tax, $inclusiveTaxes),
+            return match (self::getScope($tax)) {
+                Constants::DEDUCTIBLE_SCOPE_PRODUCT => self::calculateProductTaxes($tax, $inclusiveTaxes, $taxToProduct, $productDiscountedCosts),
+                Constants::DEDUCTIBLE_SCOPE_ORDER   => self::calculateOrderTaxes($discountCost, $tax, $inclusiveTaxes),
                 default                             => 0
             };
         });
@@ -509,9 +509,9 @@ class OrderCalculator
      * @param Collection $serviceCharges
      * @param Collection $products
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateTotalCost(Collection $discounts, Collection $taxes, Collection $serviceCharges, Collection $products): float|int
+    private static function calculateTotalCost(Collection $discounts, Collection $taxes, Collection $serviceCharges, Collection $products): int
     {
         // Early validation
         if ($products->isEmpty()) {
@@ -519,9 +519,9 @@ class OrderCalculator
         }
 
         // Pre-filter all collections by scope once for efficiency
-        $allDiscounts = self::_mergeCollectionsByScope($discounts);
-        $allTaxes = self::_mergeCollectionsByScope($taxes);
-        $allServiceCharges = self::_mergeCollectionsByScope($serviceCharges);
+        $allDiscounts = self::mergeCollectionsByScope($discounts);
+        $allTaxes = self::mergeCollectionsByScope($taxes);
+        $allServiceCharges = self::mergeCollectionsByScope($serviceCharges);
 
         // Separate taxes by calculation phase
         $subtotalPhaseTaxes = $allTaxes->filter(fn (Tax $tax) => $tax->isCalculatedOnSubtotal());
@@ -538,40 +538,40 @@ class OrderCalculator
         );
 
         // Build reverse-index maps once for O(1) lookups
-        $discountToProduct = self::_buildDeductibleToProductIndex($products, 'discounts');
-        $taxToProduct = self::_buildDeductibleToProductIndex($products, 'taxes');
-        $serviceChargeToProduct = self::_buildDeductibleToProductIndex($products, 'serviceCharges');
+        $discountToProduct = self::buildDeductibleToProductIndex($products, 'discounts');
+        $taxToProduct = self::buildDeductibleToProductIndex($products, 'taxes');
+        $serviceChargeToProduct = self::buildDeductibleToProductIndex($products, 'serviceCharges');
 
         // Calculate base cost only once
-        $noDeductiblesCost = self::_calculateProductTotals($products);
+        $noDeductiblesCost = self::calculateProductTotals($products);
 
         // Apply discounts first to the subtotal
-        $discountCost = $noDeductiblesCost - self::_calculateDiscounts($allDiscounts, $noDeductiblesCost, $products, $discountToProduct);
+        $discountCost = $noDeductiblesCost - self::calculateDiscounts($allDiscounts, $noDeductiblesCost, $products, $discountToProduct);
 
         // Add subtotal-phase service charges to discount cost
-        $subtotalSCAmount = self::_calculateServiceCharges($subtotalServiceCharges, $discountCost, $products, $serviceChargeToProduct);
-        $taxableSubtotalSCAmount = self::_calculateServiceCharges(
+        $subtotalSCAmount = self::calculateServiceCharges($subtotalServiceCharges, $discountCost, $products, $serviceChargeToProduct);
+        $taxableSubtotalSCAmount = self::calculateServiceCharges(
             $subtotalServiceCharges->filter(fn ($serviceCharge) => $serviceCharge->taxable), $discountCost, $products, $serviceChargeToProduct
         );
         $subTotalAmount = $discountCost + $subtotalSCAmount;
 
         // Apply subtotal-phase taxes (only taxable service charges are included in the tax base)
         $subtotalTaxBase = $discountCost + $taxableSubtotalSCAmount;
-        $subtotalTaxedCost = $subTotalAmount + self::_calculateAdditiveTaxes($subtotalPhaseTaxes, $subtotalTaxBase, $products, $allDiscounts, $taxToProduct, $discountToProduct);
+        $subtotalTaxedCost = $subTotalAmount + self::calculateAdditiveTaxes($subtotalPhaseTaxes, $subtotalTaxBase, $products, $allDiscounts, $taxToProduct, $discountToProduct);
 
         // Add total-phase service charges after subtotal taxes
-        $totalServiceChargeAmount = self::_calculateServiceCharges($totalServiceCharges, $subtotalTaxedCost, $products, $serviceChargeToProduct);
-        $taxableTotalSCAmount = self::_calculateServiceCharges(
+        $totalServiceChargeAmount = self::calculateServiceCharges($totalServiceCharges, $subtotalTaxedCost, $products, $serviceChargeToProduct);
+        $taxableTotalSCAmount = self::calculateServiceCharges(
             $totalServiceCharges->filter(fn ($serviceCharge) => $serviceCharge->taxable), $subtotalTaxedCost, $products, $serviceChargeToProduct
         );
         $preTotal = $subtotalTaxedCost + $totalServiceChargeAmount;
 
         // Apply total-phase taxes
         $totalTaxBase = $subtotalTaxBase + $taxableTotalSCAmount;
-        $totalTaxedCost = $preTotal + self::_calculateAdditiveTaxes($totalPhaseTaxes, $totalTaxBase, $products, $allDiscounts, $taxToProduct, $discountToProduct);
+        $totalTaxedCost = $preTotal + self::calculateAdditiveTaxes($totalPhaseTaxes, $totalTaxBase, $products, $allDiscounts, $taxToProduct, $discountToProduct);
 
         // Finally, calculate service charge taxes
-        $serviceChargeTaxAmount = self::_calculateServiceChargeTaxes($allServiceCharges, $products, $noDeductiblesCost, $serviceChargeToProduct);
+        $serviceChargeTaxAmount = self::calculateServiceChargeTaxes($allServiceCharges, $products, $noDeductiblesCost, $serviceChargeToProduct);
 
         return $totalTaxedCost + $serviceChargeTaxAmount;
     }
@@ -584,7 +584,7 @@ class OrderCalculator
      *
      * @return array<int, mixed> Map of deductible ID to product
      */
-    private static function _buildDeductibleToProductIndex(Collection $products, string $relation): array
+    private static function buildDeductibleToProductIndex(Collection $products, string $relation): array
     {
         $index = [];
         foreach ($products as $product) {
@@ -611,14 +611,14 @@ class OrderCalculator
      *
      * @return Collection
      */
-    private static function _mergeCollectionsByScope(Collection $collection): Collection
+    private static function mergeCollectionsByScope(Collection $collection): Collection
     {
         if ($collection->isEmpty()) {
             return collect([]);
         }
 
         return $collection->filter(
-            fn ($obj) => in_array(self::_getScope($obj), [Constants::DEDUCTIBLE_SCOPE_ORDER, Constants::DEDUCTIBLE_SCOPE_PRODUCT])
+            fn ($obj) => in_array(self::getScope($obj), [Constants::DEDUCTIBLE_SCOPE_ORDER, Constants::DEDUCTIBLE_SCOPE_PRODUCT])
         );
     }
 
@@ -627,9 +627,9 @@ class OrderCalculator
      *
      * @param Collection $products
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateProductTotals(Collection $products): float|int
+    private static function calculateProductTotals(Collection $products): int
     {
         $baseCost = 0;
 
@@ -652,7 +652,7 @@ class OrderCalculator
     /**
      * Core calculation pipeline for a single line item, returning a full breakdown.
      *
-     * Follows the same sequence as _calculateTotalCost:
+     * Follows the same sequence as calculateTotalCost:
      * base cost → discounts → subtotal service charges → subtotal taxes
      * → total service charges → total taxes → service charge taxes
      *
@@ -666,7 +666,7 @@ class OrderCalculator
      *
      * @return array{baseCost: int, discountAmount: int, serviceChargeAmount: int, taxAmount: int, total: int}
      */
-    private static function _calculateLineItemBreakdown(
+    private static function calculateLineItemBreakdown(
         OrderProductPivot $lineItem,
         Collection $orderDiscounts,
         Collection $orderTaxes,
@@ -674,23 +674,23 @@ class OrderCalculator
         Collection $allLineItems
     ): array {
         // Step 1: Base cost for this line item
-        $lineItemBaseCost = self::_calculateLineItemBaseCost($lineItem);
+        $lineItemBaseCost = self::calculateLineItemBaseCost($lineItem);
 
         // Step 2: Apportionment ratio (this line item's share of order gross sales)
-        $orderBaseCost = self::_calculateAllLineItemsBaseCost($allLineItems);
+        $orderBaseCost = self::calculateAllLineItemsBaseCost($allLineItems);
         $ratio = ($orderBaseCost > 0) ? $lineItemBaseCost / $orderBaseCost : 0;
 
         // Step 3: Collect all applicable deductibles for this line item
         $isCustomLineItem = is_null($lineItem->product_id);
 
         // Line-item-scoped deductibles (directly attached to this line item)
-        $lineItemDiscounts = self::_mergeCollectionsByScope($lineItem->discounts ?? collect([]));
-        $lineItemTaxes = self::_mergeCollectionsByScope($lineItem->taxes ?? collect([]));
-        $lineItemServiceCharges = self::_mergeCollectionsByScope($lineItem->serviceCharges ?? collect([]));
+        $lineItemDiscounts = self::mergeCollectionsByScope($lineItem->discounts ?? collect([]));
+        $lineItemTaxes = self::mergeCollectionsByScope($lineItem->taxes ?? collect([]));
+        $lineItemServiceCharges = self::mergeCollectionsByScope($lineItem->serviceCharges ?? collect([]));
 
         // Order-scoped deductibles
-        $orderScopedDiscounts = self::_filterOrderScoped($orderDiscounts);
-        $orderScopedTaxes = self::_filterOrderScoped($orderTaxes);
+        $orderScopedDiscounts = self::filterOrderScoped($orderDiscounts);
+        $orderScopedTaxes = self::filterOrderScoped($orderTaxes);
 
         // For custom line items, only include ORDER taxes that apply to custom amounts
         if ($isCustomLineItem) {
@@ -699,7 +699,7 @@ class OrderCalculator
             );
         }
 
-        $orderScopedServiceCharges = self::_filterOrderScoped($orderServiceCharges);
+        $orderScopedServiceCharges = self::filterOrderScoped($orderServiceCharges);
 
         // Merge all applicable deductibles
         $allDiscounts = $lineItemDiscounts->merge($orderScopedDiscounts);
@@ -721,11 +721,11 @@ class OrderCalculator
         );
 
         // Step 6: Apply discounts
-        $discountAmount = self::_calculateLineItemDiscounts($allDiscounts, $lineItemBaseCost, $ratio);
+        $discountAmount = self::calculateLineItemDiscounts($allDiscounts, $lineItemBaseCost, $ratio);
         $discountedCost = $lineItemBaseCost - $discountAmount;
 
         // Step 7: Add subtotal-phase service charges
-        $subtotalServiceChargeBreakdown = self::_calculateLineItemServiceChargeBreakdown(
+        $subtotalServiceChargeBreakdown = self::calculateLineItemServiceChargeBreakdown(
             $subtotalServiceCharges, $discountedCost, $lineItem, $allLineItems, $ratio
         );
         $subtotalSCAmount = $subtotalServiceChargeBreakdown->sum('amount');
@@ -736,11 +736,11 @@ class OrderCalculator
 
         // Step 8: Add subtotal-phase taxes
         $subtotalTaxBase = $discountedCost + $taxableSubtotalSCAmount;
-        $subtotalTaxAmount = self::_calculateLineItemTaxes($subtotalPhaseTaxes, $subtotalTaxBase);
+        $subtotalTaxAmount = self::calculateLineItemTaxes($subtotalPhaseTaxes, $subtotalTaxBase);
         $subtotalTaxedCost = $subtotalAmount + $subtotalTaxAmount;
 
         // Step 9: Add total-phase service charges
-        $totalServiceChargeBreakdown = self::_calculateLineItemServiceChargeBreakdown(
+        $totalServiceChargeBreakdown = self::calculateLineItemServiceChargeBreakdown(
             $totalServiceCharges, $subtotalTaxedCost, $lineItem, $allLineItems, $ratio
         );
         $totalSCAmount = $totalServiceChargeBreakdown->sum('amount');
@@ -751,11 +751,11 @@ class OrderCalculator
 
         // Step 10: Add total-phase taxes
         $totalTaxBase = $subtotalTaxBase + $taxableTotalSCAmount;
-        $totalTaxAmount = self::_calculateLineItemTaxes($totalPhaseTaxes, $totalTaxBase);
+        $totalTaxAmount = self::calculateLineItemTaxes($totalPhaseTaxes, $totalTaxBase);
         $totalTaxedCost = $preTotal + $totalTaxAmount;
 
         // Step 11: Add service charge taxes
-        $scTaxAmount = self::_calculateLineItemServiceChargeTaxes(
+        $scTaxAmount = self::calculateLineItemServiceChargeTaxes(
             $subtotalServiceChargeBreakdown->merge($totalServiceChargeBreakdown)
         );
 
@@ -777,7 +777,7 @@ class OrderCalculator
      *
      * @return array{baseCost: int, discountAmount: int, serviceChargeAmount: int, taxAmount: int, total: int}
      */
-    private static function _calculateLineItemBreakdownWithContext(OrderProductPivot $lineItem, array $context): array
+    private static function calculateLineItemBreakdownWithContext(OrderProductPivot $lineItem, array $context): array
     {
         $allLineItems = $context['allLineItems'];
         $orderBaseCost = $context['orderBaseCost'];
@@ -787,7 +787,7 @@ class OrderCalculator
         $serviceChargeApplicableBaseCosts = $context['serviceChargeApplicableBaseCosts'];
 
         // Step 1: Base cost for this line item
-        $lineItemBaseCost = self::_calculateLineItemBaseCost($lineItem);
+        $lineItemBaseCost = self::calculateLineItemBaseCost($lineItem);
 
         // Step 2: Apportionment ratio using pre-computed order base cost
         $ratio = ($orderBaseCost > 0) ? $lineItemBaseCost / $orderBaseCost : 0;
@@ -795,9 +795,9 @@ class OrderCalculator
         // Step 3: Collect all applicable deductibles for this line item
         $isCustomLineItem = is_null($lineItem->product_id);
 
-        $lineItemDiscounts = self::_mergeCollectionsByScope($lineItem->discounts ?? collect([]));
-        $lineItemTaxes = self::_mergeCollectionsByScope($lineItem->taxes ?? collect([]));
-        $lineItemServiceCharges = self::_mergeCollectionsByScope($lineItem->serviceCharges ?? collect([]));
+        $lineItemDiscounts = self::mergeCollectionsByScope($lineItem->discounts ?? collect([]));
+        $lineItemTaxes = self::mergeCollectionsByScope($lineItem->taxes ?? collect([]));
+        $lineItemServiceCharges = self::mergeCollectionsByScope($lineItem->serviceCharges ?? collect([]));
 
         $applicableTaxes = $orderScopedTaxes;
         if ($isCustomLineItem) {
@@ -822,11 +822,11 @@ class OrderCalculator
         );
 
         // Step 6: Apply discounts
-        $discountAmount = self::_calculateLineItemDiscounts($allDiscounts, $lineItemBaseCost, $ratio);
+        $discountAmount = self::calculateLineItemDiscounts($allDiscounts, $lineItemBaseCost, $ratio);
         $discountedCost = $lineItemBaseCost - $discountAmount;
 
         // Step 7: Subtotal-phase service charges
-        $subtotalServiceChargeBreakdown = self::_calculateLineItemServiceChargeBreakdownWithContext(
+        $subtotalServiceChargeBreakdown = self::calculateLineItemServiceChargeBreakdownWithContext(
             $subtotalServiceCharges, $discountedCost, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
         );
         $subtotalSCAmount = $subtotalServiceChargeBreakdown->sum('amount');
@@ -837,11 +837,11 @@ class OrderCalculator
 
         // Step 8: Subtotal-phase taxes
         $subtotalTaxBase = $discountedCost + $taxableSubtotalSCAmount;
-        $subtotalTaxAmount = self::_calculateLineItemTaxes($subtotalPhaseTaxes, $subtotalTaxBase);
+        $subtotalTaxAmount = self::calculateLineItemTaxes($subtotalPhaseTaxes, $subtotalTaxBase);
         $subtotalTaxedCost = $subtotalAmount + $subtotalTaxAmount;
 
         // Step 9: Total-phase service charges
-        $totalServiceChargeBreakdown = self::_calculateLineItemServiceChargeBreakdownWithContext(
+        $totalServiceChargeBreakdown = self::calculateLineItemServiceChargeBreakdownWithContext(
             $totalServiceCharges, $subtotalTaxedCost, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
         );
         $totalSCAmount = $totalServiceChargeBreakdown->sum('amount');
@@ -852,11 +852,11 @@ class OrderCalculator
 
         // Step 10: Total-phase taxes
         $totalTaxBase = $subtotalTaxBase + $taxableTotalSCAmount;
-        $totalTaxAmount = self::_calculateLineItemTaxes($totalPhaseTaxes, $totalTaxBase);
+        $totalTaxAmount = self::calculateLineItemTaxes($totalPhaseTaxes, $totalTaxBase);
         $totalTaxedCost = $preTotal + $totalTaxAmount;
 
         // Step 11: Service charge taxes
-        $scTaxAmount = self::_calculateLineItemServiceChargeTaxes(
+        $scTaxAmount = self::calculateLineItemServiceChargeTaxes(
             $subtotalServiceChargeBreakdown->merge($totalServiceChargeBreakdown)
         );
 
@@ -877,12 +877,12 @@ class OrderCalculator
      *
      * @return array<int, float|int> Map of serviceCharge ID to applicable base cost
      */
-    private static function _buildServiceChargeApplicableBaseCosts(Collection $allServiceCharges, Collection $allLineItems): array
+    private static function buildServiceChargeApplicableBaseCosts(Collection $allServiceCharges, Collection $allLineItems): array
     {
         $map = [];
 
         foreach ($allServiceCharges as $serviceCharge) {
-            $scope = self::_getScope($serviceCharge);
+            $scope = self::getScope($serviceCharge);
 
             if ($scope === Constants::DEDUCTIBLE_SCOPE_ORDER) {
                 continue;
@@ -895,7 +895,7 @@ class OrderCalculator
             });
 
             if ($applicableLineItems->isNotEmpty()) {
-                $map[$serviceCharge->id] = self::_calculateAllLineItemsBaseCost($applicableLineItems);
+                $map[$serviceCharge->id] = self::calculateAllLineItemsBaseCost($applicableLineItems);
             }
         }
 
@@ -914,7 +914,7 @@ class OrderCalculator
      *
      * @return Collection
      */
-    private static function _calculateLineItemServiceChargeBreakdownWithContext(
+    private static function calculateLineItemServiceChargeBreakdownWithContext(
         Collection $serviceCharges,
         float|int $baseAmount,
         OrderProductPivot $lineItem,
@@ -929,7 +929,7 @@ class OrderCalculator
         return $serviceCharges->map(function ($serviceCharge) use ($baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts) {
             return [
                 'service_charge' => $serviceCharge,
-                'amount'         => self::_calculateLineItemServiceChargeAmountWithContext(
+                'amount'         => self::calculateLineItemServiceChargeAmountWithContext(
                     $serviceCharge, $baseAmount, $lineItem, $allLineItems, $ratio, $serviceChargeApplicableBaseCosts
                 ),
             ];
@@ -948,7 +948,7 @@ class OrderCalculator
      *
      * @return int
      */
-    private static function _calculateLineItemServiceChargeAmountWithContext(
+    private static function calculateLineItemServiceChargeAmountWithContext(
         $serviceCharge,
         float|int $baseAmount,
         OrderProductPivot $lineItem,
@@ -956,36 +956,36 @@ class OrderCalculator
         float $ratio,
         array $serviceChargeApplicableBaseCosts
     ): int {
-        $scope = self::_getScope($serviceCharge);
+        $scope = self::getScope($serviceCharge);
 
-        self::_assertNotSubtotalOnProduct($scope, $serviceCharge->calculation_phase);
+        self::assertNotSubtotalOnProduct($scope, $serviceCharge->calculation_phase);
 
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
             if ($scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) {
-                return self::_roundMoney(($serviceCharge->amount_money ?? 0) * ($lineItem->quantity ?? 1));
+                return self::roundMoney(($serviceCharge->amount_money ?? 0) * ($lineItem->quantity ?? 1));
             }
 
-            $apportionmentRatio = self::_calculateLineItemServiceChargeRatioWithContext(
+            $apportionmentRatio = self::calculateLineItemServiceChargeRatioWithContext(
                 $serviceCharge, $lineItem, $ratio, $serviceChargeApplicableBaseCosts
             );
 
-            return self::_roundMoney(($serviceCharge->amount_money ?? 0) * $apportionmentRatio);
+            return self::roundMoney(($serviceCharge->amount_money ?? 0) * $apportionmentRatio);
         }
 
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE) {
-            return self::_roundMoney($baseAmount * ($serviceCharge->percentage ?? 0) / 100);
+            return self::roundMoney($baseAmount * ($serviceCharge->percentage ?? 0) / 100);
         }
 
         if ($scope === Constants::DEDUCTIBLE_SCOPE_ORDER) {
             if ($serviceCharge->percentage) {
-                return self::_roundMoney($baseAmount * $serviceCharge->percentage / 100);
+                return self::roundMoney($baseAmount * $serviceCharge->percentage / 100);
             }
 
-            return self::_roundMoney(($serviceCharge->amount_money ?? 0) * $ratio);
+            return self::roundMoney(($serviceCharge->amount_money ?? 0) * $ratio);
         }
 
         if ($serviceCharge->percentage) {
-            return self::_roundMoney($baseAmount * $serviceCharge->percentage / 100);
+            return self::roundMoney($baseAmount * $serviceCharge->percentage / 100);
         }
 
         return (int) ($serviceCharge->amount_money ?? 0);
@@ -1001,13 +1001,13 @@ class OrderCalculator
      *
      * @return float
      */
-    private static function _calculateLineItemServiceChargeRatioWithContext(
+    private static function calculateLineItemServiceChargeRatioWithContext(
         $serviceCharge,
         OrderProductPivot $lineItem,
         float $defaultRatio,
         array $serviceChargeApplicableBaseCosts
     ): float {
-        if (self::_getScope($serviceCharge) === Constants::DEDUCTIBLE_SCOPE_ORDER) {
+        if (self::getScope($serviceCharge) === Constants::DEDUCTIBLE_SCOPE_ORDER) {
             return $defaultRatio;
         }
 
@@ -1016,7 +1016,7 @@ class OrderCalculator
             return 0;
         }
 
-        return self::_calculateLineItemBaseCost($lineItem) / $applicableBaseCost;
+        return self::calculateLineItemBaseCost($lineItem) / $applicableBaseCost;
     }
 
     /**
@@ -1024,9 +1024,9 @@ class OrderCalculator
      *
      * @param OrderProductPivot $lineItem
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateLineItemBaseCost(OrderProductPivot $lineItem): float|int
+    private static function calculateLineItemBaseCost(OrderProductPivot $lineItem): int
     {
         $basePrice = $lineItem->base_price_money_amount ?? 0;
         $modifiers = $lineItem->modifiers;
@@ -1043,11 +1043,11 @@ class OrderCalculator
      *
      * @param Collection $lineItems Collection of OrderProductPivot
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateAllLineItemsBaseCost(Collection $lineItems): float|int
+    private static function calculateAllLineItemsBaseCost(Collection $lineItems): int
     {
-        return $lineItems->sum(fn (OrderProductPivot $lineItem) => self::_calculateLineItemBaseCost($lineItem));
+        return $lineItems->sum(fn (OrderProductPivot $lineItem) => self::calculateLineItemBaseCost($lineItem));
     }
 
     /**
@@ -1057,10 +1057,10 @@ class OrderCalculator
      *
      * @return Collection
      */
-    private static function _filterOrderScoped(Collection $deductibles): Collection
+    private static function filterOrderScoped(Collection $deductibles): Collection
     {
         return $deductibles->filter(
-            fn ($item) => self::_getScope($item) === Constants::DEDUCTIBLE_SCOPE_ORDER
+            fn ($item) => self::getScope($item) === Constants::DEDUCTIBLE_SCOPE_ORDER
         );
     }
 
@@ -1071,9 +1071,9 @@ class OrderCalculator
      * @param float|int  $lineItemBaseCost
      * @param float      $ratio Apportionment ratio for ORDER-scoped fixed amounts
      *
-     * @return float|int Total discount amount
+     * @return int Total discount amount
      */
-    private static function _calculateLineItemDiscounts(Collection $discounts, float|int $lineItemBaseCost, float $ratio): float|int
+    private static function calculateLineItemDiscounts(Collection $discounts, float|int $lineItemBaseCost, float $ratio): int
     {
         if ($discounts->isEmpty()) {
             return 0;
@@ -1083,7 +1083,7 @@ class OrderCalculator
         // [0] = product percentage, [1] = order percentage, [2] = product fixed, [3] = order fixed
         $groups = [[], [], [], []];
         foreach ($discounts as $discount) {
-            $isProduct = self::_getScope($discount) === Constants::DEDUCTIBLE_SCOPE_PRODUCT;
+            $isProduct = self::getScope($discount) === Constants::DEDUCTIBLE_SCOPE_PRODUCT;
             $isPercentage = (bool) $discount->percentage;
             $index = ($isProduct ? 0 : 1) + ($isPercentage ? 0 : 2);
             $groups[$index][] = $discount;
@@ -1094,11 +1094,11 @@ class OrderCalculator
 
         foreach ($groups as $group) {
             foreach ($group as $discount) {
-                $scope = self::_getScope($discount);
+                $scope = self::getScope($discount);
                 $discountAmount = $discount->percentage
-                    ? self::_roundMoney($runningAmount * $discount->percentage / 100)
+                    ? self::roundMoney($runningAmount * $discount->percentage / 100)
                     : ($scope === Constants::DEDUCTIBLE_SCOPE_ORDER
-                        ? self::_roundMoney(($discount->amount ?? 0) * $ratio)
+                        ? self::roundMoney(($discount->amount ?? 0) * $ratio)
                         : ($discount->amount ?? 0));
 
                 $discountAmount = min($discountAmount, $runningAmount);
@@ -1116,9 +1116,9 @@ class OrderCalculator
      * @param Collection $taxes
      * @param float|int  $baseAmount The amount to apply taxes to
      *
-     * @return float|int Total tax amount
+     * @return int Total tax amount
      */
-    private static function _calculateLineItemTaxes(Collection $taxes, float|int $baseAmount): float|int
+    private static function calculateLineItemTaxes(Collection $taxes, float|int $baseAmount): int
     {
         if ($taxes->isEmpty()) {
             return 0;
@@ -1132,10 +1132,10 @@ class OrderCalculator
         }
 
         // Calculate net price by removing inclusive taxes
-        $netPrice = self::_calculateNetPrice($baseAmount, $inclusiveTaxes);
+        $netPrice = self::calculateNetPrice($baseAmount, $inclusiveTaxes);
 
         return (int) $additiveTaxes->sum(
-            fn ($tax) => self::_roundMoney($netPrice * $tax->percentage / 100)
+            fn ($tax) => self::roundMoney($netPrice * $tax->percentage / 100)
         );
     }
 
@@ -1150,7 +1150,7 @@ class OrderCalculator
      *
      * @return Collection
      */
-    private static function _calculateLineItemServiceChargeBreakdown(
+    private static function calculateLineItemServiceChargeBreakdown(
         Collection $serviceCharges,
         float|int $baseAmount,
         OrderProductPivot $lineItem,
@@ -1164,7 +1164,7 @@ class OrderCalculator
         return $serviceCharges->map(function ($serviceCharge) use ($baseAmount, $lineItem, $allLineItems, $ratio) {
             return [
                 'service_charge' => $serviceCharge,
-                'amount'         => self::_calculateLineItemServiceChargeAmount($serviceCharge, $baseAmount, $lineItem, $allLineItems, $ratio),
+                'amount'         => self::calculateLineItemServiceChargeAmount($serviceCharge, $baseAmount, $lineItem, $allLineItems, $ratio),
             ];
         });
     }
@@ -1174,9 +1174,9 @@ class OrderCalculator
      *
      * @param Collection $serviceChargeBreakdown
      *
-     * @return float|int
+     * @return int
      */
-    private static function _calculateLineItemServiceChargeTaxes(Collection $serviceChargeBreakdown): float|int
+    private static function calculateLineItemServiceChargeTaxes(Collection $serviceChargeBreakdown): int
     {
         if ($serviceChargeBreakdown->isEmpty()) {
             return 0;
@@ -1201,7 +1201,7 @@ class OrderCalculator
             }
 
             // Apply each tax to the service charge amount
-            return $serviceChargeTaxes->sum(fn ($tax) => self::_roundMoney($serviceChargeAmount * $tax->percentage / 100));
+            return $serviceChargeTaxes->sum(fn ($tax) => self::roundMoney($serviceChargeAmount * $tax->percentage / 100));
         });
     }
 
@@ -1216,41 +1216,41 @@ class OrderCalculator
      *
      * @return int
      */
-    private static function _calculateLineItemServiceChargeAmount(
+    private static function calculateLineItemServiceChargeAmount(
         $serviceCharge,
         float|int $baseAmount,
         OrderProductPivot $lineItem,
         Collection $allLineItems,
         float $ratio
     ): int {
-        $scope = self::_getScope($serviceCharge);
+        $scope = self::getScope($serviceCharge);
 
-        self::_assertNotSubtotalOnProduct($scope, $serviceCharge->calculation_phase);
+        self::assertNotSubtotalOnProduct($scope, $serviceCharge->calculation_phase);
 
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_AMOUNT_PHASE) {
             if ($scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT) {
-                return self::_roundMoney(($serviceCharge->amount_money ?? 0) * ($lineItem->quantity ?? 1));
+                return self::roundMoney(($serviceCharge->amount_money ?? 0) * ($lineItem->quantity ?? 1));
             }
 
-            $apportionmentRatio = self::_calculateLineItemServiceChargeRatio($serviceCharge, $lineItem, $allLineItems, $ratio);
+            $apportionmentRatio = self::calculateLineItemServiceChargeRatio($serviceCharge, $lineItem, $allLineItems, $ratio);
 
-            return self::_roundMoney(($serviceCharge->amount_money ?? 0) * $apportionmentRatio);
+            return self::roundMoney(($serviceCharge->amount_money ?? 0) * $apportionmentRatio);
         }
 
         if ($serviceCharge->calculation_phase === OrderServiceChargeCalculationPhase::APPORTIONED_PERCENTAGE_PHASE) {
-            return self::_roundMoney($baseAmount * ($serviceCharge->percentage ?? 0) / 100);
+            return self::roundMoney($baseAmount * ($serviceCharge->percentage ?? 0) / 100);
         }
 
         if ($scope === Constants::DEDUCTIBLE_SCOPE_ORDER) {
             if ($serviceCharge->percentage) {
-                return self::_roundMoney($baseAmount * $serviceCharge->percentage / 100);
+                return self::roundMoney($baseAmount * $serviceCharge->percentage / 100);
             }
 
-            return self::_roundMoney(($serviceCharge->amount_money ?? 0) * $ratio);
+            return self::roundMoney(($serviceCharge->amount_money ?? 0) * $ratio);
         }
 
         if ($serviceCharge->percentage) {
-            return self::_roundMoney($baseAmount * $serviceCharge->percentage / 100);
+            return self::roundMoney($baseAmount * $serviceCharge->percentage / 100);
         }
 
         return (int) ($serviceCharge->amount_money ?? 0);
@@ -1266,13 +1266,13 @@ class OrderCalculator
      *
      * @return float
      */
-    private static function _calculateLineItemServiceChargeRatio(
+    private static function calculateLineItemServiceChargeRatio(
         $serviceCharge,
         OrderProductPivot $lineItem,
         Collection $allLineItems,
         float $defaultRatio
     ): float {
-        if (self::_getScope($serviceCharge) === Constants::DEDUCTIBLE_SCOPE_ORDER) {
+        if (self::getScope($serviceCharge) === Constants::DEDUCTIBLE_SCOPE_ORDER) {
             return $defaultRatio;
         }
 
@@ -1286,12 +1286,12 @@ class OrderCalculator
             return 0;
         }
 
-        $applicableBaseCost = self::_calculateAllLineItemsBaseCost($applicableLineItems);
+        $applicableBaseCost = self::calculateAllLineItemsBaseCost($applicableLineItems);
         if ($applicableBaseCost <= 0) {
             return 0;
         }
 
-        return self::_calculateLineItemBaseCost($lineItem) / $applicableBaseCost;
+        return self::calculateLineItemBaseCost($lineItem) / $applicableBaseCost;
     }
 
     /**
@@ -1302,7 +1302,7 @@ class OrderCalculator
      *
      * @throws InvalidSquareOrderException
      */
-    private static function _assertNotSubtotalOnProduct(string $scope, string $calculationPhase): void
+    private static function assertNotSubtotalOnProduct(string $scope, string $calculationPhase): void
     {
         if (
             $scope === Constants::DEDUCTIBLE_SCOPE_PRODUCT
@@ -1319,7 +1319,7 @@ class OrderCalculator
      *
      * @return int
      */
-    private static function _roundMoney(float|int $amount): int
+    private static function roundMoney(float|int $amount): int
     {
         return (int) round($amount, 0, PHP_ROUND_HALF_EVEN);
     }
@@ -1331,7 +1331,7 @@ class OrderCalculator
      *
      * @return string
      */
-    private static function _getScope($item): string
+    private static function getScope($item): string
     {
         return $item->pivot ? $item->pivot->scope : $item->scope;
     }
