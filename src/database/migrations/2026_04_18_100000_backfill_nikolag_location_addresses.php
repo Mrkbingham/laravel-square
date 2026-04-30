@@ -6,8 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Nikolag\Square\Models\Location;
 
-return new class extends Migration
-{
+return new class() extends Migration {
     /**
      * Backfill nikolag_addresses records from existing nikolag_locations JSON address data.
      */
@@ -33,7 +32,7 @@ return new class extends Migration
 
                     $addressData = json_decode($location->address, true);
 
-                    if (! is_array($addressData) || empty(array_filter($addressData))) {
+                    if (!is_array($addressData) || empty(array_filter($addressData))) {
                         continue;
                     }
 
@@ -57,7 +56,7 @@ return new class extends Migration
                     ];
                 }
 
-                if (! empty($batch)) {
+                if (!empty($batch)) {
                     DB::table('nikolag_addresses')->insert($batch);
                 }
             });

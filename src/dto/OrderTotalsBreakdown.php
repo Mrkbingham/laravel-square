@@ -10,5 +10,6 @@ readonly class OrderTotalsBreakdown
         public int $totalTaxAmount,
         public int $totalDiscountAmount,
         public int $totalServiceChargeAmount,
-    ) {}
+    ) {
+    }
 }
