@@ -37,19 +37,7 @@ class OrderCalculator
      */
     public static function calculateTotalOrderCostByModel(Model $order): int
     {
-        $order->loadMissing(['lineItems']);
-
-        if ($order->lineItems->count() > 1) {
-            $context = self::buildOrderContext($order);
-
-            return $context['allLineItems']->sum(
-                fn (OrderProductPivot $lineItem) => self::calculateLineItemBreakdownWithContext($lineItem, $context)['total']
-            );
-        }
-
-        $allServiceCharges = self::collectServiceCharges($order);
-
-        return self::calculateTotalCost($order->discounts, $order->taxes, $allServiceCharges, $order->products);
+        return self::calculateOrderTotalsBreakdown($order)->totalAmount;
     }
 
     /**
@@ -192,13 +180,13 @@ class OrderCalculator
      * Calculate all discounts on order level no matter their scope.
      *
      * @param Collection $discounts
-     * @param float      $noDeductiblesCost
+     * @param int        $noDeductiblesCost
      * @param Collection $products
      * @param array      $discountToProduct
      *
      * @return int
      */
-    private static function calculateDiscounts(Collection $discounts, float $noDeductiblesCost, Collection $products, array $discountToProduct = []): int
+    private static function calculateDiscounts(Collection $discounts, int $noDeductiblesCost, Collection $products, array $discountToProduct = []): int
     {
         if ($discounts->isEmpty() || $products->isEmpty()) {
             return 0;
@@ -300,13 +288,13 @@ class OrderCalculator
     /**
      * Function which calculates taxes on order level.
      *
-     * @param float      $discountCost
+     * @param int        $discountCost
      * @param            $tax
      * @param Collection $inclusiveTaxes
      *
      * @return int
      */
-    private static function calculateOrderTaxes(float $discountCost, $tax, Collection $inclusiveTaxes): int
+    private static function calculateOrderTaxes(int $discountCost, $tax, Collection $inclusiveTaxes): int
     {
         $netPrice = self::calculateNetPrice($discountCost, $inclusiveTaxes);
 
@@ -320,11 +308,11 @@ class OrderCalculator
      * takes over precedence over flat amount.
      *
      * @param       $serviceCharge
-     * @param float $amount
+        $orderTaxes = $netPrice * $tax->percentage / 100;
      *
      * @return int
      */
-    private static function calculateOrderServiceCharges($serviceCharge, float $amount): int
+
     {
         return $serviceCharge->percentage
             ? self::roundMoney($amount * $serviceCharge->percentage / 100)
@@ -377,13 +365,13 @@ class OrderCalculator
      * Calculate all service charges on order level no matter their scope.
      *
      * @param Collection $serviceCharges
-     * @param float      $baseAmount
+     * @param int        $baseAmount
      * @param Collection $products
      * @param array      $serviceChargeToProduct
      *
      * @return int
      */
-    private static function calculateServiceCharges(Collection $serviceCharges, float $baseAmount, Collection $products, array $serviceChargeToProduct = []): int
+    private static function calculateServiceCharges(Collection $serviceCharges, int $baseAmount, Collection $products, array $serviceChargeToProduct = []): int
     {
         if ($serviceCharges->isEmpty() || $products->isEmpty()) {
             return 0;
@@ -449,7 +437,7 @@ class OrderCalculator
      * Calculate all additive taxes on order level.
      *
      * @param Collection $taxes
-     * @param float      $discountCost
+     * @param int        $discountCost
      * @param Collection $products
      * @param Collection $discounts
      * @param array      $taxToProduct
@@ -459,7 +447,7 @@ class OrderCalculator
      */
     private static function calculateAdditiveTaxes(
         Collection $taxes,
-        float $discountCost,
+        int $discountCost,
         Collection $products,
         Collection $discounts,
         array $taxToProduct = [],
