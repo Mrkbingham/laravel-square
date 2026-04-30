@@ -10,6 +10,5 @@ readonly class LineItemBreakdown
         public int $serviceChargeAmount,
         public int $taxAmount,
         public int $total,
-    ) {
-    }
+    ) {}
 }
