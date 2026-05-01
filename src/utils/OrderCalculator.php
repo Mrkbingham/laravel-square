@@ -68,13 +68,27 @@ class OrderCalculator
      */
     public static function calculateLineItemTotalByModel(OrderProductPivot $lineItem, Model $order): int
     {
+        return self::calculateLineItemBreakdownByModel($lineItem, $order)->total;
+    }
+
+    /**
+     * Calculate the full breakdown for a single line item, including its
+     * apportioned share of order-level taxes, discounts, and service charges.
+     *
+     * @param OrderProductPivot $lineItem The line item to calculate.
+     * @param Model             $order    The parent order (for order-level deductibles).
+     *
+     * @return LineItemBreakdown The full cost breakdown for this line item.
+     */
+    public static function calculateLineItemBreakdownByModel(OrderProductPivot $lineItem, Model $order): LineItemBreakdown
+    {
         $lineItem->loadMissing(['taxes', 'discounts', 'serviceCharges', 'modifiers.modifiable']);
         $order->loadMissing(['lineItems.modifiers.modifiable', 'lineItems.serviceCharges', 'discounts', 'taxes']);
 
         $allServiceCharges = self::collectServiceCharges($order);
         $allLineItems = $order->lineItems;
 
-        return self::calculateLineItemBreakdown($lineItem, $order->discounts, $order->taxes, $allServiceCharges, $allLineItems)->total;
+        return self::calculateLineItemBreakdown($lineItem, $order->discounts, $order->taxes, $allServiceCharges, $allLineItems);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
+use Nikolag\Square\Dto\LineItemBreakdown;
 use Nikolag\Square\Dto\OrderTotalsBreakdown;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Facades\Square;
@@ -903,10 +904,17 @@ class UtilTest extends TestCase
     {
         ['order' => $order, 'lineItem' => $lineItem] = $this->createOrderWithLineItem(10_00, 3);
 
+        $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem, $order);
         $total = OrderCalculator::calculateLineItemTotalByModel($lineItem, $order);
 
         // 10.00 × 3 = 30.00
-        $this->assertEquals(30_00, $total);
+        $this->assertInstanceOf(LineItemBreakdown::class, $breakdown);
+        $this->assertEquals(30_00, $breakdown->baseCost);
+        $this->assertEquals(0, $breakdown->discountAmount);
+        $this->assertEquals(0, $breakdown->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown->taxAmount);
+        $this->assertEquals(30_00, $breakdown->total);
+        $this->assertSame($breakdown->total, $total);
 
         $this->validateAgainstSquareApi($order, $total);
     }
@@ -929,13 +937,19 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
+        $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem->fresh(), $order->fresh());
         $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: 10.00 × 2 = 20.00, Discount 10%: -2.00 = 18.00
-        $this->assertEquals(18_00, $total);
+        $this->assertInstanceOf(LineItemBreakdown::class, $breakdown);
+        $this->assertEquals(20_00, $breakdown->baseCost);
+        $this->assertEquals(2_00, $breakdown->discountAmount);
+        $this->assertEquals(0, $breakdown->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown->taxAmount);
+        $this->assertEquals(18_00, $breakdown->total);
+        $this->assertSame($breakdown->total, $total);
 
-        $freshOrder = $order->fresh();
-        $this->validateAgainstSquareApi($freshOrder, $total);
+        $this->validateAgainstSquareApi($order->fresh(), $total);
     }
 
     /**
@@ -956,13 +970,19 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
+        $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem->fresh(), $order->fresh());
         $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: 10.00 × 2 = 20.00, Discount $3.00: 17.00
-        $this->assertEquals(17_00, $total);
+        $this->assertInstanceOf(LineItemBreakdown::class, $breakdown);
+        $this->assertEquals(20_00, $breakdown->baseCost);
+        $this->assertEquals(3_00, $breakdown->discountAmount);
+        $this->assertEquals(0, $breakdown->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown->taxAmount);
+        $this->assertEquals(17_00, $breakdown->total);
+        $this->assertSame($breakdown->total, $total);
 
-        $freshOrder = $order->fresh();
-        $this->validateAgainstSquareApi($freshOrder, $total);
+        $this->validateAgainstSquareApi($order->fresh(), $total);
     }
 
     /**
@@ -983,13 +1003,19 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
+        $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem->fresh(), $order->fresh());
         $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: 10.00 × 2 = 20.00, ORDER discount 20%: -4.00 = 16.00
-        $this->assertEquals(16_00, $total);
+        $this->assertInstanceOf(LineItemBreakdown::class, $breakdown);
+        $this->assertEquals(20_00, $breakdown->baseCost);
+        $this->assertEquals(4_00, $breakdown->discountAmount);
+        $this->assertEquals(0, $breakdown->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown->taxAmount);
+        $this->assertEquals(16_00, $breakdown->total);
+        $this->assertSame($breakdown->total, $total);
 
-        $freshOrder = $order->fresh();
-        $this->validateAgainstSquareApi($freshOrder, $total);
+        $this->validateAgainstSquareApi($order->fresh(), $total);
     }
 
     /**
@@ -1022,14 +1048,29 @@ class UtilTest extends TestCase
         $lineItem1 = $order->lineItems->where('product_id', $product1->id)->first();
         $lineItem2 = $order->lineItems->where('product_id', $product2->id)->first();
 
+        $breakdown1 = OrderCalculator::calculateLineItemBreakdownByModel($lineItem1, $order);
+        $breakdown2 = OrderCalculator::calculateLineItemBreakdownByModel($lineItem2, $order);
         $total1 = OrderCalculator::calculateLineItemTotalByModel($lineItem1, $order);
         $total2 = OrderCalculator::calculateLineItemTotalByModel($lineItem2, $order);
 
-        // $30/$100 × $10 = $3.00 apportioned → $30 - $3 = $27.00
-        $this->assertEquals(27_00, $total1);
-        // $70/$100 × $10 = $7.00 apportioned → $70 - $7 = $63.00
-        $this->assertEquals(63_00, $total2);
-        // Sum should equal order total minus discount
+        // Line item 1: $30/$100 ratio
+        $this->assertEquals(30_00, $breakdown1->baseCost);
+        $this->assertEquals(3_00, $breakdown1->discountAmount);
+        $this->assertEquals(0, $breakdown1->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown1->taxAmount);
+        $this->assertEquals(27_00, $breakdown1->total);
+        $this->assertSame($breakdown1->total, $total1);
+
+        // Line item 2: $70/$100 ratio
+        $this->assertEquals(70_00, $breakdown2->baseCost);
+        $this->assertEquals(7_00, $breakdown2->discountAmount);
+        $this->assertEquals(0, $breakdown2->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown2->taxAmount);
+        $this->assertEquals(63_00, $breakdown2->total);
+        $this->assertSame($breakdown2->total, $total2);
+
+        // Sum checks
+        $this->assertEquals(10_00, $breakdown1->discountAmount + $breakdown2->discountAmount);
         $this->assertEquals(90_00, $total1 + $total2);
 
         $this->validateAgainstSquareApi($order, $total1 + $total2);
@@ -1080,13 +1121,18 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
+        $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem->fresh(), $order->fresh());
         $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
-        // $100.00 -> item 10% = $90.00 -> order 20% = $72.00 -> item $3 = $69.00 -> order $5 = $64.00
-        $this->assertEquals(64_00, $total);
+        // $100.00 -> item 10% (-$10) = $90 -> order 20% (-$18) = $72 -> item $3 = $69 -> order $5 = $64
+        $this->assertEquals(100_00, $breakdown->baseCost);
+        $this->assertEquals(36_00, $breakdown->discountAmount);
+        $this->assertEquals(0, $breakdown->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown->taxAmount);
+        $this->assertEquals(64_00, $breakdown->total);
+        $this->assertSame($breakdown->total, $total);
 
-        $freshOrder = $order->fresh();
-        $this->validateAgainstSquareApi($freshOrder, $total);
+        $this->validateAgainstSquareApi($order->fresh(), $total);
     }
 
     /**
@@ -1107,13 +1153,18 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
+        $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem->fresh(), $order->fresh());
         $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: $10.00, Tax 10%: +$1.00 = $11.00
-        $this->assertEquals(11_00, $total);
+        $this->assertEquals(10_00, $breakdown->baseCost);
+        $this->assertEquals(0, $breakdown->discountAmount);
+        $this->assertEquals(0, $breakdown->serviceChargeAmount);
+        $this->assertEquals(1_00, $breakdown->taxAmount);
+        $this->assertEquals(11_00, $breakdown->total);
+        $this->assertSame($breakdown->total, $total);
 
-        $freshOrder = $order->fresh();
-        $this->validateAgainstSquareApi($freshOrder, $total);
+        $this->validateAgainstSquareApi($order->fresh(), $total);
     }
 
     /**
@@ -1134,13 +1185,18 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_PRODUCT,
         ]);
 
+        $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem->fresh(), $order->fresh());
         $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Inclusive tax is already embedded in the price — total should not change
-        $this->assertEquals(11_00, $total);
+        $this->assertEquals(11_00, $breakdown->baseCost);
+        $this->assertEquals(0, $breakdown->discountAmount);
+        $this->assertEquals(0, $breakdown->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown->taxAmount);
+        $this->assertEquals(11_00, $breakdown->total);
+        $this->assertSame($breakdown->total, $total);
 
-        $freshOrder = $order->fresh();
-        $this->validateAgainstSquareApi($freshOrder, $total);
+        $this->validateAgainstSquareApi($order->fresh(), $total);
     }
 
     /**
@@ -1161,13 +1217,18 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
+        $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem->fresh(), $order->fresh());
         $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: $10.00, ORDER tax 8.5%: +$0.85 = $10.85
-        $this->assertEquals(10_85, $total);
+        $this->assertEquals(10_00, $breakdown->baseCost);
+        $this->assertEquals(0, $breakdown->discountAmount);
+        $this->assertEquals(0, $breakdown->serviceChargeAmount);
+        $this->assertEquals(85, $breakdown->taxAmount);
+        $this->assertEquals(10_85, $breakdown->total);
+        $this->assertSame($breakdown->total, $total);
 
-        $freshOrder = $order->fresh();
-        $this->validateAgainstSquareApi($freshOrder, $total);
+        $this->validateAgainstSquareApi($order->fresh(), $total);
     }
 
     /**
@@ -1247,13 +1308,18 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
         ]);
 
+        $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem->fresh(), $order->fresh());
         $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
         // Base: $20.00, Service charge 10%: +$2.00 = $22.00
-        $this->assertEquals(22_00, $total);
+        $this->assertEquals(20_00, $breakdown->baseCost);
+        $this->assertEquals(0, $breakdown->discountAmount);
+        $this->assertEquals(2_00, $breakdown->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown->taxAmount);
+        $this->assertEquals(22_00, $breakdown->total);
+        $this->assertSame($breakdown->total, $total);
 
-        $freshOrder = $order->fresh();
-        $this->validateAgainstSquareApi($freshOrder, $total);
+        $this->validateAgainstSquareApi($order->fresh(), $total);
     }
 
     /**
@@ -1288,12 +1354,28 @@ class UtilTest extends TestCase
         $lineItem1 = $order->lineItems->where('product_id', $product1->id)->first();
         $lineItem2 = $order->lineItems->where('product_id', $product2->id)->first();
 
+        $breakdown1 = OrderCalculator::calculateLineItemBreakdownByModel($lineItem1, $order);
+        $breakdown2 = OrderCalculator::calculateLineItemBreakdownByModel($lineItem2, $order);
         $total1 = OrderCalculator::calculateLineItemTotalByModel($lineItem1, $order);
         $total2 = OrderCalculator::calculateLineItemTotalByModel($lineItem2, $order);
 
-        // $10 order service charge apportioned over $30/$70 gross sales.
-        $this->assertEquals(33_00, $total1);
-        $this->assertEquals(77_00, $total2);
+        // Line item 1: $30/$100 × $10 = $3.00 service charge
+        $this->assertEquals(30_00, $breakdown1->baseCost);
+        $this->assertEquals(0, $breakdown1->discountAmount);
+        $this->assertEquals(3_00, $breakdown1->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown1->taxAmount);
+        $this->assertEquals(33_00, $breakdown1->total);
+        $this->assertSame($breakdown1->total, $total1);
+
+        // Line item 2: $70/$100 × $10 = $7.00 service charge
+        $this->assertEquals(70_00, $breakdown2->baseCost);
+        $this->assertEquals(0, $breakdown2->discountAmount);
+        $this->assertEquals(7_00, $breakdown2->serviceChargeAmount);
+        $this->assertEquals(0, $breakdown2->taxAmount);
+        $this->assertEquals(77_00, $breakdown2->total);
+        $this->assertSame($breakdown2->total, $total2);
+
+        $this->assertEquals(10_00, $breakdown1->serviceChargeAmount + $breakdown2->serviceChargeAmount);
         $this->assertEquals(110_00, $total1 + $total2);
 
         $this->validateAgainstSquareApi($order, $total1 + $total2);
@@ -1337,13 +1419,18 @@ class UtilTest extends TestCase
             'scope'           => Constants::DEDUCTIBLE_SCOPE_SERVICE_CHARGE,
         ]);
 
+        $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem->fresh(), $order->fresh());
         $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
-        // $10.00 -> 10% discount = $9.00 -> 5% service charge = $0.45 -> 8% tax on service charge = $0.04
-        $this->assertEquals(9_49, $total);
+        // $10.00 -> 10% discount = $9.00 -> 5% service charge = $0.45 -> 8% tax on SC = $0.04
+        $this->assertEquals(10_00, $breakdown->baseCost);
+        $this->assertEquals(1_00, $breakdown->discountAmount);
+        $this->assertEquals(45, $breakdown->serviceChargeAmount);
+        $this->assertEquals(4, $breakdown->taxAmount);
+        $this->assertEquals(9_49, $breakdown->total);
+        $this->assertSame($breakdown->total, $total);
 
-        $freshOrder = $order->fresh();
-        $this->validateAgainstSquareApi($freshOrder, $total);
+        $this->validateAgainstSquareApi($order->fresh(), $total);
     }
 
     /**
@@ -1355,20 +1442,20 @@ class UtilTest extends TestCase
             [
                 'price'            => 5_00,
                 'percentage'       => 10.1,
+                'expectedDiscount' => 50,  // 5.00 × 10.1% = 0.505 → 0.50 (bankers)
                 'expectedTotal'    => 4_50,
-                'expectedDiscount' => '0.505 -> 0.50',
             ],
             [
                 'price'            => 11_00,
                 'percentage'       => 6.5,
+                'expectedDiscount' => 72,  // 11.00 × 6.5% = 0.715 → 0.72 (bankers)
                 'expectedTotal'    => 10_28,
-                'expectedDiscount' => '0.715 -> 0.72',
             ],
             [
                 'price'            => 1_00,
                 'percentage'       => 8.5,
+                'expectedDiscount' => 8,   // 1.00 × 8.5% = 0.085 → 0.08 (bankers)
                 'expectedTotal'    => 92,
-                'expectedDiscount' => '0.085 -> 0.08',
             ],
         ];
 
@@ -1390,16 +1477,21 @@ class UtilTest extends TestCase
                 'scope'           => Constants::DEDUCTIBLE_SCOPE_ORDER,
             ]);
 
+            $breakdown = OrderCalculator::calculateLineItemBreakdownByModel($lineItem->fresh(), $order->fresh());
             $total = OrderCalculator::calculateLineItemTotalByModel($lineItem->fresh(), $order->fresh());
 
+            $this->assertEquals($scenario['price'], $breakdown->baseCost);
             $this->assertEquals(
-                $scenario['expectedTotal'],
-                $total,
-                "Expected documented bankers rounding example {$scenario['expectedDiscount']} to be preserved."
+                $scenario['expectedDiscount'],
+                $breakdown->discountAmount,
+                "Expected bankers rounding for discount on price {$scenario['price']} at {$scenario['percentage']}%"
             );
+            $this->assertEquals(0, $breakdown->serviceChargeAmount);
+            $this->assertEquals(0, $breakdown->taxAmount);
+            $this->assertEquals($scenario['expectedTotal'], $breakdown->total);
+            $this->assertSame($breakdown->total, $total);
 
-            $freshOrder = $order->fresh();
-            $this->validateAgainstSquareApi($freshOrder, $total);
+            $this->validateAgainstSquareApi($order->fresh(), $total);
         }
     }
 
