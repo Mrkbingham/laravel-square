@@ -16,7 +16,7 @@
         "role": "Developer"
     }],
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.3",
         "doctrine/dbal": "^3.5",
         "illuminate/config": "13.x",
         "illuminate/console": "13.x",
