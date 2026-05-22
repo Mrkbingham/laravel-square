@@ -16,22 +16,22 @@
         "role": "Developer"
     }],
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.3",
         "doctrine/dbal": "^3.5",
-        "illuminate/config": "12.x",
-        "illuminate/console": "12.x",
-        "illuminate/container": "12.x",
-        "illuminate/contracts": "12.x",
-        "illuminate/database": "12.x",
-        "illuminate/filesystem": "12.x",
-        "illuminate/support": "12.x",
-        "nikolag/core": "3.0.x",
+        "illuminate/config": "13.x",
+        "illuminate/console": "13.x",
+        "illuminate/container": "13.x",
+        "illuminate/contracts": "13.x",
+        "illuminate/database": "13.x",
+        "illuminate/filesystem": "13.x",
+        "illuminate/support": "13.x",
+        "nikolag/core": "dev-laravel_13",
         "square/square": "40.0.0.20250123"
     },
     "require-dev": {
         "fakerphp/faker": "^1.13",
-        "orchestra/testbench": "10.x",
-        "phpunit/phpunit": "11.x",
+        "orchestra/testbench": "11.x",
+        "phpunit/phpunit": "12.x",
         "laravel/legacy-factories": "^1.3"
     },
     "autoload": {
@@ -64,6 +64,12 @@
             "Nikolag\\Square\\Tests\\Models\\": "tests/classes/"
         }
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/Mrkbingham/nikolag-core"
+        }
+    ],
     "scripts": {
         "test:coverage": [
             "@putenv XDEBUG_MODE=coverage",

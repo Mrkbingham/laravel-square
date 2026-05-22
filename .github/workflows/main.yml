@@ -35,10 +35,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - php-version: "8.2"
-            illuminate: "12.*"
-            orchestra: "10.*"
-            phpunit: "11.*"
+          - php-version: "8.3"
+            illuminate: "13.*"
+            orchestra: "11.*"
+            phpunit: "12.*"
     # Steps represent a sequence of tasks that will be executed as part of the job
     environment: sandbox
     steps:
