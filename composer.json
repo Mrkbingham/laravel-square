@@ -66,8 +66,7 @@
     },
     "repositories": [
         {
-            "type": "github",
-            "no-api": true,
+            "type": "vcs",
             "url": "https://github.com/Mrkbingham/nikolag-core"
         }
     ],
