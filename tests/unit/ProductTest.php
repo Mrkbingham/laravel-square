@@ -19,7 +19,7 @@ use Nikolag\Square\Tests\Models\Order;
 use Nikolag\Square\Tests\TestCase;
 use Nikolag\Square\Tests\TestDataHolder;
 use Nikolag\Square\Utils\Constants;
-use Nikolag\Square\Utils\Util;
+use Nikolag\Square\Utils\OrderCalculator;
 
 class ProductTest extends TestCase
 {
@@ -202,7 +202,7 @@ class ProductTest extends TestCase
         $this->assertEquals(1000, $order->products->first()->price, 'Product should retain its base price');
 
         // Calculate and verify total cost
-        $calculatedCost = Util::calculateTotalOrderCostByModel($order);
+        $calculatedCost = OrderCalculator::calculateTotalOrderCostByModel($order);
         $expectedCost = 2 * 800; // Quantity 2 × price 800 = 1600
 
         $this->assertEquals($expectedCost, $calculatedCost, 'Order total with variable pricing not calculated correctly');

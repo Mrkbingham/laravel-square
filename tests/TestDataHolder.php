@@ -94,8 +94,7 @@ class TestDataHolder
         string $taxAddFac = 'create',
         string $taxIncFac = 'create',
         string $addressFac = 'create'
-    )
-    {
+    ) {
         $product = factory(Product::class)->{$prodFac}([
             'price' => 1000,
         ]);

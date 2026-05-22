@@ -330,4 +330,78 @@ class AddressTest extends TestCase
             'locality'         => 'Omaha',
         ]);
     }
+
+    /**
+     * Test getFormattedAddress returns a full single-line address string.
+     *
+     * @return void
+     */
+    public function test_get_formatted_address_full(): void
+    {
+        $address = factory(Address::class)->create([
+            'address_line_1'                  => '1170 Ludlow Street',
+            'locality'                        => 'Philadelphia',
+            'administrative_district_level_1' => 'PA',
+            'postal_code'                     => '19107',
+        ]);
+
+        $this->assertEquals(
+            '1170 Ludlow Street, Philadelphia, PA, 19107',
+            $address->getFormattedAddress()
+        );
+    }
+
+    /**
+     * Test getFormattedAddress omits missing parts gracefully.
+     *
+     * @return void
+     */
+    public function test_get_formatted_address_partial(): void
+    {
+        $address = factory(Address::class)->create([
+            'address_line_1'                  => '300 N State St',
+            'locality'                        => null,
+            'administrative_district_level_1' => 'IL',
+            'postal_code'                     => '60654',
+        ]);
+
+        $this->assertEquals(
+            '300 N State St, IL, 60654',
+            $address->getFormattedAddress()
+        );
+    }
+
+    /**
+     * Test getFormattedAddress with only address line.
+     *
+     * @return void
+     */
+    public function test_get_formatted_address_line_only(): void
+    {
+        $address = factory(Address::class)->create([
+            'address_line_1'                  => '300 N State St',
+            'locality'                        => null,
+            'administrative_district_level_1' => null,
+            'postal_code'                     => null,
+        ]);
+
+        $this->assertEquals('300 N State St', $address->getFormattedAddress());
+    }
+
+    /**
+     * Test getFormattedAddress returns null when all fields are empty.
+     *
+     * @return void
+     */
+    public function test_get_formatted_address_empty(): void
+    {
+        $address = factory(Address::class)->create([
+            'address_line_1'                  => null,
+            'locality'                        => null,
+            'administrative_district_level_1' => null,
+            'postal_code'                     => null,
+        ]);
+
+        $this->assertNull($address->getFormattedAddress());
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Nikolag\Core\Abstracts\CorePaymentService;
@@ -33,6 +34,7 @@ use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Models\WebhookEvent;
 use Nikolag\Square\Models\WebhookSubscription;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\OrderCalculator;
 use Nikolag\Square\Utils\Util;
 use Nikolag\Square\Utils\WebhookProcessor;
 use Square\Exceptions\ApiException;
@@ -42,6 +44,7 @@ use Square\Models\BatchUpsertCatalogObjectsRequest;
 use Square\Models\BatchUpsertCatalogObjectsResponse;
 use Square\Models\Builders\TestWebhookSubscriptionRequestBuilder;
 use Square\Models\Builders\UpdateWebhookSubscriptionSignatureKeyRequestBuilder;
+use Square\Models\CalculateOrderResponse;
 use Square\Models\CatalogModifierListInfo;
 use Square\Models\CatalogModifierListSelectionType;
 use Square\Models\CatalogObject;
@@ -363,10 +366,32 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         })->toArray();
 
         foreach ($allLocationData as $locationData) {
+            // Extract address data before persisting (not a database column)
+            $addressData = $locationData['_address_data'] ?? null;
+            unset($locationData['_address_data']);
+
             // Create or update the location
-            Location::updateOrCreate([
+            $location = Location::updateOrCreate([
                 'square_id' => $locationData['square_id'],
             ], $locationData);
+
+            // Sync the address relationship
+            if (is_array($addressData) && !empty(array_filter($addressData))) {
+                $location->address()->updateOrCreate([], [
+                    'address_line_1'                  => $addressData['address_line_1'] ?? null,
+                    'address_line_2'                  => $addressData['address_line_2'] ?? null,
+                    'address_line_3'                  => $addressData['address_line_3'] ?? null,
+                    'locality'                        => $addressData['locality'] ?? null,
+                    'administrative_district_level_1' => $addressData['administrative_district_level_1'] ?? null,
+                    'administrative_district_level_2' => $addressData['administrative_district_level_2'] ?? null,
+                    'administrative_district_level_3' => $addressData['administrative_district_level_3'] ?? null,
+                    'sublocality'                     => $addressData['sublocality'] ?? null,
+                    'sublocality_2'                   => $addressData['sublocality_2'] ?? null,
+                    'sublocality_3'                   => $addressData['sublocality_3'] ?? null,
+                    'postal_code'                     => $addressData['postal_code'] ?? null,
+                    'country'                         => $addressData['country'] ?? null,
+                ]);
+            }
         }
     }
 
@@ -560,16 +585,16 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         foreach ($taxCatalogObjects as $taxObject) {
             $taxData = $taxObject->getTaxData();
 
-            $itemData = [
-                'name'       => $taxData->getName(),
-                'type'       => $taxData->getInclusionType(),
-                'percentage' => $taxData->getPercentage(),
-            ];
-
             $squareID = $taxObject->getId();
 
-            // Create or update the product
-            Tax::updateOrCreate(['square_catalog_object_id' => $squareID], $itemData);
+            // Lookup by (name, type) to respect the unique constraint on those columns
+            Tax::updateOrCreate(
+                ['name' => $taxData->getName(), 'type' => $taxData->getInclusionType()],
+                [
+                    'square_catalog_object_id' => $squareID,
+                    'percentage'               => $taxData->getPercentage(),
+                ]
+            );
         }
     }
 
@@ -939,7 +964,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         if ($this->getOrder()) {
             try {
                 // Calculate the total order amount
-                $calculatedCost = Util::calculateTotalOrderCost($this->orderCopy);
+                $calculatedCost = OrderCalculator::calculateTotalOrderCost($this->orderCopy);
                 // If order total does not match charge amount, throw error
                 if ($calculatedCost != $options['amount']) {
                     throw new InvalidSquareAmountException('The charge amount does not match the order total.', 500);
@@ -1002,6 +1027,34 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         } else {
             throw $this->_handleApiResponseErrors($response);
         }
+    }
+
+    /**
+     * Calculate an order using Square's CalculateOrder API.
+     *
+     * Calls Square's read-only endpoint to compute order totals including
+     * taxes, discounts, and service charges without creating an order.
+     * Used for validation against internal calculation logic.
+     *
+     * @param Model  $order      The order model to calculate.
+     * @param string $locationId The location ID for the order.
+     * @param string $currency   The currency code (default 'USD').
+     *
+     * @throws \Exception
+     * @throws ApiException
+     *
+     * @return CalculateOrderResponse
+     */
+    public function calculateOrder(mixed $order, string $locationId, string $currency = 'USD'): mixed
+    {
+        $request = $this->squareBuilder->buildCalculateOrderRequest($order, $locationId, $currency);
+        $response = $this->config->ordersAPI()->calculateOrder($request);
+
+        if ($response->isError()) {
+            throw $this->_handleApiResponseErrors($response);
+        }
+
+        return $response->getResult();
     }
 
     /**
