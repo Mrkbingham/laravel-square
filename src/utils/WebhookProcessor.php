@@ -4,6 +4,7 @@ namespace Nikolag\Square\Utils;
 
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Nikolag\Square\Exceptions\InvalidSquareSignatureException;
 use Nikolag\Square\Models\WebhookEvent;
 use Nikolag\Square\Models\WebhookSubscription;
@@ -14,13 +15,20 @@ class WebhookProcessor
     /**
      * Verify and process a webhook payload.
      *
+     * Idempotent on the Square event ID. The insert is attempted first rather than guarded by a
+     * lookup, so two concurrent deliveries of the same event cannot both pass a pre-check, and so
+     * that the model's created event -- which drives downstream fan-out -- fires exactly once per
+     * event. A duplicate delivery loses the race against the unique index and gets the stored
+     * event back with its status, payload and processing outcome untouched; only retry metadata
+     * is refreshed.
+     *
      * @param array               $headers      The webhook headers
      * @param string              $payload      The raw webhook payload
      * @param WebhookSubscription $subscription The webhook subscription
      *
      * @throws InvalidSquareSignatureException
      *
-     * @return WebhookEvent The created webhook event model
+     * @return WebhookEvent The created or previously stored webhook event model
      */
     public static function verifyAndProcess(array $headers, string $payload, WebhookSubscription $subscription): WebhookEvent
     {
@@ -70,16 +78,27 @@ class WebhookProcessor
             $webhookEventData['initial_delivery_timestamp'] = $retryData['initial_delivery_timestamp'];
         }
 
-        $existingEvent = WebhookEvent::where('square_event_id', $eventId)->first();
-        if ($existingEvent) {
-            // If the event already exists, update it instead of creating a new one
-            $existingEvent->update($webhookEventData);
+        // Create and return the webhook event
+        try {
+            return WebhookEvent::create($webhookEventData);
+        } catch (UniqueConstraintViolationException $exception) {
+            $existingEvent = WebhookEvent::where('square_event_id', $eventId)->first();
 
-            return $existingEvent;
+            if (!$existingEvent) {
+                throw $exception;
+            }
         }
 
-        // Create and return the webhook event
-        return WebhookEvent::create($webhookEventData);
+        // A redelivery must never rewind the stored event, so only the retry columns are touched
+        if ($retryData) {
+            $existingEvent->update([
+                'retry_reason'               => $retryData['retry_reason'],
+                'retry_number'               => $retryData['retry_number'],
+                'initial_delivery_timestamp' => $retryData['initial_delivery_timestamp'],
+            ]);
+        }
+
+        return $existingEvent;
     }
 
     /**

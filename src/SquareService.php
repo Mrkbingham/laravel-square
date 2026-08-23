@@ -1658,7 +1658,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         $headers = $request->headers->all();
         $payload = $request->getContent();
 
-        $subscriptionId = $headers['square-subscription-id'] ?? $headers['Square-Subscription-Id'] ?? null;
+        $subscriptionId = $headers['square-subscription-id'][0] ?? $headers['Square-Subscription-Id'][0] ?? null;
 
         if (!$subscriptionId) {
             throw new InvalidSquareSignatureException('Missing Square webhook subscription ID in headers');
