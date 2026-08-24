@@ -603,8 +603,7 @@ class WebhookProcessorTest extends TestCase
         ],
         ];
 
-        // Simulate the concurrent winner having already committed the row, so the
-        // insert inside verifyAndProcess collides with the square_event_id unique index.
+        // Stand in for whichever delivery stored the row first, whether or not it raced
         $existingEvent = WebhookEvent::create([
             'square_event_id'         => 'event-123',
             'event_type'              => 'order.created',
