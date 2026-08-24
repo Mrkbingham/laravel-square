@@ -444,4 +444,179 @@ class WebhookProcessorTest extends TestCase
 
         WebhookProcessor::verifyAndProcess([], $this->validPayload, $subscription);
     }
+
+    public function test_verify_and_process_redelivery_of_processed_event_preserves_terminal_state()
+    {
+        $subscription = factory(WebhookSubscription::class)->create([
+            'signature_key'    => $this->testSignatureKey,
+            'notification_url' => $this->testNotificationUrl,
+        ]);
+
+        $signature = WebhookProcessor::generateTestSignature(
+            $this->testSignatureKey,
+            $this->testNotificationUrl,
+            $this->validPayload
+        );
+
+        $headers = ['x-square-hmacsha256-signature' => [
+            $signature,
+        ],
+        ];
+
+        $firstDelivery = WebhookProcessor::verifyAndProcess($headers, $this->validPayload, $subscription);
+        $firstDelivery->markAsProcessed();
+        $firstDelivery->refresh();
+        $processedAt = $firstDelivery->processed_at;
+
+        $redelivery = WebhookProcessor::verifyAndProcess($headers, $this->validPayload, $subscription);
+
+        $this->assertEquals($firstDelivery->id, $redelivery->id);
+        $this->assertEquals(WebhookEvent::STATUS_PROCESSED, $redelivery->status);
+        $this->assertEquals($processedAt->toIso8601String(), $redelivery->processed_at->toIso8601String());
+        $this->assertEquals(1, WebhookEvent::count());
+    }
+
+    public function test_verify_and_process_redelivery_of_failed_event_preserves_error()
+    {
+        $subscription = factory(WebhookSubscription::class)->create([
+            'signature_key'    => $this->testSignatureKey,
+            'notification_url' => $this->testNotificationUrl,
+        ]);
+
+        $signature = WebhookProcessor::generateTestSignature(
+            $this->testSignatureKey,
+            $this->testNotificationUrl,
+            $this->validPayload
+        );
+
+        $headers = ['x-square-hmacsha256-signature' => [
+            $signature,
+        ],
+        ];
+
+        $firstDelivery = WebhookProcessor::verifyAndProcess($headers, $this->validPayload, $subscription);
+        $firstDelivery->markAsFailed('boom');
+        $firstDelivery->refresh();
+        $processedAt = $firstDelivery->processed_at;
+
+        $redelivery = WebhookProcessor::verifyAndProcess($headers, $this->validPayload, $subscription);
+
+        $this->assertEquals($firstDelivery->id, $redelivery->id);
+        $this->assertEquals(WebhookEvent::STATUS_FAILED, $redelivery->status);
+        $this->assertEquals('boom', $redelivery->error_message);
+        $this->assertEquals($processedAt->toIso8601String(), $redelivery->processed_at->toIso8601String());
+        $this->assertEquals(1, WebhookEvent::count());
+    }
+
+    public function test_verify_and_process_redelivery_while_pending_returns_existing_row_untouched()
+    {
+        $subscription = factory(WebhookSubscription::class)->create([
+            'signature_key'    => $this->testSignatureKey,
+            'notification_url' => $this->testNotificationUrl,
+        ]);
+
+        $signature = WebhookProcessor::generateTestSignature(
+            $this->testSignatureKey,
+            $this->testNotificationUrl,
+            $this->validPayload
+        );
+
+        $headers = ['x-square-hmacsha256-signature' => [
+            $signature,
+        ],
+        ];
+
+        $firstDelivery = WebhookProcessor::verifyAndProcess($headers, $this->validPayload, $subscription);
+
+        $redelivery = WebhookProcessor::verifyAndProcess($headers, $this->validPayload, $subscription);
+
+        $this->assertEquals($firstDelivery->id, $redelivery->id);
+        $this->assertEquals(WebhookEvent::STATUS_PENDING, $redelivery->status);
+        $this->assertEquals($this->validEventData, $redelivery->event_data);
+        $this->assertEquals($subscription->id, $redelivery->webhook_subscription_id);
+        $this->assertNull($redelivery->processed_at);
+        $this->assertNull($redelivery->error_message);
+        $this->assertEquals(1, WebhookEvent::count());
+    }
+
+    public function test_verify_and_process_records_retry_metadata_without_touching_status()
+    {
+        $subscription = factory(WebhookSubscription::class)->create([
+            'signature_key'    => $this->testSignatureKey,
+            'notification_url' => $this->testNotificationUrl,
+        ]);
+
+        $signature = WebhookProcessor::generateTestSignature(
+            $this->testSignatureKey,
+            $this->testNotificationUrl,
+            $this->validPayload
+        );
+
+        $headers = ['x-square-hmacsha256-signature' => [
+            $signature,
+        ],
+        ];
+
+        $firstDelivery = WebhookProcessor::verifyAndProcess($headers, $this->validPayload, $subscription);
+        $firstDelivery->markAsProcessed();
+        $firstDelivery->refresh();
+        $processedAt = $firstDelivery->processed_at;
+
+        $retryHeaders = array_merge($headers, [
+            'square-retry-reason' => [
+                'http_failure',
+            ],
+            'square-retry-number' => [
+                '2',
+            ],
+            'square-initial-delivery-timestamp' => [
+                '2024-01-01T12:00:00Z',
+            ],
+        ]);
+
+        $redelivery = WebhookProcessor::verifyAndProcess($retryHeaders, $this->validPayload, $subscription);
+
+        $this->assertEquals($firstDelivery->id, $redelivery->id);
+        $this->assertEquals('http_failure', $redelivery->retry_reason);
+        $this->assertEquals(2, $redelivery->retry_number);
+        $this->assertNotNull($redelivery->initial_delivery_timestamp);
+        $this->assertEquals(WebhookEvent::STATUS_PROCESSED, $redelivery->status);
+        $this->assertEquals($processedAt->toIso8601String(), $redelivery->processed_at->toIso8601String());
+        $this->assertEquals(1, WebhookEvent::count());
+    }
+
+    public function test_verify_and_process_absorbs_insert_race()
+    {
+        $subscription = factory(WebhookSubscription::class)->create([
+            'signature_key'    => $this->testSignatureKey,
+            'notification_url' => $this->testNotificationUrl,
+        ]);
+
+        $signature = WebhookProcessor::generateTestSignature(
+            $this->testSignatureKey,
+            $this->testNotificationUrl,
+            $this->validPayload
+        );
+
+        $headers = ['x-square-hmacsha256-signature' => [
+            $signature,
+        ],
+        ];
+
+        // Stand in for whichever delivery stored the row first, whether or not it raced
+        $existingEvent = WebhookEvent::create([
+            'square_event_id'         => 'event-123',
+            'event_type'              => 'order.created',
+            'event_data'              => $this->validEventData,
+            'event_time'              => '2024-01-01T12:00:00Z',
+            'status'                  => WebhookEvent::STATUS_PENDING,
+            'webhook_subscription_id' => $subscription->id,
+        ]);
+
+        $result = WebhookProcessor::verifyAndProcess($headers, $this->validPayload, $subscription);
+
+        $this->assertEquals($existingEvent->id, $result->id);
+        $this->assertEquals(WebhookEvent::STATUS_PENDING, $result->status);
+        $this->assertEquals(1, WebhookEvent::count());
+    }
 }
