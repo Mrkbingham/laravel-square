@@ -15,12 +15,15 @@ class WebhookProcessor
     /**
      * Verify and process a webhook payload.
      *
-     * Idempotent on the Square event ID. The insert is attempted first rather than guarded by a
-     * lookup, so two concurrent deliveries of the same event cannot both pass a pre-check, and so
-     * that the model's created event -- which drives downstream fan-out -- fires exactly once per
-     * event. A duplicate delivery loses the race against the unique index and gets the stored
-     * event back with its status, payload and processing outcome untouched; only retry metadata
-     * is refreshed.
+     * Idempotent on the Square event ID. The same event arrives more than once by several
+     * routes: Square redelivers whenever it does not receive a 2xx, a queued consumer may retry
+     * a payload it has already stored, and two deliveries may be processed concurrently. Only
+     * the last of those is a race, so a pre-check cannot make the write safe -- the insert is
+     * attempted first and the unique index is the arbiter. Create stays the only insert path,
+     * so the model's created event -- which drives downstream fan-out -- fires exactly once per
+     * event however many times it is delivered. Any later delivery gets the stored event back
+     * with its status, payload and processing outcome untouched; only retry metadata is
+     * refreshed.
      *
      * @param array               $headers      The webhook headers
      * @param string              $payload      The raw webhook payload
@@ -83,7 +86,9 @@ class WebhookProcessor
         } catch (UniqueConstraintViolationException $exception) {
             $existingEvent = WebhookEvent::where('square_event_id', $eventId)->first();
 
-            // Nothing stored under this event ID means a different constraint was violated
+            // The event ID is this table's only unique column, so a violation with nothing
+            // stored under it means the row is gone or invisible to this connection rather
+            // than that this was a redelivery -- say so loudly instead of guessing
             if (!$existingEvent) {
                 throw $exception;
             }
