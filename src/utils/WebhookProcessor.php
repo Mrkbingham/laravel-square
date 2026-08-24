@@ -78,27 +78,27 @@ class WebhookProcessor
             $webhookEventData['initial_delivery_timestamp'] = $retryData['initial_delivery_timestamp'];
         }
 
-        // Create and return the webhook event
         try {
             return WebhookEvent::create($webhookEventData);
         } catch (UniqueConstraintViolationException $exception) {
             $existingEvent = WebhookEvent::where('square_event_id', $eventId)->first();
 
+            // Nothing stored under this event ID means a different constraint was violated
             if (!$existingEvent) {
                 throw $exception;
             }
-        }
 
-        // A redelivery must never rewind the stored event, so only the retry columns are touched
-        if ($retryData) {
-            $existingEvent->update([
-                'retry_reason'               => $retryData['retry_reason'],
-                'retry_number'               => $retryData['retry_number'],
-                'initial_delivery_timestamp' => $retryData['initial_delivery_timestamp'],
-            ]);
-        }
+            // A redelivery must never rewind the stored event, so only the retry columns are touched
+            if ($retryData) {
+                $existingEvent->update([
+                    'retry_reason'               => $retryData['retry_reason'],
+                    'retry_number'               => $retryData['retry_number'],
+                    'initial_delivery_timestamp' => $retryData['initial_delivery_timestamp'],
+                ]);
+            }
 
-        return $existingEvent;
+            return $existingEvent;
+        }
     }
 
     /**
