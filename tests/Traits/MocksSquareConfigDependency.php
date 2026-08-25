@@ -969,6 +969,54 @@ trait MocksSquareConfigDependency
     }
 
     /**
+     * Mock the ordersAPI()->updateOrder() method with a non-conflict invalid request error.
+     *
+     * @return void
+     */
+    protected function mockUpdateOrderInvalidRequest(): void
+    {
+        // Create error object for a non-conflict invalid request
+        $error = ErrorBuilder::init('INVALID_REQUEST_ERROR', 'VALUE_TOO_LOW')
+            ->detail('The provided quantity is below the minimum allowed')
+            ->field('line_items[0].quantity')
+            ->build();
+
+        // Create mock API response for error
+        $mockApiResponse = $this->createMock(ApiResponse::class);
+        $mockApiResponse->method('isError')->willReturn(true);
+        $mockApiResponse->method('isSuccess')->willReturn(false);
+        $mockApiResponse->method('getResult')->willReturn(null);
+        $mockApiResponse->method('getErrors')->willReturn([$error]);
+        $mockApiResponse->method('getStatusCode')->willReturn(400);
+
+        $this->bindMockOrdersToServiceContainer('updateOrder', $mockApiResponse);
+    }
+
+    /**
+     * Mock the ordersAPI()->updateOrder() method with a version mismatch error.
+     *
+     * @return void
+     */
+    protected function mockUpdateOrderVersionMismatch(): void
+    {
+        // Create error object for version mismatch
+        $error = ErrorBuilder::init('INVALID_REQUEST_ERROR', 'VERSION_MISMATCH')
+            ->detail('The version of the order does not match the latest version')
+            ->field('version')
+            ->build();
+
+        // Create mock API response for error
+        $mockApiResponse = $this->createMock(ApiResponse::class);
+        $mockApiResponse->method('isError')->willReturn(true);
+        $mockApiResponse->method('isSuccess')->willReturn(false);
+        $mockApiResponse->method('getResult')->willReturn(null);
+        $mockApiResponse->method('getErrors')->willReturn([$error]);
+        $mockApiResponse->method('getStatusCode')->willReturn(409);
+
+        $this->bindMockOrdersToServiceContainer('updateOrder', $mockApiResponse);
+    }
+
+    /**
      * Build a calculate order response.
      *
      * @param array|null $data The data to include in the response.

@@ -826,13 +826,11 @@ class SquareService extends CorePaymentService implements SquareServiceContract
         $response = $this->config->ordersAPI()->updateOrder($orderId, $this->getUpdateOrderRequest());
 
         if ($response->isError()) {
-            // Check for version conflict
-            $errors = $response->getErrors();
-            if (!empty($errors)) {
-                $firstError = $errors[0];
-                if ($firstError->getCode() === 'CONFLICT' || $firstError->getCategory() === 'INVALID_REQUEST_ERROR') {
+            // A version conflict is recognized by error code alone - the category also covers unrelated invalid requests
+            foreach ($response->getErrors() as $error) {
+                if (in_array($error->getCode(), ['CONFLICT', 'VERSION_MISMATCH'], true)) {
                     throw new InvalidSquareVersionException(
-                        'Version conflict: '.$firstError->getDetail().
+                        'Version conflict: '.$error->getDetail().
                         '. The order may have been modified. Please refresh and try again.',
                         409
                     );
