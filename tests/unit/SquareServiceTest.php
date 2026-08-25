@@ -1814,6 +1814,83 @@ class SquareServiceTest extends TestCase
     }
 
     /**
+     * Test saveToSquare propagates non-conflict invalid request errors.
+     *
+     * @return void
+     */
+    public function test_save_to_square_propagates_non_conflict_invalid_request_errors(): void
+    {
+        $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
+
+        // Create order with a version
+        $order = Order::create([
+            'payment_service_type'    => 'square',
+            'payment_service_id'      => 'SQUARE_ORDER_123',
+            'payment_service_version' => 1,
+            'location_id'             => $locationId,
+        ]);
+
+        // Create a product
+        $product = Product::create([
+            'name'     => 'Test Product',
+            'price'    => 1000,
+            'quantity' => 1,
+        ]);
+
+        // Mock non-conflict invalid request error
+        $this->mockUpdateOrderInvalidRequest();
+
+        // Call saveToSquare and capture the exception to prove it is not a version conflict
+        try {
+            $square = Square::setOrder($order, $locationId, 'USD');
+            $square->addProduct($product, 1);
+            $square->saveToSquare();
+            $this->fail('Expected an exception to be thrown');
+        } catch (Exception $exception) {
+            $this->assertNotInstanceOf(\Nikolag\Square\Exceptions\InvalidSquareVersionException::class, $exception);
+            $this->assertInstanceOf(\Nikolag\Core\Exceptions\Exception::class, $exception);
+            $this->assertStringContainsString('INVALID_REQUEST_ERROR', $exception->getMessage());
+        }
+    }
+
+    /**
+     * Test saveToSquare throws exception on version mismatch error code.
+     *
+     * @return void
+     */
+    public function test_save_to_square_throws_on_version_mismatch_code(): void
+    {
+        $locationId = config('nikolag.connections.square.location') ?? 'test-location-123';
+
+        // Create order with outdated version
+        $order = Order::create([
+            'payment_service_type'    => 'square',
+            'payment_service_id'      => 'SQUARE_ORDER_123',
+            'payment_service_version' => 1,
+            'location_id'             => $locationId,
+        ]);
+
+        // Create a product
+        $product = Product::create([
+            'name'     => 'Test Product',
+            'price'    => 1000,
+            'quantity' => 1,
+        ]);
+
+        // Mock version mismatch error
+        $this->mockUpdateOrderVersionMismatch();
+
+        // Expect InvalidSquareVersionException
+        $this->expectException(\Nikolag\Square\Exceptions\InvalidSquareVersionException::class);
+        $this->expectExceptionMessage('Version conflict');
+
+        // Call saveToSquare
+        $square = Square::setOrder($order, $locationId, 'USD');
+        $square->addProduct($product, 1);
+        $square->saveToSquare();
+    }
+
+    /**
      * Test buildUpdateOrderRequest method.
      *
      * @return void
