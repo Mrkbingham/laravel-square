@@ -164,4 +164,90 @@ class SquareServiceWebhookEventTest extends TestCase
         $this->assertContains('old_pending_event', $remainingEventIds);
         $this->assertContains('recent_event', $remainingEventIds);
     }
+
+    /**
+     * Test that the status column accepts the resolution statuses added for
+     * events a processor run superseded, and for events too old to be in flight.
+     */
+    public function test_webhook_event_persists_superseded_and_stale_statuses(): void
+    {
+        $subscription = $this->createTestWebhookSubscription();
+
+        foreach ([WebhookEvent::STATUS_SUPERSEDED, WebhookEvent::STATUS_STALE] as $status) {
+            $event = WebhookEvent::create([
+                'square_event_id'         => "event_{$status}",
+                'event_type'              => 'order.updated',
+                'event_time'              => now(),
+                'event_data'              => ['test' => 'data'],
+                'status'                  => $status,
+                'webhook_subscription_id' => $subscription->id,
+            ]);
+
+            $this->assertEquals($status, $event->fresh()->status);
+        }
+    }
+
+    /**
+     * Test that the superseded and stale scopes each return only their own status.
+     */
+    public function test_superseded_and_stale_scopes_return_only_their_own_status(): void
+    {
+        $subscription = $this->createTestWebhookSubscription();
+
+        $statuses = [
+            WebhookEvent::STATUS_PENDING,
+            WebhookEvent::STATUS_PROCESSED,
+            WebhookEvent::STATUS_FAILED,
+            WebhookEvent::STATUS_SUPERSEDED,
+            WebhookEvent::STATUS_STALE,
+        ];
+
+        foreach ($statuses as $status) {
+            WebhookEvent::create([
+                'square_event_id'         => "scope_event_{$status}",
+                'event_type'              => 'order.updated',
+                'event_time'              => now(),
+                'event_data'              => ['test' => 'data'],
+                'status'                  => $status,
+                'webhook_subscription_id' => $subscription->id,
+            ]);
+        }
+
+        $superseded = WebhookEvent::superseded()->get();
+        $this->assertCount(1, $superseded);
+        $this->assertEquals('scope_event_superseded', $superseded->first()->square_event_id);
+
+        $stale = WebhookEvent::stale()->get();
+        $this->assertCount(1, $stale);
+        $this->assertEquals('scope_event_stale', $stale->first()->square_event_id);
+    }
+
+    /**
+     * Test that the order id object keys stay in step with the event type map.
+     *
+     * A consumer querying `order_id` in SQL cannot call `getOrderId()` per row, so it
+     * needs the key set as data. This asserts the two never drift apart.
+     */
+    public function test_order_id_object_keys_match_the_event_type_map(): void
+    {
+        $eventTypes = [
+            'order.created',
+            'order.fulfillment.updated',
+            'order.updated',
+            'payment.created',
+            'payment.updated',
+            'refund.created',
+            'refund.updated',
+        ];
+
+        $expected = [];
+
+        foreach ($eventTypes as $eventType) {
+            $expected[] = WebhookEvent::getObjectTypeKey($eventType);
+        }
+
+        $expected = array_values(array_unique($expected));
+
+        $this->assertEqualsCanonicalizing($expected, WebhookEvent::orderIdObjectKeys());
+    }
 }
