@@ -23,6 +23,17 @@ class WebhookEvent extends Model
     public const STATUS_FAILED = 'failed';
 
     /**
+     * Resolution statuses for events no processor will ever consume.
+     *
+     * A consumer that collapses a burst of related events into a single run leaves the
+     * events it did not pick up sitting at pending forever. STATUS_SUPERSEDED records
+     * that a run demonstrably covered such an event; STATUS_STALE records only that an
+     * event is past any window in which a processor could still be working on it.
+     */
+    public const STATUS_SUPERSEDED = 'superseded';
+    public const STATUS_STALE = 'stale';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<string>
@@ -97,6 +108,30 @@ class WebhookEvent extends Model
     public function scopeFailed($query): Builder
     {
         return $query->where('status', self::STATUS_FAILED);
+    }
+
+    /**
+     * Scope a query to only include events superseded by another event's processing.
+     *
+     * @param Builder $query
+     *
+     * @return Builder
+     */
+    public function scopeSuperseded($query): Builder
+    {
+        return $query->where('status', self::STATUS_SUPERSEDED);
+    }
+
+    /**
+     * Scope a query to only include events resolved as too old to still be in flight.
+     *
+     * @param Builder $query
+     *
+     * @return Builder
+     */
+    public function scopeStale($query): Builder
+    {
+        return $query->where('status', self::STATUS_STALE);
     }
 
     /**
@@ -213,6 +248,26 @@ class WebhookEvent extends Model
             'refund.updated'            => 'refund',
             default                     => null,
         };
+    }
+
+    /**
+     * Get every object key under `event_data.data.object` whose payload carries an order id.
+     *
+     * The SQL-side companion to {@see getOrderId()}: a query filtering on `order_id` cannot
+     * call that method per row, so it needs the key set as data. This is the distinct,
+     * non-null codomain of {@see getObjectTypeKey()}.
+     *
+     * @return array<int, string>
+     */
+    public static function orderIdObjectKeys(): array
+    {
+        return [
+            'order_created',
+            'order_fulfillment_updated',
+            'order_updated',
+            'payment',
+            'refund',
+        ];
     }
 
     /**
