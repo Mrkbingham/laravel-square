@@ -5,6 +5,7 @@ namespace Nikolag\Square\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Nikolag\Core\Models\Product as CoreProduct;
+use Nikolag\Square\Models\Category;
 use Nikolag\Square\Utils\Constants;
 
 class Product extends CoreProduct
@@ -15,7 +16,7 @@ class Product extends CoreProduct
      * @var array
      */
     protected $fillable = [
-        'name', 'price', 'variation_name', 'note', 'reference_id', 'square_catalog_object_id',
+        'name', 'price', 'variation_name', 'note', 'reference_id', 'square_catalog_object_id', 'description',
     ];
 
     /**
@@ -36,6 +37,17 @@ class Product extends CoreProduct
     public function modifiers(): BelongsToMany
     {
         return $this->belongsToMany(Modifier::class, 'nikolag_modifier_product_pivot', 'product_id', 'modifier_id');
+    }
+
+    /**
+     * Return a list of categories this product belongs to.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'nikolag_category_product', 'product_id', 'category_id')
+            ->withPivot('ordinal');
     }
 
     /**

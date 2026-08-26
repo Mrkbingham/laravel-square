@@ -32,6 +32,9 @@ class Constants extends CoreConstants
     //Modifier Option info
     const MODIFIER_OPTION_NAMESPACE = 'Nikolag\Square\Models\ModifierOption';
     const MODIFIER_OPTION_IDENTIFIER = 'id';
+    //Category info
+    const CATEGORY_NAMESPACE = 'Nikolag\Square\Models\Category';
+    const CATEGORY_IDENTIFIER = 'id';
     //Customer info
     const RECIPIENT_NAMESPACE = 'Nikolag\Square\Models\Recipient';
     const RECIPIENT_IDENTIFIER = 'id';

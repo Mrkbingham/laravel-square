@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Factory as EloquentFactory;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Nikolag\Square\Models\Address;
+use Nikolag\Square\Models\Category;
 use Nikolag\Square\Models\DeliveryDetails;
 use Nikolag\Square\Models\Fulfillment;
 use Nikolag\Square\Models\Location;
@@ -258,6 +259,17 @@ $factory->state(Constants::TRANSACTION_NAMESPACE, 'PASSED', [
 $factory->state(Constants::TRANSACTION_NAMESPACE, 'FAILED', [
     'status' => Constants::TRANSACTION_STATUS_FAILED,
 ]);
+
+/* CATEGORY */
+$factory->define(Category::class, function (Faker\Generator $faker) {
+    return [
+        'name'                     => $faker->word,
+        'square_catalog_object_id' => $faker->unique()->uuid,
+        'is_top_level'             => $faker->boolean(50),
+        'category_type'            => 'REGULAR_CATEGORY',
+        'online_visibility'        => $faker->boolean(80),
+    ];
+});
 
 /* @var \Illuminate\Database\Eloquent\Factory $factory */
 $factory->define(Modifier::class, function (Faker\Generator $faker) {

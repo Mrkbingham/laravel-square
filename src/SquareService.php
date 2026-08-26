@@ -22,6 +22,7 @@ use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\InvalidSquareSignatureException;
 use Nikolag\Square\Exceptions\InvalidSquareVersionException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
+use Nikolag\Square\Models\Category;
 use Nikolag\Square\Models\Discount;
 use Nikolag\Square\Models\Invoice;
 use Nikolag\Square\Models\Location;
@@ -538,6 +539,19 @@ class SquareService extends CorePaymentService implements SquareServiceContract
                 if ($modifierListInfo) {
                     $this->syncProductModifiers($product, $modifierListInfo);
                 }
+
+                // Sync categories for this product (categories are at the item level, shared across variations)
+                $categories = $itemData->getCategories();
+                if ($categories) {
+                    $categorySync = [];
+                    foreach ($categories as $catalogObjectCategory) {
+                        $category = Category::where('square_catalog_object_id', $catalogObjectCategory->getId())->first();
+                        if ($category) {
+                            $categorySync[$category->id] = ['ordinal' => $catalogObjectCategory->getOrdinal()];
+                        }
+                    }
+                    $product->categories()->sync($categorySync);
+                }
             }
         }
     }
@@ -568,6 +582,49 @@ class SquareService extends CorePaymentService implements SquareServiceContract
 
             // Attach the modifier to the product
             $product->modifiers()->attach($modifier->id);
+        }
+    }
+
+    /**
+     * Sync all categories from the Square catalog to the categories table.
+     *
+     * Uses a two-pass approach: first upserts all categories, then resolves
+     * parent relationships (in case a child is processed before its parent).
+     *
+     * @return void
+     */
+    public function syncCategories(): void
+    {
+        /** @var array<CatalogObject> */
+        $categoryCatalogObjects = self::listCatalog(['CATEGORY']);
+
+        // First pass: upsert all categories
+        foreach ($categoryCatalogObjects as $categoryObject) {
+            $categoryData = $categoryObject->getCategoryData();
+
+            $squareID = $categoryObject->getId();
+
+            $categoryItemData = [
+                'name'                             => $categoryData->getName(),
+                'is_top_level'                     => $categoryData->getIsTopLevel(),
+                'category_type'                    => $categoryData->getCategoryType(),
+                'image_ids'                        => $categoryData->getImageIds(),
+                'online_visibility'                => $categoryData->getOnlineVisibility(),
+                'root_category'                    => $categoryData->getRootCategory(),
+                'parent_square_catalog_object_id'  => $categoryData->getParentCategory()?->getId(),
+            ];
+
+            Category::updateOrCreate(['square_catalog_object_id' => $squareID], $categoryItemData);
+        }
+
+        // Second pass: resolve parent category relationships
+        $categoriesWithParent = Category::whereNotNull('parent_square_catalog_object_id')->get();
+
+        foreach ($categoriesWithParent as $category) {
+            $parent = Category::where('square_catalog_object_id', $category->parent_square_catalog_object_id)->first();
+            if ($parent) {
+                $category->update(['parent_category_id' => $parent->id]);
+            }
         }
     }
 
