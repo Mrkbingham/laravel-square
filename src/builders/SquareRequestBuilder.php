@@ -5,9 +5,11 @@ namespace Nikolag\Square\Builders;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Nikolag\Square\Builders\SquareRequestBuilders\FulfillmentRequestBuilder;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
+use Nikolag\Square\Models\Location;
 use Nikolag\Square\Models\Modifier;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Utils\Constants;
@@ -493,7 +495,10 @@ class SquareRequestBuilder
         $squareOrder->setReferenceId($order->id);
         $lineItems = $this->buildProducts($order->products, $currency);
         $squareOrder->setDiscounts($this->buildDiscounts($order->discounts, $currency));
-        $squareOrder->setFulfillments($this->fulfillmentRequestBuilder->buildFulfillments($order->fulfillments));
+        $squareOrder->setFulfillments($this->fulfillmentRequestBuilder->buildFulfillments(
+            $order->fulfillments,
+            $this->locationTimezone($locationId)
+        ));
 
         // Merge the product level service charges into the main service charges collection
         $orderServiceCharges = collect($this->buildServiceCharges($order->serviceCharges, $currency));
@@ -918,5 +923,27 @@ class SquareRequestBuilder
         }
 
         return $temp;
+    }
+
+    /**
+     * Look up the timezone of the local location synced for a Square location id.
+     *
+     * @param string $locationId
+     *
+     * @return string|null
+     */
+    private function locationTimezone(string $locationId): ?string
+    {
+        $timezone = Location::where('square_id', $locationId)->value('timezone');
+
+        if ($timezone === null || $timezone === '') {
+            Log::warning('No timezone is synced for Square location; sending fulfillment times in UTC.', [
+                'square_location_id' => $locationId,
+            ]);
+
+            return null;
+        }
+
+        return $timezone;
     }
 }
