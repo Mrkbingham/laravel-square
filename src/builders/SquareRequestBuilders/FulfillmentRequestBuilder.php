@@ -2,6 +2,10 @@
 
 namespace Nikolag\Square\Builders\SquareRequestBuilders;
 
+use DateTimeInterface;
+use DateTimeZone;
+use Exception;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
@@ -52,14 +56,15 @@ class FulfillmentRequestBuilder
     /**
      * Builds and returns array of \Square\Models\Fulfillment for order.
      *
-     * @param Collection $fulfillments Collection of fulfillment models.
+     * @param Collection  $fulfillments Collection of fulfillment models.
+     * @param string|null $timezone     The order location's timezone; null sends UTC.
      *
      * @throws InvalidSquareOrderException When fulfillment configuration is invalid.
      * @throws MissingPropertyException    When required fulfillment properties are missing.
      *
      * @return array<\Square\Models\Fulfillment>
      */
-    public function buildFulfillments(Collection $fulfillments): array
+    public function buildFulfillments(Collection $fulfillments, ?string $timezone = null): array
     {
         $tempFulfillment = null;
         if ($fulfillments->isNotEmpty()) {
@@ -78,19 +83,19 @@ class FulfillmentRequestBuilder
                 // Based on the type, set the appropriate details
                 if ($fulfillment->type == FulfillmentType::DELIVERY) {
                     // Build the delivery details
-                    $tempDeliveryDetails = $this->buildDeliveryDetails($fulfillment);
+                    $tempDeliveryDetails = $this->buildDeliveryDetails($fulfillment, $timezone);
 
                     // Set the delivery details
                     $tempFulfillment->setDeliveryDetails($tempDeliveryDetails);
                 } elseif ($fulfillment->type == FulfillmentType::PICKUP) {
                     // Build the pickup details
-                    $tempPickupDetails = $this->buildPickupDetails($fulfillment);
+                    $tempPickupDetails = $this->buildPickupDetails($fulfillment, $timezone);
 
                     // Set the pickup details
                     $tempFulfillment->setPickupDetails($tempPickupDetails);
                 } elseif ($fulfillment->type == FulfillmentType::SHIPMENT) {
                     // Build the shipment details
-                    $tempShipmentDetails = $this->buildShipmentDetails($fulfillment);
+                    $tempShipmentDetails = $this->buildShipmentDetails($fulfillment, $timezone);
 
                     // Set the shipment details
                     $tempFulfillment->setShipmentDetails($tempShipmentDetails);
@@ -111,13 +116,14 @@ class FulfillmentRequestBuilder
      * Builds the fulfillment details for delivery fulfillment types.
      *
      * @param Fulfillment $fulfillment The fulfillment model.
+     * @param string|null $timezone    The order location's timezone; null sends UTC.
      *
      * @throws InvalidSquareOrderException When delivery configuration is invalid.
      * @throws MissingPropertyException    When required delivery properties are missing.
      *
      * @return FulfillmentDeliveryDetails
      */
-    public function buildDeliveryDetails(Fulfillment $fulfillment): FulfillmentDeliveryDetails
+    public function buildDeliveryDetails(Fulfillment $fulfillment, ?string $timezone = null): FulfillmentDeliveryDetails
     {
         /** @var DeliveryDetails $deliveryDetails */
         $deliveryDetails = $fulfillment->fulfillmentDetails;
@@ -134,7 +140,7 @@ class FulfillmentRequestBuilder
 
         // Time-based details
         $fulfillmentDeliveryDetails->setCompletedAt($deliveryDetails->completed_at?->format(Constants::DATE_FORMAT));
-        $fulfillmentDeliveryDetails->setDeliverAt($deliveryDetails->deliver_at?->format(Constants::DATE_FORMAT));
+        $fulfillmentDeliveryDetails->setDeliverAt($this->formatWallClock($deliveryDetails->deliver_at, $timezone));
         $fulfillmentDeliveryDetails->setDeliveredAt($deliveryDetails->delivered_at?->format(Constants::DATE_FORMAT));
         $fulfillmentDeliveryDetails->setInProgressAt($deliveryDetails->in_progress_at?->format(Constants::DATE_FORMAT));
         $fulfillmentDeliveryDetails->setPlacedAt($deliveryDetails->placed_at?->format(Constants::DATE_FORMAT));
@@ -175,13 +181,14 @@ class FulfillmentRequestBuilder
      * Builds the fulfillment details for pickup fulfillment types.
      *
      * @param Fulfillment $fulfillment The fulfillment model.
+     * @param string|null $timezone    The order location's timezone; null sends UTC.
      *
      * @throws InvalidSquareOrderException When pickup configuration is invalid.
      * @throws MissingPropertyException    When required pickup properties are missing.
      *
      * @return FulfillmentPickupDetails
      */
-    public function buildPickupDetails(Fulfillment $fulfillment): FulfillmentPickupDetails
+    public function buildPickupDetails(Fulfillment $fulfillment, ?string $timezone = null): FulfillmentPickupDetails
     {
         /** @var PickupDetails $pickupDetails */
         $pickupDetails = $fulfillment->fulfillmentDetails;
@@ -208,7 +215,7 @@ class FulfillmentRequestBuilder
         $fulfillmentPickupDetails->setExpiresAt($pickupDetails->expires_at?->format(Constants::DATE_FORMAT));
         $fulfillmentPickupDetails->setExpiredAt($pickupDetails->expired_at?->format(Constants::DATE_FORMAT));
         $fulfillmentPickupDetails->setPickedUpAt($pickupDetails->picked_up_at?->format(Constants::DATE_FORMAT));
-        $fulfillmentPickupDetails->setPickupAt($pickupDetails->pickup_at?->format(Constants::DATE_FORMAT));
+        $fulfillmentPickupDetails->setPickupAt($this->formatWallClock($pickupDetails->pickup_at, $timezone));
         $fulfillmentPickupDetails->setPlacedAt($pickupDetails->placed_at?->format(Constants::DATE_FORMAT));
         $fulfillmentPickupDetails->setReadyAt($pickupDetails->ready_at?->format(Constants::DATE_FORMAT));
         $fulfillmentPickupDetails->setRejectedAt($pickupDetails->rejected_at?->format(Constants::DATE_FORMAT));
@@ -235,13 +242,14 @@ class FulfillmentRequestBuilder
      * Builds the fulfillment details for shipment fulfillment types.
      *
      * @param Fulfillment $fulfillment The fulfillment model.
+     * @param string|null $timezone    The order location's timezone; null sends UTC.
      *
      * @throws InvalidSquareOrderException When shipment configuration is invalid.
      * @throws MissingPropertyException    When required shipment properties are missing.
      *
      * @return FulfillmentShipmentDetails
      */
-    public function buildShipmentDetails(Fulfillment $fulfillment): FulfillmentShipmentDetails
+    public function buildShipmentDetails(Fulfillment $fulfillment, ?string $timezone = null): FulfillmentShipmentDetails
     {
         /** @var ShipmentDetails $shipmentDetails */
         $shipmentDetails = $fulfillment->fulfillmentDetails;
@@ -261,7 +269,7 @@ class FulfillmentRequestBuilder
         $fulfillmentShipmentDetails->setInProgressAt($shipmentDetails->in_progress_at?->format(Constants::DATE_FORMAT));
         $fulfillmentShipmentDetails->setPackagedAt($shipmentDetails->packaged_at?->format(Constants::DATE_FORMAT));
         $fulfillmentShipmentDetails->setExpectedShippedAt(
-            $shipmentDetails->expected_shipped_at?->format(Constants::DATE_FORMAT)
+            $this->formatWallClock($shipmentDetails->expected_shipped_at, $timezone)
         );
         $fulfillmentShipmentDetails->setShippedAt($shipmentDetails->shipped_at?->format(Constants::DATE_FORMAT));
 
@@ -279,5 +287,46 @@ class FulfillmentRequestBuilder
         $fulfillmentShipmentDetails->setFailureReason($shipmentDetails->failure_reason);
 
         return $fulfillmentShipmentDetails;
+    }
+
+    /**
+     * Formats a scheduled fulfillment time for Square, anchored in the location's timezone.
+     *
+     * Scheduled times are stored as the location's wall-clock, not as a UTC instant, so the
+     * stored digits are re-read in that timezone. A missing or unknown timezone sends UTC.
+     *
+     * @param DateTimeInterface|null $wallClock The stored wall-clock time.
+     * @param string|null            $timezone  The location's timezone identifier.
+     *
+     * @return string|null
+     */
+    private function formatWallClock(?DateTimeInterface $wallClock, ?string $timezone): ?string
+    {
+        if ($wallClock === null) {
+            return null;
+        }
+
+        return Carbon::parse($wallClock->format('Y-m-d H:i:s'), $this->resolveTimezone($timezone))
+            ->format(Constants::DATE_FORMAT);
+    }
+
+    /**
+     * Resolves a timezone identifier, falling back to UTC when it is missing or invalid.
+     *
+     * @param string|null $timezone
+     *
+     * @return DateTimeZone
+     */
+    private function resolveTimezone(?string $timezone): DateTimeZone
+    {
+        if ($timezone === null || $timezone === '') {
+            return new DateTimeZone('UTC');
+        }
+
+        try {
+            return new DateTimeZone($timezone);
+        } catch (Exception) {
+            return new DateTimeZone('UTC');
+        }
     }
 }
