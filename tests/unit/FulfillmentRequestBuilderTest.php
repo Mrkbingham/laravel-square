@@ -2,6 +2,7 @@
 
 namespace Nikolag\Square\Tests\Unit;
 
+use Illuminate\Support\Facades\Log;
 use Nikolag\Square\Builders\SquareRequestBuilders\FulfillmentRequestBuilder;
 use Nikolag\Square\Facades\Square;
 use Nikolag\Square\Models\Fulfillment;
@@ -109,6 +110,26 @@ class FulfillmentRequestBuilderTest extends TestCase
     }
 
     /**
+     * Courier pickup and pickup expiry are instants Square reports, so they stay in UTC.
+     *
+     * @return void
+     */
+    public function test_courier_pickup_and_expiry_timestamps_are_not_re_anchored(): void
+    {
+        $delivery = $this->makeFulfillment(FulfillmentType::DELIVERY, ['courier_pickup_at' => '2026-07-15 06:30:00']);
+        $pickup = $this->makeFulfillment(FulfillmentType::PICKUP, ['expires_at' => '2026-07-15 09:00:00']);
+
+        $this->assertSame(
+            '2026-07-15T06:30:00+00:00',
+            $this->builder->buildDeliveryDetails($delivery, self::CHICAGO)->getCourierPickupAt()
+        );
+        $this->assertSame(
+            '2026-07-15T09:00:00+00:00',
+            $this->builder->buildPickupDetails($pickup, self::CHICAGO)->getExpiresAt()
+        );
+    }
+
+    /**
      * @return void
      */
     public function test_a_missing_timezone_keeps_the_utc_output(): void
@@ -127,11 +148,41 @@ class FulfillmentRequestBuilderTest extends TestCase
      */
     public function test_an_invalid_timezone_falls_back_to_utc(): void
     {
+        Log::spy();
         $fulfillment = $this->makeFulfillment(FulfillmentType::PICKUP, ['pickup_at' => '2026-07-15 07:00:00']);
 
         $details = $this->builder->buildPickupDetails($fulfillment, 'Not/AZone');
 
         $this->assertSame('2026-07-15T07:00:00+00:00', $details->getPickupAt());
+        Log::shouldHaveReceived('warning')->once();
+    }
+
+    /**
+     * A wall-clock skipped by the spring-forward gap moves later rather than earlier.
+     *
+     * @return void
+     */
+    public function test_a_wall_clock_inside_the_spring_forward_gap_moves_an_hour_later(): void
+    {
+        $fulfillment = $this->makeFulfillment(FulfillmentType::PICKUP, ['pickup_at' => '2026-03-08 02:30:00']);
+
+        $details = $this->builder->buildPickupDetails($fulfillment, self::CHICAGO);
+
+        $this->assertSame('2026-03-08T03:30:00-05:00', $details->getPickupAt());
+    }
+
+    /**
+     * A wall-clock repeated by the fall-back overlap resolves to its first, daylight-time occurrence.
+     *
+     * @return void
+     */
+    public function test_a_wall_clock_inside_the_fall_back_overlap_takes_the_daylight_offset(): void
+    {
+        $fulfillment = $this->makeFulfillment(FulfillmentType::PICKUP, ['pickup_at' => '2026-11-01 01:30:00']);
+
+        $details = $this->builder->buildPickupDetails($fulfillment, self::CHICAGO);
+
+        $this->assertSame('2026-11-01T01:30:00-05:00', $details->getPickupAt());
     }
 
     /**
@@ -155,12 +206,42 @@ class FulfillmentRequestBuilderTest extends TestCase
      */
     public function test_order_request_for_an_unknown_location_keeps_the_utc_output(): void
     {
+        Log::spy();
         $order = $this->createOrderWithPickupAt('2026-07-15 07:00:00');
 
         $request = Square::getSquareBuilder()->buildOrderRequest($order, 'L_UNKNOWN', 'USD');
 
         $pickupAt = $request->getOrder()->getFulfillments()[0]->getPickupDetails()->getPickupAt();
         $this->assertSame('2026-07-15T07:00:00+00:00', $pickupAt);
+        Log::shouldHaveReceived('warning')->once();
+    }
+
+    /**
+     * @return void
+     */
+    public function test_update_order_request_anchors_fulfillment_times_in_the_order_location_timezone(): void
+    {
+        factory(Location::class)->create(['square_id' => 'L_CHICAGO', 'timezone' => self::CHICAGO]);
+        $order = $this->createOrderWithPickupAt('2026-07-15 07:00:00');
+
+        $request = Square::getSquareBuilder()->buildUpdateOrderRequest($order, 'L_CHICAGO', 'USD', 1);
+
+        $pickupAt = $request->getOrder()->getFulfillments()[0]->getPickupDetails()->getPickupAt();
+        $this->assertSame('2026-07-15T07:00:00-05:00', $pickupAt);
+    }
+
+    /**
+     * @return void
+     */
+    public function test_calculate_order_request_anchors_fulfillment_times_in_the_order_location_timezone(): void
+    {
+        factory(Location::class)->create(['square_id' => 'L_CHICAGO', 'timezone' => self::CHICAGO]);
+        $order = $this->createOrderWithPickupAt('2026-07-15 07:00:00');
+
+        $request = Square::getSquareBuilder()->buildCalculateOrderRequest($order, 'L_CHICAGO', 'USD');
+
+        $pickupAt = $request->getOrder()->getFulfillments()[0]->getPickupDetails()->getPickupAt();
+        $this->assertSame('2026-07-15T07:00:00-05:00', $pickupAt);
     }
 
     /**

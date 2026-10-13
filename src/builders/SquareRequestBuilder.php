@@ -5,6 +5,7 @@ namespace Nikolag\Square\Builders;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Nikolag\Square\Builders\SquareRequestBuilders\FulfillmentRequestBuilder;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
@@ -933,6 +934,16 @@ class SquareRequestBuilder
      */
     private function locationTimezone(string $locationId): ?string
     {
-        return Location::where('square_id', $locationId)->value('timezone');
+        $timezone = Location::where('square_id', $locationId)->value('timezone');
+
+        if ($timezone === null || $timezone === '') {
+            Log::warning('No timezone is synced for Square location; sending fulfillment times in UTC.', [
+                'square_location_id' => $locationId,
+            ]);
+
+            return null;
+        }
+
+        return $timezone;
     }
 }

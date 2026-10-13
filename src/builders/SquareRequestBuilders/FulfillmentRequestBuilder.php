@@ -7,6 +7,7 @@ use DateTimeZone;
 use Exception;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Models\DeliveryDetails;
@@ -306,7 +307,8 @@ class FulfillmentRequestBuilder
             return null;
         }
 
-        return Carbon::parse($wallClock->format('Y-m-d H:i:s'), $this->resolveTimezone($timezone))
+        return Carbon::instance($wallClock)
+            ->shiftTimezone($this->resolveTimezone($timezone))
             ->format(Constants::DATE_FORMAT);
     }
 
@@ -326,6 +328,8 @@ class FulfillmentRequestBuilder
         try {
             return new DateTimeZone($timezone);
         } catch (Exception) {
+            Log::warning('Invalid location timezone; sending fulfillment times in UTC.', ['timezone' => $timezone]);
+
             return new DateTimeZone('UTC');
         }
     }
