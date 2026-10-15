@@ -325,7 +325,7 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @param string $locationId The location ID.
      *
      * @throws ApiException
-     * @throws Exception on non-2xx response
+     * @throws Exception    on non-2xx response
      *
      * @return RetrieveLocationResponse
      */
