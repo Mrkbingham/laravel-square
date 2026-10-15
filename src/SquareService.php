@@ -273,11 +273,19 @@ class SquareService extends CorePaymentService implements SquareServiceContract
     /**
      * List locations.
      *
+     * @throws Exception on non-2xx response
+     *
      * @return ListLocationsResponse
      */
     public function locations(): ListLocationsResponse
     {
-        return $this->config->locationsAPI()->listLocations()->getResult();
+        $apiResponse = $this->config->locationsAPI()->listLocations();
+
+        if (!$apiResponse->isSuccess()) {
+            throw $this->_handleApiResponseErrors($apiResponse);
+        }
+
+        return $apiResponse->getResult();
     }
 
     /**
@@ -317,12 +325,19 @@ class SquareService extends CorePaymentService implements SquareServiceContract
      * @param string $locationId The location ID.
      *
      * @throws ApiException
+     * @throws Exception    on non-2xx response
      *
      * @return RetrieveLocationResponse
      */
     public function retrieveLocation(string $locationId): RetrieveLocationResponse
     {
-        return $this->config->locationsAPI()->retrieveLocation($locationId)->getResult();
+        $apiResponse = $this->config->locationsAPI()->retrieveLocation($locationId);
+
+        if (!$apiResponse->isSuccess()) {
+            throw $this->_handleApiResponseErrors($apiResponse);
+        }
+
+        return $apiResponse->getResult();
     }
 
     /**
