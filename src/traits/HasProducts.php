@@ -161,7 +161,7 @@ trait HasProducts
      */
     public function taxes(): MorphToMany
     {
-        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::TAX_NAMESPACE)->distinct()->withPivot('scope');
+        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', (new (Constants::TAX_NAMESPACE))->getMorphClass())->distinct()->withPivot('scope');
     }
 
     /**
@@ -171,7 +171,7 @@ trait HasProducts
      */
     public function discounts(): MorphToMany
     {
-        return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::DISCOUNT_NAMESPACE)->distinct()->withPivot('scope');
+        return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', (new (Constants::DISCOUNT_NAMESPACE))->getMorphClass())->distinct()->withPivot('scope');
     }
 
     /**
@@ -181,6 +181,6 @@ trait HasProducts
      */
     public function serviceCharges(): MorphToMany
     {
-        return $this->morphToMany(Constants::SERVICE_CHARGE_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::SERVICE_CHARGE_NAMESPACE)->distinct()->withPivot('scope');
+        return $this->morphToMany(Constants::SERVICE_CHARGE_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', (new (Constants::SERVICE_CHARGE_NAMESPACE))->getMorphClass())->distinct()->withPivot('scope');
     }
 }

@@ -4,10 +4,13 @@ namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
 use Nikolag\Core\Models\Discount as CoreDiscount;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 use Nikolag\Square\Utils\Constants;
 
 class Discount extends CoreDiscount
 {
+    use ReportsCanonicalMorphType;
+
     /**
      * The attributes that are mass assignable.
      *

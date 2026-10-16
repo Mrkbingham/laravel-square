@@ -5,12 +5,15 @@ namespace Nikolag\Square\Models;
 use DateTimeInterface;
 use Illuminate\Validation\ValidationException;
 use Nikolag\Core\Models\Tax as CoreTax;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 use Nikolag\Square\Utils\Constants;
 use Square\Models\TaxCalculationPhase;
 use Square\Models\TaxInclusionType;
 
 class Tax extends CoreTax
 {
+    use ReportsCanonicalMorphType;
+
     /**
      * The attributes that are mass assignable.
      *

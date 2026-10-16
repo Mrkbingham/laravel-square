@@ -289,7 +289,7 @@ $factory->define(OrderProductModifierPivot::class, function (Faker\Generator $fa
 
         return [
             'modifiable_id'   => $modifier->id,
-            'modifiable_type' => get_class($modifier),
+            'modifiable_type' => $modifier->getMorphClass(),
             // Always assume the tests will associate the following fields prior to saving, generating orders and products
             // on the fly will likely cause issues that will be uncommon in production scenarios:
             // 'product_order_id'

@@ -4,10 +4,13 @@ namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
 use Nikolag\Core\Models\OrderProductPivot as IntermediateTable;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 use Nikolag\Square\Utils\Constants;
 
 class ModifierProductPivot extends IntermediateTable
 {
+    use ReportsCanonicalMorphType;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -117,7 +120,7 @@ class ModifierProductPivot extends IntermediateTable
      */
     public function taxes()
     {
-        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::TAX_NAMESPACE)->withPivot('scope');
+        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', (new (Constants::TAX_NAMESPACE))->getMorphClass())->withPivot('scope');
     }
 
     /**
@@ -127,7 +130,7 @@ class ModifierProductPivot extends IntermediateTable
      */
     public function discounts()
     {
-        return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::DISCOUNT_NAMESPACE)->withPivot('scope');
+        return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', (new (Constants::DISCOUNT_NAMESPACE))->getMorphClass())->withPivot('scope');
     }
 
     /**

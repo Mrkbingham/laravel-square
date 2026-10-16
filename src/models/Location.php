@@ -5,10 +5,13 @@ namespace Nikolag\Square\Models;
 use DateTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 use Square\Models\Location as SquareLocation;
 
 class Location extends Model
 {
+    use ReportsCanonicalMorphType;
+
     /**
      * The table associated with the model.
      *

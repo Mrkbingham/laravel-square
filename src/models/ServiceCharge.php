@@ -5,12 +5,15 @@ namespace Nikolag\Square\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 use Nikolag\Square\Utils\Constants;
 use Square\Models\OrderServiceChargeCalculationPhase;
 use Square\Models\OrderServiceChargeTreatmentType;
 
 class ServiceCharge extends Model
 {
+    use ReportsCanonicalMorphType;
+
     /**
      * The table associated with the model.
      *
@@ -167,7 +170,7 @@ class ServiceCharge extends Model
      */
     public function taxes()
     {
-        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::TAX_NAMESPACE)->withPivot('scope');
+        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', (new (Constants::TAX_NAMESPACE))->getMorphClass())->withPivot('scope');
     }
 
     /**

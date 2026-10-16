@@ -624,7 +624,7 @@ class SquareRequestBuilder
             // This comment acts as a placeholder in case this support is added to Square's APIs:
             // // Add text for free text modifiers
             // if (
-            //     $modifier->modifiable_type == Modifier::class
+            //     $modifier->modifiable_type == (new Modifier())->getMorphClass()
             //     && $modifier->modifiable->type == 'TEXT'
             // ) {
             //     // Text based modifiers are not yet supported by Square's APIs:
@@ -654,7 +654,7 @@ class SquareRequestBuilder
         $note = $product->note ?? '';
 
         foreach ($modifiers as $modifier) {
-            if ($modifier->modifiable_type == Modifier::class && $modifier->modifiable->type == 'TEXT') {
+            if ($modifier->modifiable_type == (new Modifier())->getMorphClass() && $modifier->modifiable->type == 'TEXT') {
                 $note .= ' '.$modifier->text;
             }
         }
