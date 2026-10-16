@@ -165,13 +165,13 @@ class MorphAliasesTest extends TestCase
     private function aliasVendorModels(): void
     {
         $aliases = [
-            Tax::class                => 'tax',
-            Discount::class           => 'discount',
-            ServiceCharge::class      => 'service_charge',
-            OrderProductPivot::class  => 'order_product',
+            Tax::class                 => 'tax',
+            Discount::class            => 'discount',
+            ServiceCharge::class       => 'service_charge',
+            OrderProductPivot::class   => 'order_product',
             OrderReturnLineItem::class => 'order_return_line_item',
-            Modifier::class           => 'modifier',
-            ModifierOption::class     => 'modifier_option',
+            Modifier::class            => 'modifier',
+            ModifierOption::class      => 'modifier_option',
         ];
 
         Relation::morphMap(array_flip($aliases) + ['order' => Order::class]);
