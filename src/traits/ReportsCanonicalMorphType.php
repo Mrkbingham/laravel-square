@@ -2,9 +2,6 @@
 
 namespace Nikolag\Square\Traits;
 
-use Illuminate\Database\ClassMorphViolationException;
-use Illuminate\Database\Eloquent\Relations\Pivot;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Nikolag\Square\Utils\MorphAliases;
 
 trait ReportsCanonicalMorphType
@@ -18,26 +15,6 @@ trait ReportsCanonicalMorphType
      */
     public function getMorphClass()
     {
-        $alias = MorphAliases::for(static::class);
-
-        if ($alias !== null) {
-            return $alias;
-        }
-
-        $morphMap = Relation::morphMap();
-
-        if (!empty($morphMap) && in_array(static::class, $morphMap)) {
-            return array_search(static::class, $morphMap, true);
-        }
-
-        if (static::class === Pivot::class) {
-            return static::class;
-        }
-
-        if (Relation::requiresMorphMap()) {
-            throw new ClassMorphViolationException($this);
-        }
-
-        return static::class;
+        return MorphAliases::for(static::class) ?? parent::getMorphClass();
     }
 }

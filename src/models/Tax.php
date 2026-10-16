@@ -7,6 +7,7 @@ use Illuminate\Validation\ValidationException;
 use Nikolag\Core\Models\Tax as CoreTax;
 use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\MorphAliases;
 use Square\Models\TaxCalculationPhase;
 use Square\Models\TaxInclusionType;
 
@@ -210,7 +211,7 @@ class Tax extends CoreTax
      */
     public function orders()
     {
-        return $this->morphToMany(config('nikolag.connections.square.order.namespace'), 'deductible', 'nikolag_deductibles', 'deductible_id', 'featurable_id');
+        return $this->morphToMany(config('nikolag.connections.square.order.namespace'), 'deductible', 'nikolag_deductibles', 'deductible_id', 'featurable_id')->withPivotValue('featurable_type', MorphAliases::morphTypeOf(config('nikolag.connections.square.order.namespace')));
     }
 
     /**
@@ -220,7 +221,7 @@ class Tax extends CoreTax
      */
     public function products()
     {
-        return $this->morphToMany(Constants::ORDER_PRODUCT_NAMESPACE, 'deductible', 'nikolag_deductibles', 'deductible_id', 'featurable_id');
+        return $this->morphToMany(Constants::ORDER_PRODUCT_NAMESPACE, 'deductible', 'nikolag_deductibles', 'deductible_id', 'featurable_id')->withPivotValue('featurable_type', MorphAliases::morphTypeOf(Constants::ORDER_PRODUCT_NAMESPACE));
     }
 
     //

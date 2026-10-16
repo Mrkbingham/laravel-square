@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\MorphAliases;
 use Square\Models\OrderServiceChargeCalculationPhase;
 use Square\Models\OrderServiceChargeTreatmentType;
 
@@ -150,7 +151,7 @@ class ServiceCharge extends Model
      */
     public function orders()
     {
-        return $this->morphToMany(config('nikolag.connections.square.order.namespace'), 'deductible', 'nikolag_deductibles', 'deductible_id', 'featurable_id');
+        return $this->morphToMany(config('nikolag.connections.square.order.namespace'), 'deductible', 'nikolag_deductibles', 'deductible_id', 'featurable_id')->withPivotValue('featurable_type', MorphAliases::morphTypeOf(config('nikolag.connections.square.order.namespace')));
     }
 
     /**
@@ -160,7 +161,7 @@ class ServiceCharge extends Model
      */
     public function products()
     {
-        return $this->morphToMany(Constants::ORDER_PRODUCT_NAMESPACE, 'deductible', 'nikolag_deductibles', 'deductible_id', 'featurable_id');
+        return $this->morphToMany(Constants::ORDER_PRODUCT_NAMESPACE, 'deductible', 'nikolag_deductibles', 'deductible_id', 'featurable_id')->withPivotValue('featurable_type', MorphAliases::morphTypeOf(Constants::ORDER_PRODUCT_NAMESPACE));
     }
 
     /**
@@ -170,7 +171,7 @@ class ServiceCharge extends Model
      */
     public function taxes()
     {
-        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', (new (Constants::TAX_NAMESPACE))->getMorphClass())->withPivot('scope');
+        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', MorphAliases::morphTypeOf(Constants::TAX_NAMESPACE))->withPivot('scope');
     }
 
     /**
