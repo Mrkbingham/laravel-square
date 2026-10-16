@@ -7,6 +7,7 @@ use Illuminate\Support\Arr;
 use Nikolag\Square\Exceptions\InvalidSquareOrderException;
 use Nikolag\Square\Exceptions\MissingPropertyException;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\MorphAliases;
 use stdClass;
 
 class OrderBuilder
@@ -61,8 +62,6 @@ class OrderBuilder
      */
     public function buildOrderFromOrderCopy(Model $order, stdClass $orderCopy): Model
     {
-        // Order namespace
-        $orderClass = config('nikolag.connections.square.order.namespace');
         // Set payment type to square
         $order->payment_service_type = 'square';
         // Set location if it's not included in the order
@@ -90,7 +89,7 @@ class OrderBuilder
                 $discount->save();
                 // If order doesn't have discount, add it
                 if (!$order->hasDiscount($discount)) {
-                    $order->discounts()->attach($discount->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::DISCOUNT_NAMESPACE, 'scope' => $scope]);
+                    $order->discounts()->attach($discount->id, ['deductible_type' => MorphAliases::morphTypeOf(Constants::DISCOUNT_NAMESPACE), 'scope' => $scope]);
                 }
             }
         }
@@ -107,7 +106,7 @@ class OrderBuilder
                 $tax->save();
                 // If order doesn't have tax, add it
                 if (!$order->hasTax($tax)) {
-                    $order->taxes()->attach($tax->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::TAX_NAMESPACE, 'scope' => $scope]);
+                    $order->taxes()->attach($tax->id, ['deductible_type' => MorphAliases::morphTypeOf(Constants::TAX_NAMESPACE), 'scope' => $scope]);
                 }
             }
         }
@@ -124,7 +123,7 @@ class OrderBuilder
                 $serviceCharge->save();
                 // If order doesn't have service charge, add it
                 if (!$order->hasServiceCharge($serviceCharge)) {
-                    $order->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => $scope]);
+                    $order->serviceCharges()->attach($serviceCharge->id, ['deductible_type' => MorphAliases::morphTypeOf(Constants::SERVICE_CHARGE_NAMESPACE), 'scope' => $scope]);
                 }
             }
         }
@@ -179,11 +178,11 @@ class OrderBuilder
                         $discount->save();
                         // If order doesn't have discount, add it
                         if (!$order->hasDiscount($discount)) {
-                            $order->discounts()->attach($discount->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::DISCOUNT_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                            $order->discounts()->attach($discount->id, ['deductible_type' => MorphAliases::morphTypeOf(Constants::DISCOUNT_NAMESPACE), 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                         // If product doesn't have discount, add it
                         if (!$productPivot->hasDiscount($discount)) {
-                            $productPivot->discounts()->attach($discount->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::DISCOUNT_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                            $productPivot->discounts()->attach($discount->id, ['deductible_type' => MorphAliases::morphTypeOf(Constants::DISCOUNT_NAMESPACE), 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                     }
 
@@ -193,11 +192,11 @@ class OrderBuilder
                         $tax->save();
                         // If order doesn't have tax, add it
                         if (!$order->hasTax($tax)) {
-                            $order->taxes()->attach($tax->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::TAX_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                            $order->taxes()->attach($tax->id, ['deductible_type' => MorphAliases::morphTypeOf(Constants::TAX_NAMESPACE), 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                         // If product doesn't have tax, add it
                         if (!$productPivot->hasTax($tax)) {
-                            $productPivot->taxes()->attach($tax->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::TAX_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                            $productPivot->taxes()->attach($tax->id, ['deductible_type' => MorphAliases::morphTypeOf(Constants::TAX_NAMESPACE), 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                     }
 
@@ -207,11 +206,11 @@ class OrderBuilder
                         $serviceCharge->save();
                         // If order doesn't have service charge, add it
                         if (!$order->hasServiceCharge($serviceCharge)) {
-                            $order->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => $orderClass, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                            $order->serviceCharges()->attach($serviceCharge->id, ['deductible_type' => MorphAliases::morphTypeOf(Constants::SERVICE_CHARGE_NAMESPACE), 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                         // If product doesn't have service charge, add it
                         if (!$productPivot->hasServiceCharge($serviceCharge)) {
-                            $productPivot->serviceCharges()->attach($serviceCharge->id, ['featurable_type' => Constants::ORDER_PRODUCT_NAMESPACE, 'deductible_type' => Constants::SERVICE_CHARGE_NAMESPACE, 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
+                            $productPivot->serviceCharges()->attach($serviceCharge->id, ['deductible_type' => MorphAliases::morphTypeOf(Constants::SERVICE_CHARGE_NAMESPACE), 'scope' => Constants::DEDUCTIBLE_SCOPE_PRODUCT]);
                         }
                     }
                 }

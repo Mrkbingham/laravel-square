@@ -6,9 +6,12 @@ use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 
 class Modifier extends Model
 {
+    use ReportsCanonicalMorphType;
+
     /**
      * The table associated with the model.
      *

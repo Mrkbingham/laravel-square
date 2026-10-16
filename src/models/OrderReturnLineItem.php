@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Carbon;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
+use Nikolag\Square\Utils\MorphAliases;
 
 /**
  * Nikolag\Square\Models\OrderReturnLineItem.
@@ -45,6 +47,8 @@ use Illuminate\Support\Carbon;
  */
 class OrderReturnLineItem extends Model
 {
+    use ReportsCanonicalMorphType;
+
     /**
      * The table associated with the model.
      *
@@ -140,7 +144,7 @@ class OrderReturnLineItem extends Model
      */
     public function taxes(): MorphToMany
     {
-        return $this->morphToMany(Tax::class, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Tax::class)->withPivot('scope');
+        return $this->morphToMany(Tax::class, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', MorphAliases::morphTypeOf(Tax::class))->withPivot('scope');
     }
 
     /**
@@ -150,7 +154,7 @@ class OrderReturnLineItem extends Model
      */
     public function discounts(): MorphToMany
     {
-        return $this->morphToMany(Discount::class, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Discount::class)->withPivot('scope');
+        return $this->morphToMany(Discount::class, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', MorphAliases::morphTypeOf(Discount::class))->withPivot('scope');
     }
 
     /**
@@ -160,7 +164,7 @@ class OrderReturnLineItem extends Model
      */
     public function serviceCharges(): MorphToMany
     {
-        return $this->morphToMany(ServiceCharge::class, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', ServiceCharge::class)->withPivot('scope');
+        return $this->morphToMany(ServiceCharge::class, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', MorphAliases::morphTypeOf(ServiceCharge::class))->withPivot('scope');
     }
 
     //

@@ -5,11 +5,13 @@ namespace Nikolag\Square\Models;
 use DateTimeInterface;
 use Nikolag\Core\Models\Customer as CoreCustomer;
 use Nikolag\Square\Traits\HasAddress;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 use Nikolag\Square\Utils\Constants;
 
 class Customer extends CoreCustomer
 {
     use HasAddress;
+    use ReportsCanonicalMorphType;
     /**
      * The model's attributes.
      *

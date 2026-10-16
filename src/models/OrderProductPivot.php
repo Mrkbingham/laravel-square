@@ -4,10 +4,14 @@ namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
 use Nikolag\Core\Models\OrderProductPivot as IntermediateTable;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\MorphAliases;
 
 class OrderProductPivot extends IntermediateTable
 {
+    use ReportsCanonicalMorphType;
+
     /**
      * Indicates if the model should be timestamped.
      *
@@ -176,7 +180,7 @@ class OrderProductPivot extends IntermediateTable
      */
     public function taxes()
     {
-        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::TAX_NAMESPACE)->withPivot('scope');
+        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', MorphAliases::morphTypeOf(Constants::TAX_NAMESPACE))->withPivot('scope');
     }
 
     /**
@@ -186,7 +190,7 @@ class OrderProductPivot extends IntermediateTable
      */
     public function discounts()
     {
-        return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::DISCOUNT_NAMESPACE)->withPivot('scope');
+        return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', MorphAliases::morphTypeOf(Constants::DISCOUNT_NAMESPACE))->withPivot('scope');
     }
 
     /**
@@ -196,7 +200,7 @@ class OrderProductPivot extends IntermediateTable
      */
     public function serviceCharges()
     {
-        return $this->morphToMany(Constants::SERVICE_CHARGE_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::SERVICE_CHARGE_NAMESPACE)->withPivot('scope');
+        return $this->morphToMany(Constants::SERVICE_CHARGE_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', MorphAliases::morphTypeOf(Constants::SERVICE_CHARGE_NAMESPACE))->withPivot('scope');
     }
 
     /**

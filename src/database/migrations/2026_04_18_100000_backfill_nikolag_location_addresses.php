@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Nikolag\Square\Models\Location;
+use Nikolag\Square\Utils\MorphAliases;
 
 return new class() extends Migration {
     /**
@@ -13,7 +14,7 @@ return new class() extends Migration {
     public function up(): void
     {
         $existingIds = DB::table('nikolag_addresses')
-            ->where('addressable_type', Location::class)
+            ->where('addressable_type', MorphAliases::morphTypeOf(Location::class))
             ->pluck('addressable_id')
             ->flip();
 
@@ -37,7 +38,7 @@ return new class() extends Migration {
                     }
 
                     $batch[] = [
-                        'addressable_type'                => Location::class,
+                        'addressable_type'                => MorphAliases::morphTypeOf(Location::class),
                         'addressable_id'                  => $location->id,
                         'address_line_1'                  => $addressData['address_line_1'] ?? null,
                         'address_line_2'                  => $addressData['address_line_2'] ?? null,
@@ -68,7 +69,7 @@ return new class() extends Migration {
     public function down(): void
     {
         DB::table('nikolag_addresses')
-            ->where('addressable_type', Location::class)
+            ->where('addressable_type', MorphAliases::morphTypeOf(Location::class))
             ->delete();
     }
 };

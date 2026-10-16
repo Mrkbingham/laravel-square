@@ -13,6 +13,7 @@ use Nikolag\Square\Models\Location;
 use Nikolag\Square\Models\Modifier;
 use Nikolag\Square\Models\Product;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\MorphAliases;
 use Nikolag\Square\Utils\Util;
 use Square\Models\BatchDeleteCatalogObjectsRequest;
 use Square\Models\Builders\BatchDeleteCatalogObjectsRequestBuilder;
@@ -624,7 +625,7 @@ class SquareRequestBuilder
             // This comment acts as a placeholder in case this support is added to Square's APIs:
             // // Add text for free text modifiers
             // if (
-            //     $modifier->modifiable_type == Modifier::class
+            //     $modifier->modifiable_type == MorphAliases::morphTypeOf(Modifier::class)
             //     && $modifier->modifiable->type == 'TEXT'
             // ) {
             //     // Text based modifiers are not yet supported by Square's APIs:
@@ -652,9 +653,10 @@ class SquareRequestBuilder
     public function buildNote(Product $product, Collection $modifiers): string
     {
         $note = $product->note ?? '';
+        $modifierType = MorphAliases::morphTypeOf(Modifier::class);
 
         foreach ($modifiers as $modifier) {
-            if ($modifier->modifiable_type == Modifier::class && $modifier->modifiable->type == 'TEXT') {
+            if ($modifier->modifiable_type == $modifierType && $modifier->modifiable->type == 'TEXT') {
                 $note .= ' '.$modifier->text;
             }
         }

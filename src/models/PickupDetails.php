@@ -4,10 +4,13 @@ namespace Nikolag\Square\Models;
 
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 use Nikolag\Square\Utils\Constants;
 
 class PickupDetails extends Model
 {
+    use ReportsCanonicalMorphType;
+
     /**
      * The table associated with the model.
      *

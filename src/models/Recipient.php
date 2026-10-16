@@ -5,10 +5,12 @@ namespace Nikolag\Square\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Nikolag\Square\Traits\HasAddress;
+use Nikolag\Square\Traits\ReportsCanonicalMorphType;
 
 class Recipient extends Model
 {
     use HasAddress;
+    use ReportsCanonicalMorphType;
 
     /**
      * The table associated with the model.

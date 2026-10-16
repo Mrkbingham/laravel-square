@@ -14,6 +14,7 @@ use Nikolag\Square\Models\ServiceCharge;
 use Nikolag\Square\Models\Tax;
 use Nikolag\Square\Models\Transaction;
 use Nikolag\Square\Utils\Constants;
+use Nikolag\Square\Utils\MorphAliases;
 
 trait HasProducts
 {
@@ -161,7 +162,7 @@ trait HasProducts
      */
     public function taxes(): MorphToMany
     {
-        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::TAX_NAMESPACE)->distinct()->withPivot('scope');
+        return $this->morphToMany(Constants::TAX_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', MorphAliases::morphTypeOf(Constants::TAX_NAMESPACE))->distinct()->withPivot('scope');
     }
 
     /**
@@ -171,7 +172,7 @@ trait HasProducts
      */
     public function discounts(): MorphToMany
     {
-        return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::DISCOUNT_NAMESPACE)->distinct()->withPivot('scope');
+        return $this->morphToMany(Constants::DISCOUNT_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', MorphAliases::morphTypeOf(Constants::DISCOUNT_NAMESPACE))->distinct()->withPivot('scope');
     }
 
     /**
@@ -181,6 +182,6 @@ trait HasProducts
      */
     public function serviceCharges(): MorphToMany
     {
-        return $this->morphToMany(Constants::SERVICE_CHARGE_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', Constants::SERVICE_CHARGE_NAMESPACE)->distinct()->withPivot('scope');
+        return $this->morphToMany(Constants::SERVICE_CHARGE_NAMESPACE, 'featurable', 'nikolag_deductibles', 'featurable_id', 'deductible_id')->where('deductible_type', MorphAliases::morphTypeOf(Constants::SERVICE_CHARGE_NAMESPACE))->distinct()->withPivot('scope');
     }
 }
